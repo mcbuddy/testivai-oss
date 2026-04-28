@@ -1,0 +1,16 @@
+{
+  "name": "@testivai-oss/example-playwright-local",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local-mode example: Playwright + @testivai/witness-playwright with HTML report",
+  "scripts": {
+    "test": "playwright test",
+    "report": "open visual-report/index.html"
+  },
+  "dependencies": {
+    "@testivai/witness-playwright": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

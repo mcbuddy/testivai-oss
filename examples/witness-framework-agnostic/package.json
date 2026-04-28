@@ -1,0 +1,14 @@
+{
+  "name": "@testivai-oss/example-witness-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Framework-agnostic example: capture + diff with the @testivai/witness CLI",
+  "scripts": {
+    "init": "testivai init",
+    "capture": "testivai capture",
+    "approve": "testivai approve"
+  },
+  "dependencies": {
+    "@testivai/witness": "workspace:*"
+  }
+}

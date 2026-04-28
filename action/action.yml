@@ -1,0 +1,33 @@
+name: 'TestivAI Visual Report'
+description: 'Post TestivAI visual regression results to PRs and commit status'
+author: 'TestivAI'
+
+branding:
+  icon: 'eye'
+  color: 'blue'
+
+inputs:
+  github-token:
+    description: 'GitHub token for posting comments and statuses'
+    required: true
+    default: ${{ github.token }}
+  report-dir:
+    description: 'Directory containing results.json and report.html'
+    required: true
+    default: 'visual-report'
+  fail-on-diff:
+    description: 'Fail the workflow if visual changes are detected'
+    required: false
+    default: 'false'
+  upload-artifact:
+    description: 'Upload the report as an artifact'
+    required: false
+    default: 'true'
+  artifact-retention-days:
+    description: 'Number of days to retain the artifact'
+    required: false
+    default: '30'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

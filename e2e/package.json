@@ -1,0 +1,18 @@
+{
+  "name": "@testivai-oss/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OSS smoke E2E - exercises the public surface of @testivai/witness end-to-end",
+  "scripts": {
+    "test": "tsx src/smoke.test.ts"
+  },
+  "dependencies": {
+    "@testivai/witness": "workspace:*",
+    "@testivai/witness-playwright": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}
