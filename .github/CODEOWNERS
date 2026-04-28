@@ -1,0 +1,15 @@
+# Default owner for everything
+*                           @testivai/maintainers
+
+# Package-specific owners
+/packages/common/           @testivai/maintainers
+/packages/witness/          @testivai/maintainers
+/packages/playwright/       @testivai/maintainers
+/action/                    @testivai/maintainers
+
+# Docs
+/docs/                      @testivai/maintainers
+
+# CI / release
+/.github/                   @testivai/maintainers
+/CUTOVER.md                 @testivai/maintainers

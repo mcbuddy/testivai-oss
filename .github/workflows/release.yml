@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+          - '@testivai/common'
+          - '@testivai/witness'
+          - '@testivai/witness-playwright'
+      tag:
+        description: 'npm dist-tag'
+        required: true
+        default: 'next'
+        type: choice
+        options:
+          - 'next'
+          - 'latest'
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.package }} (${{ inputs.tag }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Run OSS smoke E2E
+        run: pnpm e2e
+
+      - name: Publish
+        run: pnpm --filter ${{ inputs.package }} publish --tag ${{ inputs.tag }} --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
