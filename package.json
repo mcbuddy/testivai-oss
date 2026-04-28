@@ -1,0 +1,30 @@
+{
+  "name": "testivai-oss",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TestivAI Open Source SDKs - local-first visual regression testing",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/testivai/testivai-oss.git"
+  },
+  "homepage": "https://github.com/testivai/testivai-oss#readme",
+  "bugs": {
+    "url": "https://github.com/testivai/testivai-oss/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/**\" run build",
+    "test": "pnpm -r --filter \"./packages/**\" run test",
+    "test:unit": "pnpm -r --filter \"./packages/**\" run test:unit",
+    "clean": "pnpm -r --filter \"./packages/**\" run clean",
+    "pack:dry": "pnpm -r --filter \"./packages/**\" exec npm pack --dry-run",
+    "e2e": "pnpm --filter @testivai-oss/e2e run test"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
