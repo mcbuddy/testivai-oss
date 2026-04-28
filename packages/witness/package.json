@@ -1,0 +1,102 @@
+{
+  "name": "@testivai/witness",
+  "version": "1.0.1",
+  "description": "Framework-agnostic visual regression testing CLI for TestivAI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./diff": {
+      "types": "./dist/diff/index.d.ts",
+      "default": "./dist/diff/index.js"
+    },
+    "./baselines": {
+      "types": "./dist/baselines/index.d.ts",
+      "default": "./dist/baselines/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "default": "./dist/config/index.js"
+    },
+    "./report": {
+      "types": "./dist/report/index.d.ts",
+      "default": "./dist/report/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "diff": ["dist/diff/index.d.ts"],
+      "baselines": ["dist/baselines/index.d.ts"],
+      "config": ["dist/config/index.d.ts"],
+      "report": ["dist/report/index.d.ts"]
+    }
+  },
+  "bin": {
+    "testivai": "./dist/bin/testivai.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "test": "jest",
+    "test:unit": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "testivai",
+    "visual-regression",
+    "testing",
+    "browser",
+    "framework-agnostic",
+    "cypress",
+    "selenium",
+    "webdriverio",
+    "puppeteer"
+  ],
+  "author": "TestivAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/testivai/testivai-oss.git",
+    "directory": "packages/witness"
+  },
+  "bugs": {
+    "url": "https://github.com/testivai/testivai-oss/issues"
+  },
+  "homepage": "https://github.com/testivai/testivai-oss/tree/main/packages/witness#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@testivai/common": "workspace:*",
+    "chalk": "^4.1.2",
+    "chrome-remote-interface": "^0.33.0",
+    "commander": "^11.0.0",
+    "inquirer": "^8.2.6",
+    "ora": "^7.0.0",
+    "simple-git": "^3.20.0",
+    "ws": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^8.2.10",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

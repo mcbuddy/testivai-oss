@@ -1,0 +1,64 @@
+{
+  "name": "@testivai/common",
+  "version": "0.2.1",
+  "description": "Shared utilities for TestivAI SDKs and CLI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "test": "jest",
+    "test:unit": "jest",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "testivai",
+    "visual-regression",
+    "testing"
+  ],
+  "author": "TestivAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/testivai/testivai-oss.git",
+    "directory": "packages/common"
+  },
+  "bugs": {
+    "url": "https://github.com/testivai/testivai-oss/issues"
+  },
+  "homepage": "https://github.com/testivai/testivai-oss/tree/main/packages/common#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.10.0",
+    "jest": "^30.2.0",
+    "playwright": "^1.40.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "playwright": "^1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  }
+}

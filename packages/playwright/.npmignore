@@ -1,0 +1,10 @@
+__tests__
+src
+examples
+*.ts
+*.map
+*.spec.*
+*.test.*
+dist/witness/
+node_modules
+coverage

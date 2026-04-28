@@ -1,0 +1,72 @@
+{
+  "name": "@testivai/witness-playwright",
+  "version": "1.1.1",
+  "description": "Playwright sensor for Testivai Visual Regression Test system",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "testivai": "dist/cli/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./reporter": "./dist/reporter-entry.js",
+    "./cli": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:unit": "jest"
+  },
+  "keywords": [
+    "playwright",
+    "visual-regression",
+    "testing",
+    "testivai"
+  ],
+  "author": "TestivAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/testivai/testivai-oss.git",
+    "directory": "packages/playwright"
+  },
+  "bugs": {
+    "url": "https://github.com/testivai/testivai-oss/issues"
+  },
+  "homepage": "https://github.com/testivai/testivai-oss/tree/main/packages/playwright#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "dependencies": {
+    "@testivai/common": "workspace:*",
+    "@testivai/witness": "workspace:*",
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "cross-fetch": "^4.0.0",
+    "fs-extra": "^11.2.0",
+    "sharp": "^0.34.5",
+    "simple-git": "^3.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/fs-extra": "^11.0.4",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.10.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}
