@@ -27,13 +27,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/testivai/testivai-oss.git",
+    "url": "git+https://github.com/mcbuddy/testivai-oss.git",
     "directory": "packages/playwright"
   },
   "bugs": {
-    "url": "https://github.com/testivai/testivai-oss/issues"
+    "url": "https://github.com/mcbuddy/testivai-oss/issues"
   },
-  "homepage": "https://github.com/testivai/testivai-oss/tree/main/packages/playwright#readme",
+  "homepage": "https://github.com/mcbuddy/testivai-oss/tree/main/packages/playwright#readme",
   "publishConfig": {
     "access": "public"
   },

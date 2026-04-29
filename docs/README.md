@@ -33,4 +33,4 @@ Sections that mention `TESTIVAI_API_KEY`, the dashboard, or the REVEAL Engine cl
 
 ## Source of Truth
 
-The canonical OSS docs live in this repo at [`/docs`](https://github.com/testivai/testivai-oss/tree/main/docs). Issues and contributions are welcome via [GitHub Issues](https://github.com/testivai/testivai-oss/issues).
+The canonical OSS docs live in this repo at [`/docs`](https://github.com/mcbuddy/testivai-oss/tree/main/docs). Issues and contributions are welcome via [GitHub Issues](https://github.com/mcbuddy/testivai-oss/issues).

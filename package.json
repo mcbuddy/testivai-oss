@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/testivai/testivai-oss.git"
+    "url": "git+https://github.com/mcbuddy/testivai-oss.git"
   },
-  "homepage": "https://github.com/testivai/testivai-oss#readme",
+  "homepage": "https://github.com/mcbuddy/testivai-oss#readme",
   "bugs": {
-    "url": "https://github.com/testivai/testivai-oss/issues"
+    "url": "https://github.com/mcbuddy/testivai-oss/issues"
   },
   "engines": {
     "node": ">=18.0.0"

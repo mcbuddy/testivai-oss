@@ -431,6 +431,6 @@ MIT
 
 ## Support
 
-- Documentation: https://github.com/testivai/testivai-oss/tree/main/packages/witness
-- Issues: https://github.com/testivai/testivai-oss/issues
+- Documentation: https://github.com/mcbuddy/testivai-oss/tree/main/packages/witness
+- Issues: https://github.com/mcbuddy/testivai-oss/issues
 - Website: https://testiv.ai

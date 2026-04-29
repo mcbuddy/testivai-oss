@@ -10,7 +10,7 @@ This project follows the [Contributor Covenant v2.1](https://www.contributor-cov
 
 ## Reporting
 
-Report unacceptable behavior to the maintainers via [GitHub Issues](https://github.com/testivai/testivai-oss/issues) or by emailing the project maintainers.
+Report unacceptable behavior to the maintainers via [GitHub Issues](https://github.com/mcbuddy/testivai-oss/issues) or by emailing the project maintainers.
 
 ## Enforcement
 

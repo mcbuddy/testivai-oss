@@ -38,7 +38,7 @@ pnpm test
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/testivai/testivai-oss/issues). Include:
+Use [GitHub Issues](https://github.com/mcbuddy/testivai-oss/issues). Include:
 - SDK package and version
 - Node.js version
 - Reproduction steps
