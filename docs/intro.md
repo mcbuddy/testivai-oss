@@ -6,108 +6,111 @@ slug: /intro
 
 # Getting Started
 
-Add visual regression testing to your existing test suite in under 5 minutes. TestivAI works with **any framework that controls Chrome** — no framework-specific SDK required.
+Add visual regression testing to your test suite in under 5 minutes — fully local, no account needed.
 
 ## Prerequisites
 
-- Node.js 18+
-- Chrome browser (local or in CI)
-- Your existing test suite (Cypress, Selenium, WebdriverIO, pytest, JUnit, etc.)
+- Node.js 18+ (Node 20+ recommended)
+- A test suite that drives a real browser (Playwright, Selenium, WebdriverIO, Cypress, Puppeteer, etc.)
 
 ---
 
-## 1. Install the CLI
+## Path A — Playwright (recommended)
+
+Playwright has a dedicated TestivAI SDK that integrates as a reporter. No CLI wrapper, no Chrome remote debugging port — just install and add a capture call.
+
+### 1. Install
 
 ```bash
-npm install -g @testivai/witness
+npm install -D @testivai/witness-playwright @playwright/test
+npx playwright install chromium
 ```
+
+### 2. Enable local mode
+
+Create `.testivai/config.json` at your project root:
+
+```json
+{
+  "mode": "local",
+  "threshold": 0.1,
+  "reportDir": "visual-report",
+  "autoOpen": false
+}
+```
+
+This tells the reporter to compare locally and write an HTML report instead of uploading to the cloud. **No API key required.**
+
+### 3. Add the reporter
+
+In `playwright.config.ts`:
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [
+    ['list'],
+    ['@testivai/witness-playwright/reporter'],
+  ],
+});
+```
+
+### 4. Add a capture call
+
+```ts
+import { test } from '@playwright/test';
+import { testivai } from '@testivai/witness-playwright';
+
+test('homepage looks correct', async ({ page }, testInfo) => {
+  await page.goto('http://localhost:3000');
+  await testivai.witness(page, testInfo, 'homepage');
+});
+```
+
+### 5. Run
+
+```bash
+npx playwright test
+```
+
+**First run:** baselines are created under `.testivai/baselines/<name>/screenshot.png` and the report shows `New: N`. Commit them to git.
+**Later runs:** screenshots are compared, the HTML report opens at `visual-report/index.html`, and `results.json` is produced.
 
 ---
 
-## 2. Run the Setup Wizard
+## Path B — Other Frameworks (Cypress, Selenium, WebdriverIO, pytest, etc.)
+
+For non-Playwright frameworks, use the framework-agnostic CLI from `@testivai/witness`. It wraps your test command and captures via Chrome's DevTools Protocol.
+
+### 1. Install the CLI
+
+```bash
+npm install -D @testivai/witness
+```
+
+### 2. Run the setup wizard
 
 ```bash
 npx testivai init
 ```
 
-The interactive wizard asks two questions and generates helper files for your framework:
+The wizard detects your framework and generates helper files plus a `testivai.config.ts`.
 
-```
-  ╔══════════════════════════════════════╗
-  ║   TestivAI Visual Regression Setup   ║
-  ╚══════════════════════════════════════╝
+### 3. Add a capture call
 
-? Select your language:   › JavaScript / TypeScript
-? Select your test framework:   › Cypress
-? Where are your test files?   › cypress/e2e
-
-  ✓ Created: cypress/support/testivai-witness.js
-  ✓ Created: cypress/support/testivai-plugin.js
-  ✓ Created: cypress/e2e/visual-example.cy.js
-  ✓ Created: testivai.config.ts
-```
-
-:::tip Playwright users
-If Playwright is detected, `testivai init` will direct you to the dedicated Playwright SDK: `@testivai/witness-playwright`
-:::
-
----
-
-## 3. Authenticate
-
-Get your API key from the [TestivAI Dashboard](https://dashboard.testiv.ai) and export it in your shell:
-
-```bash
-export TESTIVAI_API_KEY=your-api-key
-```
-
-To make it permanent, add the export to your shell profile (`~/.zshrc` or `~/.bashrc`).
-
-For the Witness SDK, you can also store the key locally:
-
-```bash
-npx testivai auth <your-api-key>
-```
-
-:::warning Shell environment variables only
-TestivAI SDKs read configuration from **shell environment variables only**. Do not use `.env` files or `dotenv` — the SDKs will not load them.
-:::
-
----
-
-## 4. Add a Capture Call
-
-The wizard generates an example file. The key call is `witness('name')` — add it anywhere in your test at the moment you want a snapshot:
-
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
-<Tabs groupId="framework">
-<TabItem value="cypress" label="Cypress">
+The wizard generates an example file. The key call is `witness('name')`:
 
 ```js
+// Cypress
 it('homepage looks correct', () => {
   cy.visit('/');
   cy.witness('homepage');
 });
 ```
 
-</TabItem>
-<TabItem value="selenium-js" label="Selenium (JS)">
-
-```js
-const { witness } = require('../testivai-witness');
-
-it('homepage looks correct', async () => {
-  await driver.get('http://localhost:3000');
-  await witness(driver, 'homepage');
-});
-```
-
-</TabItem>
-<TabItem value="pytest" label="pytest">
-
 ```python
+# pytest
 from testivai_witness import witness
 
 def test_homepage(driver):
@@ -115,36 +118,63 @@ def test_homepage(driver):
     witness(driver, 'homepage')
 ```
 
-</TabItem>
-</Tabs>
-
----
-
-## 5. Run
-
-Wrap your normal test command with `testivai run`:
+### 4. Run
 
 ```bash
 # Cypress
-testivai run "cypress run --browser chrome"
+npx testivai run "cypress run --browser chrome"
 
 # pytest
-testivai run "pytest tests/ -v"
-
-# JUnit (Maven)
-testivai run "mvn test"
+npx testivai run "pytest tests/ -v"
 ```
 
-That's it. TestivAI captures screenshots and metadata automatically — then runs REVEAL Engine™ analysis in the cloud.
+The wrapper boots Chrome with `--remote-debugging-port=9222`, runs your tests, captures screenshots, and writes baselines + report.
 
 ---
 
-## What Happens Next
+## What gets produced (local mode)
 
-| First run | Baselines are created — no diff yet |
+| Path | Purpose |
 |---|---|
-| Subsequent runs | Each snapshot is compared against the baseline |
-| Visual change detected | Dashboard shows side-by-side diff with AI analysis |
-| You approve/reject | Baseline is updated or the change is flagged |
+| `.testivai/baselines/<name>/screenshot.png` | Committed baseline (track in git) |
+| `.testivai/temp/` | Transient per-run captures (gitignore this) |
+| `visual-report/index.html` | Self-contained HTML diff report |
+| `visual-report/results.json` | Machine-readable summary |
 
-→ **[See how it works under the hood](/how-it-works)**
+Recommended `.gitignore`:
+
+```
+.testivai/temp/
+visual-report/
+```
+
+---
+
+## Optional — Cloud Mode
+
+If you want AI-powered change analysis (REVEAL Engine™), a hosted dashboard, and a team approval workflow, opt into [TestivAI Cloud](https://testiv.ai):
+
+```bash
+export TESTIVAI_API_KEY=your-api-key
+```
+
+Or store it locally for the witness CLI:
+
+```bash
+npx testivai auth <your-api-key>
+```
+
+:::warning Shell environment variables only
+TestivAI SDKs read configuration from **shell environment variables only**. `.env` files and `dotenv` are not loaded.
+:::
+
+When `TESTIVAI_API_KEY` is set, runs upload evidence to the cloud instead of generating a local report. Removing the variable (or removing it from CI) reverts to local mode automatically.
+
+---
+
+## What's Next
+
+- **[How It Works](./how-it-works.md)** — local pipeline, capture layers, diff algorithm
+- **[Frameworks](./frameworks/overview.md)** — per-framework setup guides
+- **[Concepts: Baselines](./concepts/baselines.md)** — baseline lifecycle & approval
+- **[Guides: CI/CD](./guides/ci-cd.md)** — running OSS lane in GitHub Actions

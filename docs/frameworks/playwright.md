@@ -23,7 +23,8 @@ npm install @playwright/test
 ## 1. Install the Playwright SDK
 
 ```bash
-npm install @testivai/witness-playwright
+npm install -D @testivai/witness-playwright @playwright/test
+npx playwright install chromium
 ```
 
 :::info No CLI required
@@ -32,7 +33,28 @@ Playwright uses a dedicated SDK, not the `@testivai/witness` CLI. Do not run `te
 
 ---
 
-## 2. Authenticate
+## 2. Choose your mode
+
+The Playwright SDK supports two modes. **You only need to configure one.**
+
+### Mode A — Local mode (recommended for OSS)
+
+No API key required. Diffs and reports are produced on disk.
+
+Create `.testivai/config.json` at your project root:
+
+```json
+{
+  "mode": "local",
+  "threshold": 0.1,
+  "reportDir": "visual-report",
+  "autoOpen": false
+}
+```
+
+The reporter detects this file and switches to local mode automatically. **Skip to step 3.**
+
+### Mode B — Cloud mode (optional, hosted)
 
 Get your API key from the [TestivAI Dashboard](https://dashboard.testiv.ai) and set it as a **shell environment variable**:
 
@@ -174,13 +196,16 @@ GitHub Actions example:
 
 ## What gets captured
 
-Each `testivai.witness()` call captures a comprehensive snapshot for REVEAL Engine™ analysis:
+| Data | Local mode | Cloud mode |
+|---|---|---|
+| Full-page PNG screenshot | ✅ | ✅ |
+| Subdirectory layout (`temp/<name>/screenshot.png`) | ✅ | — |
+| Page HTML (structure) | — | ✅ |
+| Computed styles | — | ✅ |
+| Bounding boxes / layout JSON | — | ✅ |
+| Performance metrics (Web Vitals) | — | ✅ |
 
-| Data | Description |
-|---|---|
-| Screenshot | Full-viewport PNG |
-| Page data | Structural and visual metadata |
-| Performance | Web Vitals and browser metrics |
+In local mode, only the screenshot is captured. Cloud mode additionally captures structural and performance data for REVEAL Engine™ analysis.
 
 ---
 
@@ -194,8 +219,11 @@ The Playwright SDK uses Playwright's native `page.screenshot()`, `page.evaluate(
 
 ## Version History
 
-- **v1.0.0** (Latest) - REVEAL Engine terminology rename, npm history wiped for IP protection
-- **v0.3.1** - Fixed dist build (v0.3.0 shipped stale compiled code)
-- **v0.3.0** - Fixed reporter crash, added debug logging, unified format with Witness SDK
-- **v0.2.0** - Added structure analysis and styles fingerprinting
-- **v0.1.13** - Initial public release
+- **v1.1.3** (Latest) — Fix: local-mode snapshots now write the subdirectory layout expected by `@testivai/witness/report`, so the HTML report is correctly populated.
+- **v1.1.2** — First release from [`testivai-oss`](https://github.com/mcbuddy/testivai-oss); URLs/workspace topology updates only.
+- **v1.1.0** — Local mode (config-driven) added.
+- **v1.0.0** — REVEAL Engine terminology rename.
+- **v0.3.1** — Fixed dist build.
+- **v0.3.0** — Reporter crash fix, debug logging, unified format with Witness SDK.
+- **v0.2.0** — Structure analysis and styles fingerprinting.
+- **v0.1.13** — Initial public release.
