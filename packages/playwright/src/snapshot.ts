@@ -317,6 +317,15 @@ export async function snapshot(
     }
   }
 
+  // 1.5. Local mode: also place the screenshot in the layout expected by
+  //      @testivai/witness/report (subdirectory keyed by snapshot name).
+  //      This is what `BaselineStore.listTemp()` and `compareAll()` enumerate.
+  if (isLocalMode) {
+    const localSnapshotDir = path.join(outputDir, snapshotName);
+    await fs.ensureDir(localSnapshotDir);
+    await fs.copyFile(screenshotPath, path.join(localSnapshotDir, 'screenshot.png'));
+  }
+
   // 2. Dump page structure (HTML) - skip in local mode
   // @renamed: domPath → structurePath (IP protection)
   let structurePath = '';
