@@ -91,7 +91,7 @@
     "chrome-remote-interface": "^0.34.0",
     "commander": "^11.0.0",
     "inquirer": "^8.2.6",
-    "ora": "^7.0.0",
+    "ora": "^9.4.0",
     "simple-git": "^3.20.0",
     "ws": "^8.20.1"
   },
