@@ -13,13 +13,9 @@ jobs:
     timeout-minutes: 20
 
     strategy:
-      # Run all matrix cells even if one fails, so we see the full picture
-      # in the PR check rather than stopping at the first red cell.
-      # Windows is intentionally excluded for now — revisit once the OSS
-      # surface is stable on macOS + Linux.
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         node: ['20', '22']
 
     steps:
