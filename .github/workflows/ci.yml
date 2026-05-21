@@ -26,11 +26,11 @@ jobs:
       - uses: actions/checkout@v6
 
       # Setup pnpm BEFORE setup-node so setup-node's pnpm cache can find it.
-      # No `version:` — pnpm/action-setup@v4 reads it from the
+      # No `version:` — pnpm/action-setup@v6 reads it from the
       # `packageManager` field in package.json (currently "pnpm@10.0.0").
       # Specifying both errors out: ERR_PNPM_BAD_PM_VERSION.
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
