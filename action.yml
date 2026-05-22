@@ -20,17 +20,21 @@ inputs:
     required: false
     default: 'false'
   upload-artifact:
-    description: 'Upload the report as an artifact'
+    description: 'Upload the visual report as a workflow artifact'
     required: false
     default: 'true'
   artifact-retention-days:
     description: 'Number of days to retain the artifact'
     required: false
     default: '30'
-  embed-images:
-    description: 'Upload diff images to GitHub and embed baseline/current/diff in the PR comment'
+  artifact-name:
+    description: 'Name of the uploaded artifact'
     required: false
-    default: 'true'
+    default: 'testivai-visual-report'
+
+outputs:
+  artifact-id:
+    description: 'ID of the uploaded artifact (empty if upload-artifact is false)'
 
 runs:
   using: 'node20'

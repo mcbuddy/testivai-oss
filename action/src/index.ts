@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { buildComment, buildEmptyComment } from './comment';
 import { determineStatus, STATUS_CONTEXT } from './status';
-import { ResultsData, SnapshotImageUrls } from './types';
+import { ResultsData } from './types';
 
 /**
  * Recursively collect all file paths under a directory.
@@ -22,110 +22,6 @@ function collectFilesRecursively(dir: string): string[] {
   });
 }
 
-/**
- * Upload a single PNG file to GitHub's issue asset endpoint.
- *
- * GitHub's web UI uses https://uploads.github.com/repos/{owner}/{repo}/issues/{number}/assets
- * to attach drag-dropped images to issues/PRs. The returned `contentUrl` is a
- * publicly-embeddable `github.com/user-attachments/assets/{uuid}` URL.
- *
- * Fails silently (returns null) — callers degrade to text-only comments.
- */
-async function uploadImageAsset(
-  token: string,
-  owner: string,
-  repo: string,
-  prNumber: number,
-  imagePath: string,
-  filename: string,
-): Promise<string | null> {
-  try {
-    if (!fs.existsSync(imagePath)) return null;
-    const imageBuffer = fs.readFileSync(imagePath);
-
-    const url = `https://uploads.github.com/repos/${owner}/${repo}/issues/${prNumber}/assets`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'image/png',
-        'Content-Disposition': `attachment; name="${filename}"; filename="${filename}"`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-      body: imageBuffer,
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      core.info(`Image upload failed for ${filename}: HTTP ${response.status} ${response.statusText}${body ? ` — ${body.slice(0, 200)}` : ''}`);
-      return null;
-    }
-
-    const data = await response.json() as { contentUrl?: string; url?: string };
-    const resultUrl = data.contentUrl ?? data.url ?? null;
-    if (!resultUrl) {
-      core.info(`Image upload for ${filename}: no URL in response — keys: ${Object.keys(data).join(', ')}`);
-    }
-    return resultUrl;
-  } catch (err) {
-    core.info(`Image upload error for ${filename}: ${err}`);
-    return null;
-  }
-}
-
-/**
- * Upload baseline, current, and diff PNGs for every changed snapshot.
- * Paths are resolved from results.json relative to reportDir.
- *
- * Returns a Map of snapshot name → { baseline?, current?, diff? }.
- * Missing or failed uploads are simply omitted from the map entry.
- */
-async function uploadSnapshotImages(
-  token: string,
-  owner: string,
-  repo: string,
-  prNumber: number,
-  reportDir: string,
-  results: ResultsData,
-): Promise<Map<string, SnapshotImageUrls>> {
-  const imageMap = new Map<string, SnapshotImageUrls>();
-  const changedSnapshots = results.snapshots.filter(s => s.status === 'changed');
-
-  for (const snapshot of changedSnapshots) {
-    const images: SnapshotImageUrls = {};
-    const slug = snapshot.name.replace(/[^a-z0-9_-]/gi, '-');
-
-    if (snapshot.baselinePath) {
-      images.baseline = await uploadImageAsset(
-        token, owner, repo, prNumber,
-        path.join(reportDir, snapshot.baselinePath),
-        `${slug}-baseline.png`,
-      ) ?? undefined;
-    }
-    if (snapshot.currentPath) {
-      images.current = await uploadImageAsset(
-        token, owner, repo, prNumber,
-        path.join(reportDir, snapshot.currentPath),
-        `${slug}-current.png`,
-      ) ?? undefined;
-    }
-    if (snapshot.diffPath) {
-      images.diff = await uploadImageAsset(
-        token, owner, repo, prNumber,
-        path.join(reportDir, snapshot.diffPath),
-        `${slug}-diff.png`,
-      ) ?? undefined;
-    }
-
-    if (images.baseline || images.current || images.diff) {
-      imageMap.set(snapshot.name, images);
-    }
-  }
-
-  return imageMap;
-}
-
 async function run(): Promise<void> {
   try {
     // Read inputs
@@ -134,7 +30,7 @@ async function run(): Promise<void> {
     const failOnDiff = core.getBooleanInput('fail-on-diff');
     const uploadArtifact = core.getBooleanInput('upload-artifact');
     const artifactRetentionDays = parseInt(core.getInput('artifact-retention-days'), 10);
-    const embedImages = core.getBooleanInput('embed-images');
+    const artifactName = core.getInput('artifact-name') || 'testivai-visual-report';
 
     core.info(`Reading results from ${reportDir}...`);
 
@@ -168,12 +64,12 @@ async function run(): Promise<void> {
     }
 
     // Upload artifact if enabled (recursive so images/ and pending-baselines/ are included)
+    let artifactUrl: string | undefined;
     if (uploadArtifact) {
       const artifactClient = new artifact.DefaultArtifactClient();
-      const artifactName = 'testivai-visual-report';
       const files = collectFilesRecursively(reportDir);
 
-      await artifactClient.uploadArtifact(
+      const uploadResult = await artifactClient.uploadArtifact(
         artifactName,
         files,
         reportDir,
@@ -181,6 +77,19 @@ async function run(): Promise<void> {
       );
 
       core.info(`Uploaded ${files.length} files as artifact '${artifactName}'`);
+
+      // Build a direct link to this workflow run's artifacts tab
+      const runId = process.env.GITHUB_RUN_ID;
+      const context = github.context;
+      if (runId) {
+        artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+        core.info(`Report link: ${artifactUrl}`);
+      }
+
+      // Expose artifact ID as an output for downstream steps
+      if (uploadResult.id) {
+        core.setOutput('artifact-id', String(uploadResult.id));
+      }
     }
 
     // Get GitHub context
@@ -191,36 +100,16 @@ async function run(): Promise<void> {
     if (context.eventName === 'pull_request' && context.payload.pull_request) {
       const prNumber = context.payload.pull_request.number;
 
-      // Upload diff images to GitHub CDN (used to embed inline in the comment)
-      let imageUrls: Map<string, SnapshotImageUrls> | undefined;
-      if (embedImages && results.summary.changed > 0) {
-        core.info('Uploading diff images for PR comment...');
-        imageUrls = await uploadSnapshotImages(
-          token,
-          context.repo.owner,
-          context.repo.repo,
-          prNumber,
-          reportDir,
-          results,
-        );
-        const uploaded = imageUrls.size;
-        if (uploaded > 0) {
-          core.info(`Uploaded images for ${uploaded} changed snapshot(s)`);
-        } else {
-          core.info('Image upload returned no URLs — comment will be text-only');
-        }
-      }
-
       const { data: comments } = await octokit.rest.issues.listComments({
         owner: context.repo.owner,
         repo: context.repo.repo,
         issue_number: prNumber,
       });
 
-      // Build comment (with images if available)
+      // Build comment — includes artifact link when available
       const commentBody = results.snapshots.length === 0
-        ? buildEmptyComment()
-        : buildComment(results, imageUrls);
+        ? buildEmptyComment(artifactUrl)
+        : buildComment(results, artifactUrl);
 
       // Look for existing comment to upsert
       const existingComment = comments.find(c =>

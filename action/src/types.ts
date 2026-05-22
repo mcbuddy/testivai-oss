@@ -52,15 +52,3 @@ export interface ResultsData {
   snapshots: SnapshotResult[];
 }
 
-/**
- * GitHub CDN URLs for a snapshot's images, returned by uploadSnapshotImages().
- * All fields are optional — only images that uploaded successfully are set.
- */
-export interface SnapshotImageUrls {
-  /** Baseline reference image (what it should look like). */
-  baseline?: string;
-  /** Current image captured by CI. */
-  current?: string;
-  /** Pixel diff image (changed pixels highlighted in pink). */
-  diff?: string;
-}
