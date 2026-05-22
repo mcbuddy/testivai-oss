@@ -71,7 +71,7 @@ ${summaryLine} — **${summary.total} total**
 
   // Artifact link — gives reviewers direct access to baseline/current/diff images
   if (artifactUrl) {
-    comment += `> 📊 [View diff images & full report](${artifactUrl}) → download the \`testivai-visual-report\` artifact\n\n`;
+    comment += `> 📦 [Download visual report ZIP](${artifactUrl}) — contains baseline, current, and diff images\n\n`;
   }
 
   // Changed snapshots — approve commands + DOM hints
@@ -119,7 +119,7 @@ ${domHint}
  */
 export function buildEmptyComment(artifactUrl?: string): string {
   const link = artifactUrl
-    ? `\n> 📊 [View workflow run](${artifactUrl})\n`
+    ? `\n> 📦 [Download visual report ZIP](${artifactUrl})\n`
     : '';
 
   return `${UPSERT_MARKER}

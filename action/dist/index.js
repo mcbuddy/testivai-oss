@@ -81456,7 +81456,7 @@ ${summaryLine} — **${summary.total} total**
 `;
     // Artifact link — gives reviewers direct access to baseline/current/diff images
     if (artifactUrl) {
-        comment += `> 📊 [View diff images & full report](${artifactUrl}) → download the \`testivai-visual-report\` artifact\n\n`;
+        comment += `> 📦 [Download visual report ZIP](${artifactUrl}) — contains baseline, current, and diff images\n\n`;
     }
     // Changed snapshots — approve commands + DOM hints
     const changedSnapshots = snapshots.filter(s => s.status === 'changed');
@@ -81497,7 +81497,7 @@ ${domHint}
  */
 function buildEmptyComment(artifactUrl) {
     const link = artifactUrl
-        ? `\n> 📊 [View workflow run](${artifactUrl})\n`
+        ? `\n> 📦 [Download visual report ZIP](${artifactUrl})\n`
         : '';
     return `${UPSERT_MARKER}
 
@@ -81616,12 +81616,18 @@ async function run() {
             const files = collectFilesRecursively(reportDir);
             const uploadResult = await artifactClient.uploadArtifact(artifactName, files, reportDir, { retentionDays: artifactRetentionDays });
             core.info(`Uploaded ${files.length} files as artifact '${artifactName}'`);
-            // Build a direct link to this workflow run's artifacts tab
+            // Build a direct ZIP download link for the artifact
             const runId = process.env.GITHUB_RUN_ID;
             const context = github.context;
-            if (runId) {
-                artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+            if (runId && uploadResult.id) {
+                // Direct link triggers artifact ZIP download
+                artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${uploadResult.id}`;
                 core.info(`Report link: ${artifactUrl}`);
+            }
+            else if (runId) {
+                // Fallback: link to the workflow run page (artifact ID unavailable)
+                artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+                core.info(`Report link (fallback): ${artifactUrl}`);
             }
             // Expose artifact ID as an output for downstream steps
             if (uploadResult.id) {

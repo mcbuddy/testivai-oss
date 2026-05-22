@@ -78,12 +78,17 @@ async function run(): Promise<void> {
 
       core.info(`Uploaded ${files.length} files as artifact '${artifactName}'`);
 
-      // Build a direct link to this workflow run's artifacts tab
+      // Build a direct ZIP download link for the artifact
       const runId = process.env.GITHUB_RUN_ID;
       const context = github.context;
-      if (runId) {
-        artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+      if (runId && uploadResult.id) {
+        // Direct link triggers artifact ZIP download
+        artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${uploadResult.id}`;
         core.info(`Report link: ${artifactUrl}`);
+      } else if (runId) {
+        // Fallback: link to the workflow run page (artifact ID unavailable)
+        artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+        core.info(`Report link (fallback): ${artifactUrl}`);
       }
 
       // Expose artifact ID as an output for downstream steps
