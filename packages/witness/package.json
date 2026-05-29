@@ -90,7 +90,7 @@
     "chalk": "^4.1.2",
     "chrome-remote-interface": "^0.34.0",
     "commander": "^11.0.0",
-    "inquirer": "^8.2.6",
+    "inquirer": "^14.0.1",
     "ora": "^9.4.0",
     "pngjs": "^7.0.0",
     "simple-git": "^3.20.0",
