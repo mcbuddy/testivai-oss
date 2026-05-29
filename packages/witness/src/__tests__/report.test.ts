@@ -185,4 +185,86 @@ describe('Report Generator', () => {
       expect(html).toContain('No snapshots found');
     });
   });
+
+  describe('T3.9 - OSS noise warning in HTML report', () => {
+    it('should include the OSS mode notice in the sidebar', () => {
+      generateReport({
+        projectRoot: tmpDir,
+        reportDir: 'visual-report',
+        autoOpen: false,
+      });
+
+      const html = fs.readFileSync(
+        path.join(tmpDir, 'visual-report', 'index.html'),
+        'utf-8',
+      );
+
+      expect(html).toContain('oss-notice');
+      expect(html).toContain('OSS mode');
+      expect(html).toContain('pixel-exact');
+    });
+
+    it('should mention threshold config option in the notice', () => {
+      generateReport({
+        projectRoot: tmpDir,
+        reportDir: 'visual-report',
+        autoOpen: false,
+      });
+
+      const html = fs.readFileSync(
+        path.join(tmpDir, 'visual-report', 'index.html'),
+        'utf-8',
+      );
+
+      expect(html).toContain('threshold');
+      expect(html).toContain('.testivai/config.json');
+    });
+
+    it('should mention ignoreSelectors config option in the notice', () => {
+      generateReport({
+        projectRoot: tmpDir,
+        reportDir: 'visual-report',
+        autoOpen: false,
+      });
+
+      const html = fs.readFileSync(
+        path.join(tmpDir, 'visual-report', 'index.html'),
+        'utf-8',
+      );
+
+      expect(html).toContain('ignoreSelectors');
+    });
+
+    it('should include a link to TestivAI Cloud in the notice', () => {
+      generateReport({
+        projectRoot: tmpDir,
+        reportDir: 'visual-report',
+        autoOpen: false,
+      });
+
+      const html = fs.readFileSync(
+        path.join(tmpDir, 'visual-report', 'index.html'),
+        'utf-8',
+      );
+
+      expect(html).toContain('https://testiv.ai');
+    });
+
+    it('should render the renderHtml template with OSS notice directly', () => {
+      const data: ReportData = {
+        version: '2.0.0',
+        timestamp: new Date().toISOString(),
+        summary: { total: 0, passed: 0, changed: 0, newSnapshots: 0 },
+        snapshots: [],
+      };
+
+      const html = renderHtml(data);
+
+      expect(html).toContain('oss-notice');
+      expect(html).toContain('OSS mode');
+      expect(html).toContain('ignoreSelectors');
+      expect(html).toContain('threshold');
+      expect(html).toContain('testiv.ai');
+    });
+  });
 });

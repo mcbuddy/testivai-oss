@@ -21,6 +21,15 @@ export interface LocalConfig {
   baselinesDir?: string;
   /** Directory for report output. Default: 'visual-report' */
   reportDir?: string;
+  /**
+   * CSS selectors for elements to hide during screenshot capture.
+   * Matched elements are set to `visibility: hidden` in both baseline and
+   * candidate runs, so dynamic content (version badges, timestamps, ads)
+   * never contributes to the diff.
+   *
+   * Example: ["[data-testivai-ignore]", ".version-badge", "#live-chat"]
+   */
+  ignoreSelectors?: string[];
 }
 
 const DEFAULT_CONFIG: LocalConfig = {

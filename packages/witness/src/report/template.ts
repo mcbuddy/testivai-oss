@@ -105,6 +105,12 @@ export function renderHtml(data: ReportData): string {
     .zoom-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
 
     /* Empty state */
+    .oss-notice { margin-top: 16px; padding: 12px 14px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; font-size: 11px; color: #8b949e; line-height: 1.6; }
+    .oss-notice h4 { margin: 0 0 8px; font-size: 11px; color: #e6edf3; }
+    .oss-notice p { margin: 0 0 6px; }
+    .oss-notice p:last-child { margin-bottom: 0; }
+    .oss-notice code { background: #0d1117; border: 1px solid #30363d; border-radius: 3px; padding: 1px 4px; font-size: 10px; color: #79c0ff; }
+    .oss-notice a { color: #58a6ff; }
     .empty { text-align: center; padding: 48px; color: #8b949e; }
     .empty .icon { font-size: 48px; margin-bottom: 16px; }
   </style>
@@ -132,6 +138,16 @@ export function renderHtml(data: ReportData): string {
       <h3>Need AI-powered analysis?</h3>
       <p>TestivAI Cloud adds smart matching, AI verdicts, and team collaboration.</p>
       <a href="https://testiv.ai" target="_blank">Learn More</a>
+    </div>
+
+    <div class="oss-notice">
+      <h4>⚠️ OSS mode — pixel-exact</h4>
+      <p>Dynamic content (images, fonts, animations) may cause false positives. The <strong>💡 DOM unchanged</strong> hint identifies likely render noise.</p>
+      <p>To reduce noise:<br>
+        • Raise <code>threshold</code> in <code>.testivai/config.json</code><br>
+        • Add <code>ignoreSelectors</code> for dynamic elements
+      </p>
+      <p><a href="https://testiv.ai" target="_blank">TestivAI Cloud</a> uses AI-powered noise filtering.</p>
     </div>
   </aside>
 

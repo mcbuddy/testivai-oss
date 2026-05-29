@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [0897932]
+  - @testivai/witness@1.1.0
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [d37a2bc]
+  - @testivai/witness@1.0.4
+
 ## 0.1.1
 
 ### Patch Changes

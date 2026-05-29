@@ -116,13 +116,16 @@ runs:
 
         echo "Looking for latest TestivAI OSS run on branch: $PR_BRANCH"
 
-        # Find the most recent completed run for this branch that has our artifact
+        # Find the most recent completed OSS Visual Regression run for this branch
+        # Filter by workflowName so we don't accidentally pick a CI Tests run
+        # which has no visual-report artifact.
         RUN_ID=$(gh run list \
-          --repo  "$GITHUB_REPOSITORY" \
-          --branch "$PR_BRANCH" \
-          --limit  10 \
-          --json  databaseId,conclusion,workflowName \
-          --jq    '[.[] | select(.conclusion != null and .conclusion != "cancelled")] | .[0].databaseId // empty')
+          --repo     "$GITHUB_REPOSITORY" \
+          --branch   "$PR_BRANCH" \
+          --workflow "playwright-oss.yml" \
+          --limit    10 \
+          --json     databaseId,conclusion \
+          --jq       '[.[] | select(.conclusion != null and .conclusion != "cancelled")] | .[0].databaseId // empty')
 
         if [ -z "$RUN_ID" ]; then
           echo "::error::No completed workflow run found for branch '$PR_BRANCH'. Run the visual regression tests first."
@@ -220,10 +223,8 @@ runs:
 
         # Build a compact snapshot list for the commit message
         SNAPSHOT_LINE=$(echo "$APPROVED" | tr ' ' ', ')
-        git commit -m "chore(baselines): approve visual snapshots
-
-Approved by @$ACTOR via PR comment.
-Snapshots: $SNAPSHOT_LINE"
+        COMMIT_MSG="chore(baselines): approve visual snapshots"$'\n\n'"Approved by @${ACTOR} via PR comment."$'\n'"Snapshots: ${SNAPSHOT_LINE}"
+        git commit -m "$COMMIT_MSG"
 
         git push
 

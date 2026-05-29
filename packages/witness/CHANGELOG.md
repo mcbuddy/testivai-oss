@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- 0897932: feat: OSS noise warning in HTML report + ignoreSelectors support
+
+  **HTML report** — adds an "OSS mode — pixel-exact" notice in the sidebar
+  explaining that dynamic content may cause false positives, how to reduce
+  noise (`threshold`, `ignoreSelectors`), and a pointer to TestivAI Cloud
+  for AI-powered noise filtering.
+
+  **ignoreSelectors** — new config option that hides matched CSS elements
+  (via `visibility: hidden`) before the screenshot is taken, so dynamic
+  content never contributes to the diff. Works in both baseline and
+  candidate runs so hidden areas are always identical.
+
+  Configure globally in `.testivai/config.json`:
+
+  ```json
+  { "ignoreSelectors": [".version-badge", "[data-testivai-ignore]"] }
+  ```
+
+  Or per-snapshot in the test:
+
+  ```ts
+  await testivai.witness(page, testInfo, "home", {
+    ignoreSelectors: ["#live-chat-widget"],
+  });
+  ```
+
+## 1.0.4
+
+### Patch Changes
+
+- d37a2bc: fix: properly decode PNG files before pixel diff
+
+  The diff image in the visual report was rendering as a broken image
+  because the compare engine was treating compressed PNG buffers as raw
+  RGBA pixel data. Added `pngjs` to decode PNG → RGBA before diffing
+  and encode the diff output back to a valid PNG file. Diff percentages
+  and diff heatmap images in the HTML report now display correctly.
+
 ## 1.0.3
 
 ### Patch Changes

@@ -100,4 +100,61 @@ describe('Local Config', () => {
       expect(isLocalMode(tmpDir)).toBe(false);
     });
   });
+
+  describe('T2.20 - ignoreSelectors field', () => {
+    it('should default to undefined when not specified', () => {
+      const config = loadLocalConfig(tmpDir);
+      expect(config.ignoreSelectors).toBeUndefined();
+    });
+
+    it('should load ignoreSelectors array from config.json', () => {
+      const configDir = path.join(tmpDir, '.testivai');
+      fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(configDir, 'config.json'),
+        JSON.stringify({ ignoreSelectors: ['.version-badge', '#live-chat'] }),
+      );
+
+      const config = loadLocalConfig(tmpDir);
+      expect(config.ignoreSelectors).toEqual(['.version-badge', '#live-chat']);
+    });
+
+    it('should persist ignoreSelectors via createDefaultConfig', () => {
+      const selectors = ['[data-testivai-ignore]', '.ads-banner'];
+      createDefaultConfig(tmpDir, { ignoreSelectors: selectors });
+
+      const configPath = getConfigPath(tmpDir);
+      const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(raw.ignoreSelectors).toEqual(selectors);
+
+      // Round-trip: loadLocalConfig should return same array
+      const loaded = loadLocalConfig(tmpDir);
+      expect(loaded.ignoreSelectors).toEqual(selectors);
+    });
+
+    it('should accept an empty ignoreSelectors array', () => {
+      const configDir = path.join(tmpDir, '.testivai');
+      fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(configDir, 'config.json'),
+        JSON.stringify({ ignoreSelectors: [] }),
+      );
+
+      const config = loadLocalConfig(tmpDir);
+      expect(config.ignoreSelectors).toEqual([]);
+    });
+
+    it('should preserve other config fields when ignoreSelectors is set', () => {
+      createDefaultConfig(tmpDir, {
+        threshold: 0.05,
+        failOnDiff: true,
+        ignoreSelectors: ['.badge'],
+      });
+
+      const config = loadLocalConfig(tmpDir);
+      expect(config.threshold).toBe(0.05);
+      expect(config.failOnDiff).toBe(true);
+      expect(config.ignoreSelectors).toEqual(['.badge']);
+    });
+  });
 });

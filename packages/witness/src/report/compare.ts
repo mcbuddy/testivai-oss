@@ -6,6 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { PNG } from 'pngjs';
 import { diff as diffEngine } from '../diff';
 import { domDiff } from '../diff/dom-diff';
 import { BaselineStore } from '../baselines/store';
@@ -113,10 +114,27 @@ function computeDomSignal(
 }
 
 /**
+ * Decode a PNG buffer to raw RGBA pixel data using pngjs.
+ */
+function decodePng(buffer: Buffer): { data: Buffer; width: number; height: number } {
+  const png = PNG.sync.read(buffer);
+  return { data: png.data, width: png.width, height: png.height };
+}
+
+/**
+ * Encode raw RGBA pixel data back to a PNG buffer.
+ */
+function encodePng(data: Buffer, width: number, height: number): Buffer {
+  const png = new PNG({ width, height });
+  png.data = data;
+  return PNG.sync.write(png);
+}
+
+/**
  * Compare two PNG buffers.
  *
- * If buffers are identical bytes, returns passed immediately.
- * Otherwise attempts pixel-level diff using the diff engine.
+ * Decodes both PNGs to raw RGBA, runs the pixel-level diff engine,
+ * writes a valid diff PNG, and returns a SnapshotResult.
  */
 function compareBuffers(
   baselineBuffer: Buffer,
@@ -125,7 +143,7 @@ function compareBuffers(
   snapshotImagesDir: string,
   threshold: number,
 ): SnapshotResult {
-  // Quick byte-level comparison
+  // Quick byte-level comparison — identical files need no decoding
   if (baselineBuffer.equals(candidateBuffer)) {
     return {
       name,
@@ -138,35 +156,33 @@ function compareBuffers(
     };
   }
 
-  // Buffers differ — attempt pixel-level diff
-  // We assume raw RGBA pixel data with known dimensions
-  // In practice, we need to decode PNGs first. For now, treat as raw RGBA.
-  // The actual PNG decoding will be added when fast-png is available.
   try {
-    // Try to use as raw RGBA data
-    // Calculate dimensions assuming square-ish aspect ratio
-    const pixelCount = baselineBuffer.length / 4;
-    const width = Math.ceil(Math.sqrt(pixelCount));
-    const height = Math.ceil(pixelCount / width);
+    // Decode PNG → raw RGBA so the diff engine gets real pixel data
+    const baseline = decodePng(baselineBuffer);
+    const candidate = decodePng(candidateBuffer);
+
+    // Use baseline dimensions for the diff canvas; pad/crop candidate if needed
+    const width = baseline.width;
+    const height = baseline.height;
     const expectedLen = width * height * 4;
 
-    // Pad buffers if needed
     const baseline8 = new Uint8ClampedArray(expectedLen);
-    baseline8.set(new Uint8ClampedArray(baselineBuffer.buffer, baselineBuffer.byteOffset, Math.min(baselineBuffer.length, expectedLen)));
+    baseline8.set(new Uint8ClampedArray(baseline.data.buffer, baseline.data.byteOffset,
+      Math.min(baseline.data.length, expectedLen)));
+
     const candidate8 = new Uint8ClampedArray(expectedLen);
-    candidate8.set(new Uint8ClampedArray(candidateBuffer.buffer, candidateBuffer.byteOffset, Math.min(candidateBuffer.length, expectedLen)));
+    candidate8.set(new Uint8ClampedArray(candidate.data.buffer, candidate.data.byteOffset,
+      Math.min(candidate.data.length, expectedLen)));
+
     const diffOutput = new Uint8ClampedArray(expectedLen);
 
     const diffResult = diffEngine(baseline8, candidate8, diffOutput, width, height, { threshold });
 
-    // Write diff image (raw RGBA for now)
+    // Encode the diff RGBA back to a valid PNG and write it
+    const diffPngBuffer = encodePng(Buffer.from(diffOutput.buffer), width, height);
     const diffPath = path.join(snapshotImagesDir, 'diff.png');
-    fs.writeFileSync(diffPath, Buffer.from(diffOutput.buffer));
+    fs.writeFileSync(diffPath, diffPngBuffer);
 
-    // We already know the raw bytes differ (byte-equal returns early above).
-    // If the pixel diff still reports identical (sub-threshold), the images
-    // are visually equivalent but binary-different — still flag as "changed"
-    // so the user is aware.
     const status: SnapshotStatus = 'changed';
     const diffPercent = diffResult.diffPercent > 0 ? diffResult.diffPercent : 0.01;
 
@@ -180,8 +196,9 @@ function compareBuffers(
       currentPath: `images/${name}/current.png`,
       diffPath: `images/${name}/diff.png`,
     };
-  } catch {
-    // If pixel diff fails (e.g., not raw RGBA), fall back to binary comparison
+  } catch (err) {
+    // PNG decode failed (corrupt file, unexpected format) — report as changed
+    // without a diff image so the user can investigate manually
     return {
       name,
       status: 'changed',

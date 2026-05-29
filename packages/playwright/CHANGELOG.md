@@ -1,5 +1,61 @@
 # Changelog
 
+## 1.2.1
+
+### Patch Changes
+
+- db80bc5: refactor: extract ignoreSelectors logic into pure testable helper module
+
+  Move the `collectIgnoreSelectors`, `buildIgnoreSelectorsCSS`, and
+  `readWitnessConfigSelectors` functions from inline code inside `snapshot.ts`
+  into a dedicated `src/config/ignore-selectors.ts` module.
+
+  No behaviour change — the logic is identical. The refactor makes the
+  three-source selector merge and CSS generation unit-testable without
+  a browser (26 unit tests added covering all edge cases).
+
+## 1.2.0
+
+### Minor Changes
+
+- 0897932: feat: OSS noise warning in HTML report + ignoreSelectors support
+
+  **HTML report** — adds an "OSS mode — pixel-exact" notice in the sidebar
+  explaining that dynamic content may cause false positives, how to reduce
+  noise (`threshold`, `ignoreSelectors`), and a pointer to TestivAI Cloud
+  for AI-powered noise filtering.
+
+  **ignoreSelectors** — new config option that hides matched CSS elements
+  (via `visibility: hidden`) before the screenshot is taken, so dynamic
+  content never contributes to the diff. Works in both baseline and
+  candidate runs so hidden areas are always identical.
+
+  Configure globally in `.testivai/config.json`:
+
+  ```json
+  { "ignoreSelectors": [".version-badge", "[data-testivai-ignore]"] }
+  ```
+
+  Or per-snapshot in the test:
+
+  ```ts
+  await testivai.witness(page, testInfo, "home", {
+    ignoreSelectors: ["#live-chat-widget"],
+  });
+  ```
+
+### Patch Changes
+
+- Updated dependencies [0897932]
+  - @testivai/witness@1.1.0
+
+## 1.1.5
+
+### Patch Changes
+
+- Updated dependencies [d37a2bc]
+  - @testivai/witness@1.0.4
+
 ## 1.1.4
 
 ### Patch Changes

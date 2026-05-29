@@ -227,6 +227,18 @@ export interface TestivAIConfig {
   selectors?: string[];
   /** Use browser capture for full-page screenshots (default: true, set to false for scroll-and-stitch) */
   useBrowserCapture?: boolean;
+  /**
+   * CSS selectors for elements to hide during screenshot capture (local mode).
+   * Elements are set to `visibility: hidden` before the screenshot is taken and
+   * restored immediately after — so dynamic content (version badges, timestamps,
+   * ads, live clocks) never contributes to the pixel diff.
+   *
+   * Can also be set globally in `.testivai/config.json` under `ignoreSelectors`.
+   * Per-snapshot values are merged with (not replaced by) the global list.
+   *
+   * Example: ["[data-testivai-ignore]", ".version-badge", "#live-chat-widget"]
+   */
+  ignoreSelectors?: string[];
 }
 
 /**
