@@ -12,6 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "rootDir": "./src",
     "types": ["node", "@playwright/test", "jest"]
   },
   "include": ["src/**/*"],
