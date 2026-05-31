@@ -29,6 +29,16 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # inquirer >=9 is ESM-only (ships raw TypeScript source, drops rxjs CJS).
+      # Requires Jest ESM migration before upgrading. Revisit when codebase
+      # moves to native ESM.
+      - dependency-name: "inquirer"
+        versions: [">=9.0.0"]
+      # commander >=15 is ESM-only (no require entry in exports). v14 has dual
+      # CJS+ESM and is the current target. Unblock when Jest ESM migration done.
+      - dependency-name: "commander"
+        versions: [">=15.0.0"]
 
   # GitHub Action source (action/dist must be rebuilt; surface major bumps)
   - package-ecosystem: "npm"
@@ -50,6 +60,14 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # @actions/core >=3 and @actions/artifact >=3 are ESM-only (no "require"
+      # condition in package exports). ncc (CJS bundler) cannot resolve them.
+      # Unblock when action bundler is migrated from ncc to esbuild.
+      - dependency-name: "@actions/core"
+        versions: [">=3.0.0"]
+      - dependency-name: "@actions/artifact"
+        versions: [">=3.0.0"]
 
   # GitHub Actions used in our workflows (CI, release, codeql)
   - package-ecosystem: "github-actions"
