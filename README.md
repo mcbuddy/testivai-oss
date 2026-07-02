@@ -3,20 +3,39 @@
 [![@testivai/common](https://img.shields.io/npm/v/@testivai/common.svg?label=%40testivai%2Fcommon)](https://www.npmjs.com/package/@testivai/common)
 [![@testivai/witness](https://img.shields.io/npm/v/@testivai/witness.svg?label=%40testivai%2Fwitness)](https://www.npmjs.com/package/@testivai/witness)
 [![@testivai/witness-playwright](https://img.shields.io/npm/v/@testivai/witness-playwright.svg?label=%40testivai%2Fwitness-playwright)](https://www.npmjs.com/package/@testivai/witness-playwright)
+[![@testivai/witness-webdriverio](https://img.shields.io/npm/v/@testivai/witness-webdriverio.svg?label=%40testivai%2Fwitness-webdriverio)](https://www.npmjs.com/package/@testivai/witness-webdriverio)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 **Local-first visual regression testing SDKs for modern web applications.**
 
 This is the public, open-source home for the TestivAI SDKs. It contains everything you need to capture, diff, and report visual regressions **fully locally** — with optional cloud upgrade via the TestivAI hosted service.
 
+> 👀 **[See a live report →](https://www.budisugianto.com/testivai-demo-app/)** — a real TestivAI OSS report rendered in your browser, straight from CI. No install, no signup.
+
+[![TestivAI OSS visual report — side-by-side baseline/diff/current with a DOM-aware noise hint](./docs/assets/oss-report.png)](https://www.budisugianto.com/testivai-demo-app/)
+
+## Why TestivAI?
+
+Pixel-only visual testing drowns you in false positives — a font re-hint or an anti-aliasing shift across machines lights up as a "change," and you spend your time re-approving noise.
+
+**TestivAI pairs every screenshot with a snapshot of the page DOM.** When pixels differ but the DOM is structurally identical, the report flags the diff as **likely render noise** instead of crying wolf. When the DOM actually changed, you see exactly what (`2 added, 1 removed`). That single signal is the difference between a flaky test wall and a report you trust.
+
+- 🆓 **Fully local, no account** — captures, diffs, and a self-contained HTML report all stay on your machine.
+- 🧠 **DOM-aware noise hint** — separates real changes from render jitter (see the banners in the report above).
+- 🔌 **First-class adapters** — Playwright and WebdriverIO, using each framework's native screenshot API.
+- 🤖 **PR-native workflow** — a GitHub Action posts the diff and approves baselines from a `/testivai approve` comment.
+- ☁️ **Optional cloud upgrade** — opt into [the hosted service](https://testiv.ai) for AI analysis, history, and team approvals. Never required.
+
 ## Packages
 
-| Package | Latest | Description |
-|---|---|---|
-| [`@testivai/common`](./packages/common) | `0.2.2` | Shared utilities (config loading, API client, auth, compression) |
-| [`@testivai/witness`](./packages/witness) | `1.0.2` | Core SDK: CLI, local diffing, baselines, HTML report generator |
-| [`@testivai/witness-playwright`](./packages/playwright) | `1.1.3` | Playwright reporter/adapter built on top of `@testivai/witness` |
-| [`@testivai/witness-webdriverio`](./packages/webdriverio) | `0.1.0` | WebdriverIO service + capture function (local mode) |
+Live versions are shown by the badges at the top of this README.
+
+| Package | Description |
+|---|---|
+| [`@testivai/common`](./packages/common) | Shared utilities (config loading, API client, auth, compression) |
+| [`@testivai/witness`](./packages/witness) | Core SDK: CLI, local diffing, baselines, HTML report generator |
+| [`@testivai/witness-playwright`](./packages/playwright) | Playwright reporter/adapter built on top of `@testivai/witness` |
+| [`@testivai/witness-webdriverio`](./packages/webdriverio) | WebdriverIO service + capture function (local mode) |
 
 Plus:
 - [`action/`](./action) — GitHub Action for PR-based visual approvals
