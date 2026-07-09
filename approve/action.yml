@@ -31,6 +31,14 @@ inputs:
     required: false
     default: 'testivai-visual-report'
 
+  workflow:
+    description: >
+      Filename of the workflow (in .github/workflows/) that runs the visual
+      regression tests and uploads the report artifact. Must match the
+      workflow that contains the mcbuddy/testivai-oss@v1 reporter step.
+    required: false
+    default: 'playwright-oss.yml'
+
 runs:
   using: 'composite'
   steps:
@@ -110,25 +118,26 @@ runs:
       env:
         GH_TOKEN:       ${{ inputs.github-token }}
         ARTIFACT_NAME:  ${{ inputs.artifact-name }}
+        WORKFLOW_FILE:  ${{ inputs.workflow }}
         PR_BRANCH:      ${{ fromJson(steps.auth.outputs.result).branch }}
       run: |
         set -euo pipefail
 
-        echo "Looking for latest TestivAI OSS run on branch: $PR_BRANCH"
+        echo "Looking for latest '$WORKFLOW_FILE' run on branch: $PR_BRANCH"
 
-        # Find the most recent completed OSS Visual Regression run for this branch
-        # Filter by workflowName so we don't accidentally pick a CI Tests run
+        # Find the most recent completed visual regression run for this branch.
+        # Filter by workflow file so we don't accidentally pick a CI Tests run
         # which has no visual-report artifact.
         RUN_ID=$(gh run list \
           --repo     "$GITHUB_REPOSITORY" \
           --branch   "$PR_BRANCH" \
-          --workflow "playwright-oss.yml" \
+          --workflow "$WORKFLOW_FILE" \
           --limit    10 \
           --json     databaseId,conclusion \
           --jq       '[.[] | select(.conclusion != null and .conclusion != "cancelled")] | .[0].databaseId // empty')
 
         if [ -z "$RUN_ID" ]; then
-          echo "::error::No completed workflow run found for branch '$PR_BRANCH'. Run the visual regression tests first."
+          echo "::error::No completed '$WORKFLOW_FILE' run found for branch '$PR_BRANCH'. Run the visual regression tests first, or set the 'workflow' input to your visual regression workflow filename."
           exit 1
         fi
 

@@ -166,6 +166,7 @@ jobs:
       - uses: mcbuddy/testivai-oss/approve@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: testivai-oss.yml   # this file's name — used to find the report artifact
 ```
 
 ### Approve changed baselines
