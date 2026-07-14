@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+### Minor Changes
+
+- 767385e: Added `--dry-run` flag to `testivai approve` that prints what would be approved without modifying files. Also changed `testivai approve --undo` (without a name) to automatically undo the last approval by finding the most recent `.previous/` backup — no longer requires an explicit snapshot name.
+- 0158619: New `testivai report` command — the language-agnostic half of the adapter contract. Any Playwright binding (Python, Java, .NET, …) can capture by writing `.testivai/temp/<name>/screenshot.png` (+ `dom.html`) with its native APIs, then run `testivai report` for diffing, tolerances, the noise hint, the HTML report, and CI exit codes (`--fail-on-diff`, `--open`). This powers the new `testivai` Python package (PyPI) and the experimental Java adapter.
+
 ## 1.2.0
 
 ### Minor Changes
