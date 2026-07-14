@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.3.0
+
+### Minor Changes
+
+- e98903b: Fix baseline keying collisions in multi-project / multi-capability runs.
+
+  Previously, two Playwright projects (e.g. `chromium-desktop` and `mobile-safari`) capturing the same snapshot name silently overwrote each other's baselines under `.testivai/baselines/<name>/` — making cross-browser and responsive configs unusable.
+
+  The variant is now folded into the snapshot name:
+
+  - **Playwright**: when the config runs more than one project, snapshots become `<name>__<project>` (e.g. `homepage__mobile-safari`). Single-project configs are completely untouched — `homepage` stays `homepage`, and existing baselines keep working.
+  - **WebdriverIO**: new per-call `variant` option — `testivai.witness(browser, 'homepage', { variant: 'firefox-mobile' })` — for multi-capability runs.
+
+  Because the variant lives in the name, the on-disk layout, `results.json` schema, HTML report, `testivai approve`, and `/testivai approve` PR comments all work unchanged.
+
+- d239b31: Attack the top reasons teams abandon visual testing — flaky captures and pixel-perfect strictness:
+
+  **Stabilized captures (both adapters, on by default).** Before every screenshot: CSS animations and transitions are frozen, the text caret is hidden, smooth scrolling is forced instant, and the capture waits (bounded 3s) for web fonts to finish loading. Disable with `stabilize: false` — globally in `.testivai/config.json`, per project in `testivai.config.ts` (Playwright), or per call.
+
+  **Human-intuitive pass criteria (`@testivai/witness`).** New `.testivai/config.json` fields:
+
+  - `maxDiffPercent` (default 0) — diffs at or below this percentage report as passed
+  - `maxDiffPixels` — absolute changed-pixel variant; either criterion passing is enough
+  - `noiseAutoPass` (default false) + `noiseMaxDiffPercent` (default 1) — DOM-identical diffs (the noise hint) within the bound auto-pass instead of demanding review
+
+  Auto-passed snapshots keep their diff image and carry `autoPassed: "threshold" | "noise"` in `results.json` (additive schema change); the HTML report labels them. Byte-different but visually identical captures (nothing above the per-pixel threshold) now report as passed instead of `changed 0.01%`.
+
+  **WebdriverIO parity: `ignoreSelectors`.** The WebdriverIO adapter now honors `ignoreSelectors` from `.testivai/config.json` and accepts per-call `ignoreSelectors` in `witness()` options, hiding matched elements (`visibility: hidden`, layout-preserving) for the duration of the capture — matching the Playwright adapter.
+
+- aa66850: Remove the duplicate `testivai` bin and the undocumented `./cli` subpath export from `@testivai/witness-playwright`.
+
+  Both `@testivai/witness` and `@testivai/witness-playwright` declared a `testivai` bin, so which CLI answered `npx testivai` depended on install/hoisting order. When the playwright package's init-only CLI won, documented commands like `testivai approve --all` failed. `@testivai/witness` (a dependency of this package) is now the single owner of the `testivai` bin; its CLI provides `init`, `auth`, `run`, `witness`, and `approve`, so `npx testivai init` keeps working.
+
+### Patch Changes
+
+- 6a74d40: Dogfooding fixes — found by running `testivai witness` against our own marketing site:
+
+  **Stabilization no longer hides entry-animated content.** The injected CSS now uses near-zero durations (`animation-duration: 0.001s`, one iteration, `transition-duration: 0.001s`) instead of `animation/transition: none`, so animations **complete instantly at their final state**. Pages whose content starts at `opacity: 0` and reveals via entry animations or class transitions — most modern marketing/vibe-coded sites — render fully instead of capturing blank.
+
+  **Standalone mode reveals scroll-triggered content.** `testivai witness <url>` now scrolls stepwise through the page (bounded) and returns to the top before capturing, so IntersectionObserver reveal-on-scroll sections actually render — without resizing the viewport, which would break `100vh` layouts.
+
+  **The DOM diff now sees text.** Visible text nodes are tokenized (whitespace-normalized; script/style bodies stay opaque) and reported as `textChanges` in the DOM summary. Previously a wording change (`Free` → `Gratis`) read as "structurally identical" — harmless when the noise hint was only a label, but with `noiseAutoPass` enabled it silently auto-passed real text regressions. Text changes now mark the DOM as changed, never auto-pass, and appear in the HTML report, the PR comment, and MCP verdicts (`results.json` schema addition, backward compatible).
+
+  **`ignoreSelectors` now excludes elements from the DOM snapshot too.** Ignored elements were only hidden visually; with the text-aware DOM diff, dynamic ignored content (live counters, feeds) would flag DOM changes the pixels could not show. All three capture paths now serialize the DOM with ignored elements removed — one consistent semantic: ignored means excluded from both signals.
+
+  **Standalone capture hardening (from live-site dogfooding):** layout metrics are polled until non-zero (fresh Chrome can report 0-width before first layout), and the web-font wait is extended to 10s bounded — a fallback-font capture diffs 30%+ against a webfont baseline on real networks.
+
+- Updated dependencies [aa66850]
+- Updated dependencies [d239b31]
+- Updated dependencies [c0ac195]
+- Updated dependencies [6a74d40]
+  - @testivai/witness@1.2.0
+
 ## 1.2.1
 
 ### Patch Changes
