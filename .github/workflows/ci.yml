@@ -19,7 +19,7 @@ jobs:
         node: ['20', '22']
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Setup pnpm BEFORE setup-node so setup-node's pnpm cache can find it.
       # No `version:` — pnpm/action-setup@v6 reads it from the
@@ -70,7 +70,7 @@ jobs:
     name: Python adapter (pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -84,7 +84,7 @@ jobs:
     name: Java adapter (JUnit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
