@@ -17,6 +17,12 @@ import {
   resolveMasks,
 } from '../diff/mask';
 import { RegionOptions } from '../diff/types';
+import {
+  attributeRegions,
+  detectPageShift,
+  parseElementMap,
+  ElementMapEntry,
+} from '../diff/attribution';
 
 export interface CompareOptions {
   threshold?: number;
@@ -45,6 +51,15 @@ interface CaptureMaskMetadata {
   maskSelectors?: string[];
   /** Selector geometry captured via getBoundingClientRect at capture time. */
   maskRects?: CapturedMaskRect[];
+}
+
+function readElementMap(projectRoot: string, kind: 'baselines' | 'temp', name: string): ElementMapEntry[] {
+  const p = path.join(projectRoot, '.testivai', kind, name, 'elements.json');
+  try {
+    return parseElementMap(JSON.parse(fs.readFileSync(p, 'utf-8')));
+  } catch {
+    return []; // absent or malformed map never breaks the compare
+  }
 }
 
 function readTempMaskMetadata(projectRoot: string, name: string): CaptureMaskMetadata {
@@ -144,6 +159,19 @@ export function compareAll(options: CompareOptions): SnapshotResult[] {
       if (domSignal) {
         result.dom = domSignal;
       }
+
+      // Element attribution + shift classification (element maps are
+      // optional; without them regions pass through untouched).
+      const baselineElements = readElementMap(projectRoot, 'baselines', name);
+      const candidateElements = readElementMap(projectRoot, 'temp', name);
+      if (result.regions && result.regions.length > 0) {
+        result.regions = attributeRegions(result.regions, baselineElements, candidateElements);
+      }
+      const pageShift = detectPageShift(baselineElements, candidateElements);
+      if (pageShift) {
+        result.pageShift = pageShift;
+      }
+
       applyPassCriteria(result, passCriteria);
     }
 

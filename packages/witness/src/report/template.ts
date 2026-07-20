@@ -105,6 +105,9 @@ export function renderHtml(data: ReportData): string {
     .regions ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
     .regions li a { display: inline-block; padding: 3px 10px; border-radius: 10px; background: #f8514922; color: #f85149; text-decoration: none; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
     .regions li a:hover { background: #f8514944; }
+    .regions li a.region-shift { background: #1f6feb22; color: #79c0ff; }
+    .regions li a.region-shift:hover { background: #1f6feb44; }
+    .page-shift { margin-top: 8px; padding: 8px 10px; background: #1f6feb1a; border: 1px solid #1f6feb44; border-radius: 6px; font-size: 12px; color: #79c0ff; }
 
     /* Masks (audit trail) */
     .masks { margin-top: 8px; padding: 10px 12px; background: repeating-linear-gradient(45deg, #161b22, #161b22 6px, #1c2129 6px, #1c2129 8px); border: 1px solid #30363d; border-radius: 8px; font-size: 12px; color: #8b949e; }
@@ -316,16 +319,42 @@ function renderDomHint(snapshot: SnapshotResult): string {
 function renderRegions(snapshot: SnapshotResult): string {
   const regions = snapshot.regions ?? [];
   if (regions.length === 0 || snapshot.status === 'new') return '';
+
+  const describe = (r: NonNullable<SnapshotResult['regions']>[number]): string => {
+    const el = r.elements?.[0];
+    if (!el) return `${r.width}×${r.height} @ (${r.x}, ${r.y})`;
+    const selector = escapeHtml(el.selector.split(' > ').slice(-1)[0]);
+    if (r.classification === 'shift' && r.shift) {
+      const parts: string[] = [];
+      if (r.shift.dy !== 0) parts.push(`${r.shift.dy > 0 ? '+' : ''}${r.shift.dy}px vertically`);
+      if (r.shift.dx !== 0) parts.push(`${r.shift.dx > 0 ? '+' : ''}${r.shift.dx}px horizontally`);
+      return `${selector} shifted ${parts.join(', ')} — content unchanged`;
+    }
+    return `${selector} changed (${r.width}×${r.height} @ ${r.x}, ${r.y})`;
+  };
+
   const chips = regions
     .map(
       (r, i) =>
-        `<li><a href="#" class="region-chip" data-diff="${snapshot.diffPath ?? ''}" title="${r.diffPixels} changed pixels">#${i + 1} · ${r.width}×${r.height} @ (${r.x}, ${r.y})</a></li>`,
+        `<li><a href="#" class="region-chip${r.classification === 'shift' ? ' region-shift' : ''}" data-diff="${snapshot.diffPath ?? ''}" title="${r.diffPixels} changed pixels${r.elements?.[0] ? ' — ' + escapeHtml(r.elements[0].selector) : ''}">#${i + 1} · ${describe(r)}</a></li>`,
     )
     .join('');
+
+  const shifted = regions.filter((r) => r.classification === 'shift').length;
+  const title =
+    shifted > 0
+      ? `${regions.length} changed region${regions.length === 1 ? '' : 's'} (${shifted} shifted)`
+      : `${regions.length} changed region${regions.length === 1 ? '' : 's'}`;
+
+  const pageShift = snapshot.pageShift
+    ? `<div class="page-shift">↕ Everything below y=${snapshot.pageShift.belowY} shifted ${snapshot.pageShift.dy > 0 ? '+' : ''}${snapshot.pageShift.dy}px (${snapshot.pageShift.count} elements moved together — typically an inserted banner or expanded section above).</div>`
+    : '';
+
   return `
       <div class="regions">
-        <div class="regions-title">${regions.length} changed region${regions.length === 1 ? '' : 's'}</div>
+        <div class="regions-title">${title}</div>
         <ul>${chips}</ul>
+        ${pageShift}
       </div>`;
 }
 

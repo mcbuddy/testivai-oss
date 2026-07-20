@@ -124,6 +124,8 @@ export class BaselineStore {
     const currentMetadata = this.getBaselineMetadataPath(name);
     const currentDom = this.getBaselineDomPath(name);
     const tempDom = this.getTempDomPath(name);
+    const currentElements = path.join(this.getBaselineDir(name), 'elements.json');
+    const tempElements = path.join(this.getTempDir(), name, 'elements.json');
 
     // Backup current baseline if it exists
     if (fs.existsSync(currentScreenshot)) {
@@ -134,6 +136,9 @@ export class BaselineStore {
       }
       if (fs.existsSync(currentDom)) {
         fs.copyFileSync(currentDom, path.join(previousDir, 'dom.html'));
+      }
+      if (fs.existsSync(currentElements)) {
+        fs.copyFileSync(currentElements, path.join(previousDir, 'elements.json'));
       }
     }
 
@@ -146,6 +151,13 @@ export class BaselineStore {
       // Temp had no DOM but baseline did — drop the stale DOM rather
       // than keep an inconsistent pair.
       fs.rmSync(currentDom);
+    }
+    if (fs.existsSync(tempElements)) {
+      fs.copyFileSync(tempElements, currentElements);
+    } else if (fs.existsSync(currentElements)) {
+      // Same stale-drop semantics as dom.html: an element map from an
+      // older approval must not attribute regions against a new baseline.
+      fs.rmSync(currentElements);
     }
 
     // Update metadata

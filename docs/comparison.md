@@ -83,6 +83,39 @@ Tunables:
 logical change that rasterized as several nearby fragments (e.g. letters
 of one word). Merging cascades until stable.
 
+## Element attribution — which element changed
+
+When captures carry an element map (`elements.json`, recorded automatically
+by the Playwright adapter in local mode), every region is attributed to the
+smallest element covering it:
+
+```json
+"regions": [{
+  "x": 100, "y": 100, "width": 80, "height": 50,
+  "elements": [{ "selector": "body > main > div.card:nth-of-type(2)", "role": "shifted" }],
+  "classification": "shift",
+  "shift": { "dx": 0, "dy": 10 }
+}]
+```
+
+**Shift classification is exact, not estimated**: an element present in
+both captures with the same size and the same computed-style digest but a
+new position is a pure translation — (dx, dy) comes from layout, so the
+report can say "`div.card` shifted +10px vertically — content unchanged"
+instead of flagging a wall of changed pixels. Anything resized, restyled,
+or with different content classifies as a real `change`.
+
+The whole-page variant catches the classic injected-banner case: when
+elements below a line all moved by one uniform offset, the snapshot gains
+
+```json
+"pageShift": { "dy": 24, "belowY": 80, "count": 14 }
+```
+
+and the report explains it in words. No element map (image-only input,
+older captures, adapters without support yet) → regions still work, just
+without names.
+
 ## Order of operations
 
 1. `ignoreSelectors` hide elements during capture.
@@ -103,3 +136,5 @@ Additive over 2.1.0 — existing consumers keep working:
 - `snapshots[].masks[]` — every applied mask, resolved to pixels, with
   `source: { type: selector|region|edge, spec, origin: config|call }`
 - `snapshots[].maskWarnings[]` — masks that could not be applied and why
+- `snapshots[].regions[].elements/classification/shift` — attribution (needs element maps)
+- `snapshots[].pageShift` — whole-page uniform displacement

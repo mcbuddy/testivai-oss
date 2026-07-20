@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import { SnapshotPayload, LayoutData, TestivAIConfig, StructureAnalysis, StructureAnalysisConfig } from './types';
 import { loadConfig, mergeTestConfig } from './config/loader';
 import { collectIgnoreSelectors, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
+import { buildElementMapExpression } from './capture/element-map';
 import { STABILIZE_CSS, resolveStabilize, waitForFonts } from './config/stabilize';
 
 /**
@@ -472,6 +473,19 @@ export async function snapshot(
       }
     } catch {
       // metadata is an enhancement; the screenshot path never depends on it
+    }
+
+    // Element map: layout + computed-style digest for every visible
+    // element, powering attribution ("WHICH element changed"), exact
+    // shift classification, and the style fingerprint on the compare
+    // side. Best-effort — the screenshot path never depends on it.
+    try {
+      const elementMap = await page.evaluate(buildElementMapExpression());
+      if (Array.isArray(elementMap) && elementMap.length > 0) {
+        await fs.writeJson(path.join(localSnapshotDir, 'elements.json'), elementMap);
+      }
+    } catch {
+      // missing elements.json only disables attribution for this capture
     }
   }
 

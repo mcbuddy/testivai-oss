@@ -23,6 +23,7 @@ Pixel-only visual testing drowns you in false positives — a font re-hint or an
 - 🆓 **Fully local, no account** — captures, diffs, and a self-contained HTML report all stay on your machine.
 - 🧠 **DOM-aware noise hint** — separates real changes from render jitter (see the banners in the report above).
 - 🎭 **Auditable masks & region-level diffs** — exclude dynamic areas (selectors or coordinates) with the masked region hatched in the diff, and get "3 changed regions" with bounding boxes instead of a raw pixel percentage.
+- 📍 **Element attribution & exact shift detection** — the report names *which element* changed ("`div.card:nth-of-type(2)` shifted +8px vertically — content unchanged") and spots the injected-banner case ("everything below y=80 moved +24px"), derived from layout, not pixel guesswork. No local-first tool does this.
 - 🔌 **First-class adapters** — Playwright (TS/JS **and Python**, Java experimental) and WebdriverIO, using each framework's native APIs; every language shares one set of baselines and one report.
 - 🤖 **PR-native workflow** — a GitHub Action posts the diff and approves baselines from a `/testivai approve` comment.
 - ☁️ **Optional cloud upgrade** — opt into [the hosted service](https://testiv.ai) for AI analysis, history, and team approvals. Never required.
