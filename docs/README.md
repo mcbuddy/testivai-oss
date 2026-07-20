@@ -8,6 +8,7 @@ For cloud-only features (REVEAL AI counselor, dashboard, history, team approval,
 
 - **[Getting Started](./intro.md)** — install + first capture, 5 minutes
 - **[How It Works](./how-it-works.md)** — high-level architecture
+- **[Comparison: masks, regions, tolerances](./comparison.md)** — excluding dynamic areas, region-level diffs
 - **[OSS vs Cloud](./oss-vs-cloud.md)** — capability matrix, where the boundary is drawn
 
 ## Frameworks (OSS adapters)

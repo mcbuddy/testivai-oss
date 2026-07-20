@@ -135,7 +135,7 @@ Import `testivai` from the SDK and call `testivai.witness(page, testInfo, 'name'
 automatically: with projects `chromium-desktop` and `mobile-safari`, the
 same call produces `homepage__chromium-desktop` and
 `homepage__mobile-safari` — no baseline collisions. Single-project configs
-keep plain names. An optional fourth argument takes per-snapshot overrides, e.g. `{ ignoreSelectors: ['.live-widget'], stabilize: false }`:
+keep plain names. An optional fourth argument takes per-snapshot overrides, e.g. `{ ignoreSelectors: ['.live-widget'], stabilize: false, mask: ['#cookie-banner', { top: 24 }] }` (masks are excluded from the diff and hatched in the report — see [Comparison](../comparison.md)):
 
 ```ts
 import { test } from '@playwright/test';

@@ -55,6 +55,8 @@ Optional tolerance and capture settings (all have safe defaults):
 | `noiseMaxDiffPercent` | `1` | Upper bound (diff %) for `noiseAutoPass` |
 | `stabilize` | `true` | Freeze animations/transitions, hide the caret, and wait for web fonts before every capture |
 | `ignoreSelectors` | `[]` | Elements hidden (`visibility: hidden`) during capture — timestamps, ads, live widgets |
+| `mask` | `[]` | Areas excluded from the pixel diff and hatched in the report — selectors or geometric regions ([details](./comparison.md)) |
+| `diffRegions` | `{minSize: 10, mergeDistance: 12}` | Diff clustering tunables: noise floor + merge gap ([details](./comparison.md)) |
 
 Auto-passed snapshots keep their diff image and are labeled in the report and in `results.json` (`autoPassed: "threshold" | "noise"`), so tolerance never hides information — it just stops demanding review for changes you've declared acceptable.
 
