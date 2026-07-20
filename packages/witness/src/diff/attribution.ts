@@ -180,6 +180,36 @@ export function attributeRegions(
   });
 }
 
+export interface StyleComparison {
+  status: 'match' | 'mismatch' | 'unavailable';
+  /** Paths whose computed-style digest changed (mismatch only). */
+  changed: string[];
+}
+
+/**
+ * Compare computed-style digests between the two element maps.
+ *
+ * Only paths present on BOTH sides are compared — structural additions
+ * and removals are the DOM diff's job, not the style fingerprint's.
+ * Either side missing a map → 'unavailable' (the noise hint falls back
+ * to its legacy DOM-only behavior, visibly labeled).
+ */
+export function compareStyleHashes(
+  baselineMap: ElementMapEntry[],
+  candidateMap: ElementMapEntry[],
+): StyleComparison {
+  if (baselineMap.length === 0 || candidateMap.length === 0) {
+    return { status: 'unavailable', changed: [] };
+  }
+  const baselineByPath = new Map(baselineMap.map((e) => [e.path, e.styleHash]));
+  const changed: string[] = [];
+  for (const el of candidateMap) {
+    const b = baselineByPath.get(el.path);
+    if (b !== undefined && b !== el.styleHash) changed.push(el.path);
+  }
+  return changed.length > 0 ? { status: 'mismatch', changed } : { status: 'match', changed: [] };
+}
+
 /**
  * Whole-page pass: detect "everything below y=N moved by dy" — the
  * classic injected-banner signature. Elements matched by path with

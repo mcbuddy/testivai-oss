@@ -116,6 +116,25 @@ and the report explains it in words. No element map (image-only input,
 older captures, adapters without support yet) → regions still work, just
 without names.
 
+## Style fingerprint — the noise hint you can trust
+
+The noise hint's historical weakness (documented in our benchmark repo): a
+stylesheet-only change alters pixels while the DOM stays identical, which
+looked exactly like render noise. With element maps on both sides, the
+hint now requires the computed-style digests to match too:
+
+| DOM | Style digests | Verdict |
+|---|---|---|
+| identical | match | 💡 likely render noise (`styleCheck: "match"`) |
+| identical | **differ** | 🎨 **Styles changed** — real change, attributed to the element(s); never auto-passed |
+| identical | unavailable | 💡 legacy DOM-only hint, labeled `styleCheck: "unavailable"` |
+| changed | — | DOM changed (counts shown) |
+
+The digest covers a fixed, documented property list (colors, backgrounds,
+borders, typography, spacing, shadows, opacity/visibility/display) —
+deterministic for identical rendering, captured per element at capture
+time.
+
 ## Order of operations
 
 1. `ignoreSelectors` hide elements during capture.

@@ -12,11 +12,21 @@ export interface SnapshotDomSignal {
   /** Per-bucket counts; null when changed is false. */
   summary: { added: number; removed: number; attributeChanges: number; textChanges?: number } | null;
   /**
-   * Noise hint: pixel diff is non-zero but DOM is structurally unchanged.
-   * Suggests render noise (anti-aliasing, font hinting, sub-pixel layout)
-   * rather than a real visual regression.
+   * Noise hint: pixel diff is non-zero but DOM is structurally unchanged
+   * AND (when element maps exist) computed-style digests match. Suggests
+   * render noise (anti-aliasing, font hinting, sub-pixel layout) rather
+   * than a real visual regression.
    */
   noiseHint: boolean;
+  /**
+   * Style-fingerprint verdict: 'match' (digests equal — the hint is
+   * trustworthy), 'mismatch' (styles changed with identical DOM — a REAL
+   * change; the noise hint is suppressed), 'unavailable' (no element
+   * maps — legacy DOM-only hint, labeled).
+   */
+  styleCheck?: 'match' | 'mismatch' | 'unavailable';
+  /** Present on mismatch: how many elements changed styles, and which. */
+  styleChanges?: { count: number; elements: string[] };
 }
 
 export interface SnapshotResult {

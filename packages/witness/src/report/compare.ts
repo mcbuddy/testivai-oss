@@ -19,6 +19,7 @@ import {
 import { RegionOptions } from '../diff/types';
 import {
   attributeRegions,
+  compareStyleHashes,
   detectPageShift,
   parseElementMap,
   ElementMapEntry,
@@ -156,14 +157,29 @@ export function compareAll(options: CompareOptions): SnapshotResult[] {
       const baselineDom = store.readDom(name);
       const candidateDom = store.readTempDom(name);
       const domSignal = computeDomSignal(baselineDom, candidateDom);
-      if (domSignal) {
-        result.dom = domSignal;
-      }
 
       // Element attribution + shift classification (element maps are
       // optional; without them regions pass through untouched).
       const baselineElements = readElementMap(projectRoot, 'baselines', name);
       const candidateElements = readElementMap(projectRoot, 'temp', name);
+
+      // Style fingerprint: a stylesheet-only change has an identical DOM
+      // but different computed styles — pixels + identical DOM used to
+      // read as "likely render noise" (a documented false negative).
+      // The hint now requires the style digests to match; a mismatch is
+      // surfaced as an explicit, attributed "styles changed" signal.
+      if (domSignal) {
+        const styleComparison = compareStyleHashes(baselineElements, candidateElements);
+        domSignal.styleCheck = styleComparison.status;
+        if (styleComparison.status === 'mismatch') {
+          domSignal.styleChanges = {
+            count: styleComparison.changed.length,
+            elements: styleComparison.changed.slice(0, 10),
+          };
+          domSignal.noiseHint = false;
+        }
+        result.dom = domSignal;
+      }
       if (result.regions && result.regions.length > 0) {
         result.regions = attributeRegions(result.regions, baselineElements, candidateElements);
       }

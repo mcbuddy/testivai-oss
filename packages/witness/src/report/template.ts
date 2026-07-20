@@ -80,6 +80,8 @@ export function renderHtml(data: ReportData): string {
     .dom-hint { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.5; }
     .dom-hint.noise { background: #1f6feb1a; border: 1px solid #1f6feb44; color: #79c0ff; }
     .dom-hint.changed { background: #6e768166; border: 1px solid #8b949e44; color: #c9d1d9; }
+    .dom-hint.style-changed { background: #f0883e1a; border: 1px solid #f0883e44; color: #f0883e; }
+    .dom-hint.style-changed code { background: #0d1117; border-radius: 3px; padding: 1px 4px; font-size: 11px; }
     .dom-hint .label { font-weight: 600; }
     .dom-hint .summary { color: inherit; opacity: 0.85; }
 
@@ -290,11 +292,32 @@ function renderSnapshot(snapshot: SnapshotResult): string {
 function renderDomHint(snapshot: SnapshotResult): string {
   if (!snapshot.dom) return '';
 
+  // Style fingerprint verdict: identical DOM but changed computed styles
+  // is a REAL change (the stylesheet-only case) — never noise.
+  if (snapshot.dom.styleCheck === 'mismatch' && snapshot.dom.styleChanges) {
+    const els = snapshot.dom.styleChanges.elements
+      .slice(0, 3)
+      .map((p) => `<code>${escapeHtml(p.split(' > ').slice(-1)[0])}</code>`)
+      .join(', ');
+    const n = snapshot.dom.styleChanges.count;
+    return `
+      <div class="dom-hint style-changed" title="DOM structure is identical but computed styles differ — a stylesheet-level change, not render noise.">
+        <span class="label">Styles changed</span>
+        <span class="summary">— ${n} element${n === 1 ? '' : 's'} restyled with identical DOM: ${els}${n > 3 ? ', …' : ''}.</span>
+      </div>`;
+  }
+
   if (snapshot.dom.noiseHint) {
+    const styleNote =
+      snapshot.dom.styleCheck === 'match'
+        ? ' Styles verified unchanged.'
+        : snapshot.dom.styleCheck === 'unavailable'
+          ? ' (Style check unavailable — no element maps on both sides.)'
+          : '';
     return `
       <div class="dom-hint noise" title="DOM tree is identical between baseline and candidate; the pixel diff is likely render noise.">
         <span class="label">DOM unchanged</span>
-        <span class="summary">— pixel diff is likely render noise (anti-aliasing, font hinting).</span>
+        <span class="summary">— pixel diff is likely render noise (anti-aliasing, font hinting).${styleNote}</span>
       </div>`;
   }
 

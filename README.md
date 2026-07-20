@@ -21,7 +21,7 @@ Pixel-only visual testing drowns you in false positives — a font re-hint or an
 **TestivAI pairs every screenshot with a snapshot of the page DOM.** When pixels differ but the DOM is structurally identical, the report flags the diff as **likely render noise** instead of crying wolf. When the DOM actually changed, you see exactly what (`2 added, 1 removed`). That single signal is the difference between a flaky test wall and a report you trust.
 
 - 🆓 **Fully local, no account** — captures, diffs, and a self-contained HTML report all stay on your machine.
-- 🧠 **DOM-aware noise hint** — separates real changes from render jitter (see the banners in the report above).
+- 🧠 **DOM + style-aware noise hint** — separates real changes from render jitter, and catches the stylesheet-only case: identical DOM with changed computed styles reads as "Styles changed on `button.cta`", never as noise.
 - 🎭 **Auditable masks & region-level diffs** — exclude dynamic areas (selectors or coordinates) with the masked region hatched in the diff, and get "3 changed regions" with bounding boxes instead of a raw pixel percentage.
 - 📍 **Element attribution & exact shift detection** — the report names *which element* changed ("`div.card:nth-of-type(2)` shifted +8px vertically — content unchanged") and spots the injected-banner case ("everything below y=80 moved +24px"), derived from layout, not pixel guesswork. No local-first tool does this.
 - 🔌 **First-class adapters** — Playwright (TS/JS **and Python**, Java experimental) and WebdriverIO, using each framework's native APIs; every language shares one set of baselines and one report.
