@@ -11,6 +11,7 @@
 
 import { DiffOptions, DiffResult, PbdRawResult } from './types';
 import { applyIgnoreRegions } from './ignore';
+import { applyMaskRects, hatchMaskRects } from './mask';
 import { normalizeDimensions } from './resize';
 import { detectRegions } from './regions';
 import { applyMinimap } from './minimap';
@@ -111,6 +112,13 @@ export function diff(
     applyIgnoreRegions(effectiveBaseline, effectiveCandidate, effectiveWidth, effectiveHeight, opts.ignoreRegions);
   }
 
+  // ── Masks: equalize before diffing, hatch the output after ─────────────
+  const masks = opts.masks ?? [];
+  if (masks.length > 0) {
+    effectiveBaseline = new Uint8ClampedArray(effectiveBaseline);
+    applyMaskRects(effectiveBaseline, effectiveCandidate, effectiveWidth, effectiveHeight, masks);
+  }
+
   // ── Core Pbd diff loop (basic mode — pixel-level YIQ comparison) ──────
   const raw = pbdDiffCore(
     effectiveBaseline,
@@ -141,9 +149,14 @@ export function diff(
     result.sizeMismatch = sizeMismatch;
   }
 
-  // ── Region detection ────────────────────────────────────────────────────
+  // ── Region detection (before hatching — hatch pixels must not cluster) ──
   if (opts.detectRegions && !isIdentical) {
-    result.regions = detectRegions(diff8, effectiveWidth, effectiveHeight);
+    result.regions = detectRegions(diff8, effectiveWidth, effectiveHeight, opts.regionOptions ?? {});
+  }
+
+  // ── Hatch masked areas in the diff output (auditable, never silent) ─────
+  if (masks.length > 0) {
+    hatchMaskRects(diff8, effectiveWidth, effectiveHeight, masks);
   }
 
   return result;

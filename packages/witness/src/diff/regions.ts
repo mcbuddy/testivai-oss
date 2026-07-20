@@ -6,27 +6,42 @@
  * connected-component labeling approach.
  */
 
-import { DiffRegion } from './types';
+import { DiffRegion, RegionOptions } from './types';
+
+/** Defaults for region clustering (config-overridable). */
+export const DEFAULT_REGION_OPTIONS: Required<RegionOptions> = {
+  minSize: 10,
+  mergeDistance: 12,
+};
 
 /**
  * Detect regions of change in the diff buffer.
  *
  * Scans for non-transparent pixels (any pixel with alpha > 0 in
  * the diff output), groups adjacent changed pixels into rectangular
- * bounding boxes, and filters out regions smaller than minSize.
+ * bounding boxes, filters out regions smaller than the noise floor,
+ * and merges regions whose bounding boxes are within mergeDistance px
+ * of each other (an anti-fragmentation pass — one logical change often
+ * rasterizes as several nearby specks).
  *
  * @param diff8   - Diff image pixel buffer (RGBA)
  * @param width   - Image width
  * @param height  - Image height
- * @param minSize - Minimum pixels to include a region (default: 10)
+ * @param options - { minSize, mergeDistance }, or a bare number meaning
+ *                  minSize (legacy signature, mergeDistance 0)
  * @returns Array of DiffRegion bounding boxes
  */
 export function detectRegions(
   diff8: Uint8Array | Uint8ClampedArray,
   width: number,
   height: number,
-  minSize: number = 10,
+  options: number | RegionOptions = {},
 ): DiffRegion[] {
+  const opts: Required<RegionOptions> =
+    typeof options === 'number'
+      ? { minSize: options, mergeDistance: 0 }
+      : { ...DEFAULT_REGION_OPTIONS, ...options };
+  const minSize = opts.minSize;
   // Build a binary grid: 1 = changed pixel, 0 = unchanged
   const changed = new Uint8Array(width * height);
   for (let y = 0; y < height; y++) {
@@ -136,8 +151,62 @@ export function detectRegions(
     });
   }
 
-  // Sort by position (top-left first)
-  regions.sort((a, b) => a.y - b.y || a.x - b.x);
+  const merged = mergeRegions(regions, opts.mergeDistance);
 
-  return regions;
+  // Sort by position (top-left first)
+  merged.sort((a, b) => a.y - b.y || a.x - b.x);
+
+  return merged;
+}
+
+/**
+ * Merge regions whose bounding boxes are within `distance` px of each
+ * other (Chebyshev gap: both axis gaps must be within the distance).
+ * Merging cascades until stable; pixel counts sum, boxes union.
+ * Region counts are small, so the O(n²) pass is fine.
+ */
+export function mergeRegions(regions: DiffRegion[], distance: number): DiffRegion[] {
+  if (distance <= 0 || regions.length < 2) return regions;
+
+  const gap = (a: DiffRegion, b: DiffRegion): number => {
+    const dx = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.width, b.x + b.width));
+    const dy = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.height, b.y + b.height));
+    return Math.max(dx, dy);
+  };
+
+  const out = [...regions];
+  let mergedAny = true;
+  while (mergedAny) {
+    mergedAny = false;
+    outer: for (let i = 0; i < out.length; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        if (gap(out[i], out[j]) <= distance) {
+          const a = out[i];
+          const b = out[j];
+          const x0 = Math.min(a.x, b.x);
+          const y0 = Math.min(a.y, b.y);
+          const x1 = Math.max(a.x + a.width, b.x + b.width);
+          const y1 = Math.max(a.y + a.height, b.y + b.height);
+          const union: DiffRegion = {
+            x: x0,
+            y: y0,
+            width: x1 - x0,
+            height: y1 - y0,
+            diffPixels: a.diffPixels + b.diffPixels,
+            diffPercent: 0, // recomputed below
+          };
+          out.splice(j, 1);
+          out[i] = union;
+          mergedAny = true;
+          break outer;
+        }
+      }
+    }
+  }
+
+  for (const r of out) {
+    const area = r.width * r.height;
+    r.diffPercent = area > 0 ? (r.diffPixels / area) * 100 : 0;
+  }
+  return out;
 }

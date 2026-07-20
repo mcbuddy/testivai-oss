@@ -17,8 +17,22 @@ export interface DiffOptions {
   ignoreRegions?: IgnoreRegion[];
   /** Detect and return bounding boxes of changed regions. Default: false */
   detectRegions?: boolean;
+  /** Clustering tunables used when detectRegions is enabled. */
+  regionOptions?: RegionOptions;
+  /**
+   * Resolved mask rects: excluded from diffing (candidate copied over
+   * baseline) AND hatched in the diff output for auditability.
+   */
+  masks?: import('./mask').MaskRect[];
   /** How to handle size mismatches between baseline and candidate */
   handleSizeMismatch?: 'pad' | 'crop' | 'error';
+}
+
+export interface RegionOptions {
+  /** Minimum changed pixels for a region to count (noise floor). Default 10. */
+  minSize?: number;
+  /** Merge regions whose boxes are within this many px. Default 12. */
+  mergeDistance?: number;
 }
 
 export interface IgnoreRegion {
