@@ -109,7 +109,8 @@ export function mergeTestConfig(
     // the selectors (masked for a long time by the diff engine's cumulated
     // threshold absorbing the tiny leaked pixels).
     ignoreSelectors: testConfig.ignoreSelectors,
-    stabilize: testConfig.stabilize
+    stabilize: testConfig.stabilize,
+    mask: testConfig.mask
   };
 }
 

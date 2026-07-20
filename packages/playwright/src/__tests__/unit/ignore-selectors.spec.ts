@@ -195,3 +195,20 @@ describe('buildIgnoreSelectorsCSS', () => {
     expect(css).toContain('div > span { visibility: hidden !important; }');
   });
 });
+
+describe('mergeTestConfig mask passthrough', () => {
+  // Regression guard: per-call capture options must survive the merge —
+  // ignoreSelectors/stabilize were silently dropped once (fixed in 1.3.1);
+  // mask must never repeat that bug.
+  const { mergeTestConfig } = require('../../config/loader');
+
+  it('per-call mask survives the merge', () => {
+    const merged = mergeTestConfig({}, { mask: ['#banner', { top: 24 }] });
+    expect(merged.mask).toEqual(['#banner', { top: 24 }]);
+  });
+
+  it('absent mask stays undefined (back-compat)', () => {
+    const merged = mergeTestConfig({}, { ignoreSelectors: ['.x'] });
+    expect(merged.mask).toBeUndefined();
+  });
+});

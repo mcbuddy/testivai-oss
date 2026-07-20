@@ -417,6 +417,62 @@ export async function snapshot(
         console.warn('[TestivAI] DOM capture failed (noise-hint will be unavailable):', err);
       }
     }
+
+    // Mask support: record per-call mask specs and capture geometry for
+    // every selector mask (config + per-call) via getBoundingClientRect.
+    // The DOM snapshot carries no layout, so comparison-time selector
+    // masks depend on these rects; when absent, the compare degrades to
+    // a visible warning. Best-effort — never breaks the capture.
+    try {
+      const perCallMasks = effectiveConfig.mask ?? [];
+      const configMaskEntries = readConfigMasks(process.cwd());
+      const selectorMasks = [
+        ...configMaskEntries.filter((m): m is string => typeof m === 'string'),
+        ...perCallMasks.filter((m): m is string => typeof m === 'string'),
+      ];
+      const uniqueSelectors = [...new Set(selectorMasks)];
+
+      let maskRects: Array<{ selector: string; x: number; y: number; width: number; height: number }> = [];
+      if (uniqueSelectors.length > 0) {
+        maskRects = await page.evaluate((selectors: string[]) => {
+          const dpr = window.devicePixelRatio || 1;
+          const out: Array<{ selector: string; x: number; y: number; width: number; height: number }> = [];
+          for (const sel of selectors) {
+            try {
+              document.querySelectorAll(sel).forEach((el) => {
+                const r = (el as HTMLElement).getBoundingClientRect();
+                if (r.width > 0 && r.height > 0) {
+                  out.push({
+                    selector: sel,
+                    x: Math.round((r.x + window.scrollX) * dpr),
+                    y: Math.round((r.y + window.scrollY) * dpr),
+                    width: Math.round(r.width * dpr),
+                    height: Math.round(r.height * dpr),
+                  });
+                }
+              });
+            } catch {
+              // invalid selector — the compare side will warn
+            }
+          }
+          return out;
+        }, uniqueSelectors);
+      }
+
+      const geometricCallMasks = perCallMasks.filter((m) => typeof m !== 'string');
+      const callSelectorMasks = perCallMasks.filter((m): m is string => typeof m === 'string');
+      if (geometricCallMasks.length > 0 || callSelectorMasks.length > 0 || maskRects.length > 0) {
+        await fs.writeJson(path.join(localSnapshotDir, 'metadata.json'), {
+          name: snapshotName,
+          timestamp: new Date(timestamp).toISOString(),
+          ...(geometricCallMasks.length > 0 ? { masks: geometricCallMasks } : {}),
+          ...(callSelectorMasks.length > 0 ? { maskSelectors: callSelectorMasks } : {}),
+          ...(maskRects.length > 0 ? { maskRects } : {}),
+        });
+      }
+    } catch {
+      // metadata is an enhancement; the screenshot path never depends on it
+    }
   }
 
   // 2. Dump page structure (HTML) - skip in local mode
@@ -743,4 +799,19 @@ export async function snapshot(
     // @renamed: domAnalysis → structureAnalysis (IP protection)
     structureAnalysis
   });
+}
+
+
+/**
+ * Read the global `mask` list from .testivai/config.json (selector strings
+ * and geometric objects). Returns [] when absent or malformed.
+ */
+function readConfigMasks(projectRoot: string): Array<string | Record<string, number | string>> {
+  try {
+    const raw = fs.readFileSync(path.join(projectRoot, '.testivai', 'config.json'), 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.mask) ? parsed.mask : [];
+  } catch {
+    return [];
+  }
 }

@@ -250,6 +250,18 @@ export interface TestivAIConfig {
    * or in `testivai.config.ts`. Per-snapshot values win.
    */
   stabilize?: boolean;
+  /**
+   * Masks for this snapshot: areas excluded from the pixel diff and
+   * hatched in the report (auditable — never silent). Each entry is a
+   * CSS selector string (geometry recorded at capture time) or a
+   * geometric region — px numbers, 0–1 ratios, "NN%" strings, or a
+   * single-edge shorthand like { top: 24 }.
+   *
+   * Merged with the global `mask` list from `.testivai/config.json`.
+   * Unlike `ignoreSelectors` (which hides elements during capture),
+   * masks act at comparison time and stay visible in the diff output.
+   */
+  mask?: Array<string | Record<string, number | string>>;
 }
 
 /**
