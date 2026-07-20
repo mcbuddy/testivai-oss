@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { compareAll, CompareOptions, PassCriteria } from './compare';
-import { ReportData, ReportSummary } from './results';
+import { ReportData, ReportSummary, SnapshotResult} from './results';
 import { renderHtml } from './template';
 import { loadLocalConfig } from '../config/local-config';
 
@@ -43,13 +43,33 @@ export interface GenerateReportOptions {
  *
  * @returns The report data
  */
+/**
+ * results.json schema version. 2.2.0 adds per-snapshot `regions[]`
+ * (clustered diff bounding boxes), `masks[]` (applied masks with their
+ * source — the audit trail), and `maskWarnings[]`. Additive over 2.1.0.
+ */
+export const RESULTS_SCHEMA_VERSION = '2.2.0';
+
+/**
+ * Write results.json for an already-computed set of snapshot results.
+ * Exposed for callers that manage comparison and rendering separately.
+ */
+export function generateResults(
+  results: SnapshotResult[],
+  reportDir: string,
+  version: string = RESULTS_SCHEMA_VERSION,
+): void {
+  const data = buildReportData(results, version);
+  fs.writeFileSync(path.join(reportDir, 'results.json'), JSON.stringify(data, null, 2));
+}
+
 export function generateReport(options: GenerateReportOptions): ReportData {
   const {
     projectRoot,
     reportDir: reportDirRelative = 'visual-report',
     threshold = 0.1,
     autoOpen = true,
-    version = '2.1.0',
+    version = RESULTS_SCHEMA_VERSION,
   } = options;
 
   const reportDir = path.isAbsolute(reportDirRelative)
@@ -73,24 +93,13 @@ export function generateReport(options: GenerateReportOptions): ReportData {
     reportDir,
     threshold,
     passCriteria,
+    mask: localConfig.mask,
+    diffRegions: localConfig.diffRegions,
   };
   const snapshots = compareAll(compareOptions);
 
-  // 2. Build summary
-  const summary: ReportSummary = {
-    total: snapshots.length,
-    passed: snapshots.filter((s) => s.status === 'passed').length,
-    changed: snapshots.filter((s) => s.status === 'changed').length,
-    newSnapshots: snapshots.filter((s) => s.status === 'new').length,
-  };
-
-  // 3. Build report data
-  const reportData: ReportData = {
-    version,
-    timestamp: new Date().toISOString(),
-    summary,
-    snapshots,
-  };
+  // 2-3. Build summary + report data
+  const reportData = buildReportData(snapshots, version);
 
   // 4. Write results.json
   const resultsPath = path.join(reportDir, 'results.json');
@@ -107,6 +116,22 @@ export function generateReport(options: GenerateReportOptions): ReportData {
   }
 
   return reportData;
+}
+
+/** Assemble the ReportData envelope for a set of snapshot results. */
+function buildReportData(snapshots: SnapshotResult[], version: string): ReportData {
+  const summary: ReportSummary = {
+    total: snapshots.length,
+    passed: snapshots.filter((s) => s.status === 'passed').length,
+    changed: snapshots.filter((s) => s.status === 'changed').length,
+    newSnapshots: snapshots.filter((s) => s.status === 'new').length,
+  };
+  return {
+    version,
+    timestamp: new Date().toISOString(),
+    summary,
+    snapshots,
+  };
 }
 
 /**

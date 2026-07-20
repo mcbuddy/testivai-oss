@@ -99,6 +99,19 @@ export function renderHtml(data: ReportData): string {
     .approve-cmd button:hover { background: #30363d; }
     .approve-cmd button.copied { background: #3fb950; color: #0d1117; }
 
+    /* Regions */
+    .regions { margin-top: 8px; padding: 10px 12px; background: #0d1117; border: 1px solid #21262d; border-radius: 8px; font-size: 12px; }
+    .regions .regions-title { color: #8b949e; font-weight: 600; margin-bottom: 6px; }
+    .regions ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+    .regions li a { display: inline-block; padding: 3px 10px; border-radius: 10px; background: #f8514922; color: #f85149; text-decoration: none; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+    .regions li a:hover { background: #f8514944; }
+
+    /* Masks (audit trail) */
+    .masks { margin-top: 8px; padding: 10px 12px; background: repeating-linear-gradient(45deg, #161b22, #161b22 6px, #1c2129 6px, #1c2129 8px); border: 1px solid #30363d; border-radius: 8px; font-size: 12px; color: #8b949e; }
+    .masks .label { font-weight: 600; color: #c9d1d9; }
+    .masks code { color: #79c0ff; font-size: 11px; }
+    .mask-warning { margin-top: 8px; padding: 10px 12px; background: #f0883e1a; border: 1px solid #f0883e44; border-radius: 8px; font-size: 12px; color: #f0883e; }
+
     /* Zoom overlay */
     .zoom-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; cursor: zoom-out; }
     .zoom-overlay.active { display: flex; }
@@ -194,6 +207,17 @@ export function renderHtml(data: ReportData): string {
       document.getElementById('zoomOverlay').classList.remove('active');
     });
 
+    // Region chips zoom the diff image for inspection
+    document.querySelectorAll('.region-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        const diff = chip.dataset.diff;
+        if (!diff) return;
+        document.getElementById('zoomImage').src = diff;
+        document.getElementById('zoomOverlay').classList.add('active');
+      });
+    });
+
     // Copy approve command
     document.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -233,6 +257,8 @@ function renderSnapshot(snapshot: SnapshotResult): string {
       </div>
       ${snapshot.status === 'changed' || snapshot.autoPassed ? `<div class="snapshot-stats">Diff: ${snapshot.diffPercent.toFixed(2)}% (${snapshot.diffCount} pixels)${snapshot.autoPassed ? ` — auto-passed: ${snapshot.autoPassed === 'noise' ? 'DOM unchanged, within noise tolerance' : 'within configured diff tolerance'}` : ''}</div>` : ''}
       ${renderDomHint(snapshot)}
+      ${renderRegions(snapshot)}
+      ${renderMasks(snapshot)}
       <div class="${gridClass}">
         ${hasBaseline ? `<div class="diff-col"><label>Baseline</label><img src="${snapshot.baselinePath}" alt="Baseline"></div>` : ''}
         ${hasDiff ? `<div class="diff-col"><label>Diff</label><img src="${snapshot.diffPath}" alt="Diff"></div>` : ''}
@@ -281,6 +307,64 @@ function renderDomHint(snapshot: SnapshotResult): string {
       <span class="label">DOM changed</span>
       <span class="summary">— ${escapeHtml(parts.join(', ') || 'structural difference')}.</span>
     </div>`;
+}
+
+/**
+ * Region chip list: "N changed regions" with coordinates. Clicking a chip
+ * zooms the diff image so the reviewer can inspect that area.
+ */
+function renderRegions(snapshot: SnapshotResult): string {
+  const regions = snapshot.regions ?? [];
+  if (regions.length === 0 || snapshot.status === 'new') return '';
+  const chips = regions
+    .map(
+      (r, i) =>
+        `<li><a href="#" class="region-chip" data-diff="${snapshot.diffPath ?? ''}" title="${r.diffPixels} changed pixels">#${i + 1} · ${r.width}×${r.height} @ (${r.x}, ${r.y})</a></li>`,
+    )
+    .join('');
+  return `
+      <div class="regions">
+        <div class="regions-title">${regions.length} changed region${regions.length === 1 ? '' : 's'}</div>
+        <ul>${chips}</ul>
+      </div>`;
+}
+
+/**
+ * Mask audit trail: every mask applied to this comparison is listed with
+ * its source — masking is visible in review, never silent. Warnings cover
+ * masks that could not be applied (e.g. selector without captured rects).
+ */
+function renderMasks(snapshot: SnapshotResult): string {
+  const masks = snapshot.masks ?? [];
+  const warnings = snapshot.maskWarnings ?? [];
+  if (masks.length === 0 && warnings.length === 0) return '';
+
+  const describe = (m: NonNullable<SnapshotResult['masks']>[number]): string => {
+    const src =
+      m.source.type === 'selector'
+        ? `selector <code>${escapeHtml(String(m.source.spec))}</code>`
+        : m.source.type === 'edge'
+          ? `edge <code>${escapeHtml(JSON.stringify(m.source.spec))}</code>`
+          : `region <code>${escapeHtml(JSON.stringify(m.source.spec))}</code>`;
+    return `${src} → ${m.width}×${m.height} @ (${m.x}, ${m.y}) <em>(${m.source.origin})</em>`;
+  };
+
+  const maskBlock =
+    masks.length > 0
+      ? `
+      <div class="masks" title="Masked areas are excluded from the pixel diff and hatched in the diff image.">
+        <span class="label">🙈 ${masks.length} mask${masks.length === 1 ? '' : 's'} applied</span>
+        — ${masks.map(describe).join('; ')}
+      </div>`
+      : '';
+
+  const warningBlock =
+    warnings.length > 0
+      ? `
+      <div class="mask-warning">⚠️ ${warnings.map((w) => escapeHtml(w)).join('<br>')}</div>`
+      : '';
+
+  return maskBlock + warningBlock;
 }
 
 function escapeHtml(str: string): string {

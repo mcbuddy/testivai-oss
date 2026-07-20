@@ -11,6 +11,12 @@ import { diff as diffEngine } from '../diff';
 import { domDiff } from '../diff/dom-diff';
 import { BaselineStore } from '../baselines/store';
 import { SnapshotDomSignal, SnapshotResult, SnapshotStatus } from './results';
+import {
+  CapturedMaskRect,
+  MaskSpec,
+  resolveMasks,
+} from '../diff/mask';
+import { RegionOptions } from '../diff/types';
 
 export interface CompareOptions {
   threshold?: number;
@@ -22,6 +28,33 @@ export interface CompareOptions {
    * marks the snapshot changed.
    */
   passCriteria?: PassCriteria;
+  /**
+   * Global masks (from .testivai/config.json `mask`). Merged with any
+   * per-call masks recorded in the capture's metadata.
+   */
+  mask?: MaskSpec[];
+  /** Region clustering tunables (config `diffRegions`). */
+  diffRegions?: RegionOptions;
+}
+
+/** The mask-related slice of a capture's metadata.json (all optional). */
+interface CaptureMaskMetadata {
+  /** Per-call geometric/selector mask specs recorded by the adapter. */
+  masks?: MaskSpec[];
+  /** Per-call selector masks (kept separate for the audit trail). */
+  maskSelectors?: string[];
+  /** Selector geometry captured via getBoundingClientRect at capture time. */
+  maskRects?: CapturedMaskRect[];
+}
+
+function readTempMaskMetadata(projectRoot: string, name: string): CaptureMaskMetadata {
+  const metaPath = path.join(projectRoot, '.testivai', 'temp', name, 'metadata.json');
+  try {
+    const parsed = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+    return parsed && typeof parsed === 'object' ? (parsed as CaptureMaskMetadata) : {};
+  } catch {
+    return {}; // absent or malformed metadata never breaks the compare
+  }
 }
 
 export interface PassCriteria {
@@ -41,7 +74,7 @@ export interface PassCriteria {
  * @returns Array of SnapshotResult for each snapshot
  */
 export function compareAll(options: CompareOptions): SnapshotResult[] {
-  const { projectRoot, reportDir, threshold = 0.1, passCriteria = {} } = options;
+  const { projectRoot, reportDir, threshold = 0.1, passCriteria = {}, diffRegions } = options;
   const store = new BaselineStore(projectRoot);
   const tempNames = store.listTemp();
   const results: SnapshotResult[] = [];
@@ -83,12 +116,22 @@ export function compareAll(options: CompareOptions): SnapshotResult[] {
     // screenshots from the browser, we need to handle the PNG decoding.
     // For simplicity and zero-dep, we do a byte-level comparison first,
     // then fall back to diff engine for actual pixel data.
+    const captureMeta = readTempMaskMetadata(projectRoot, name);
     const result = compareBuffers(
       baselineBuffer,
       tempBuffer,
       name,
       snapshotImagesDir,
       threshold,
+      {
+        configMasks: options.mask ?? [],
+        callMasks: [
+          ...(captureMeta.masks ?? []),
+          ...(captureMeta.maskSelectors ?? []),
+        ],
+        capturedRects: captureMeta.maskRects,
+        regionOptions: diffRegions,
+      },
     );
 
     // DOM-level noise hint. Only meaningful when both sides captured DOM.
@@ -170,6 +213,18 @@ function computeDomSignal(
 }
 
 /**
+ * Read a PNG's dimensions from its IHDR header without a full decode.
+ * Returns null for anything that doesn't look like a PNG.
+ */
+function readPngDims(buffer: Buffer): { width: number; height: number } | null {
+  // PNG signature (8 bytes) + IHDR length/type (8) → width at 16, height at 20
+  if (buffer.length < 24 || buffer.readUInt32BE(12) !== 0x49484452 /* 'IHDR' */) {
+    return null;
+  }
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
+/**
  * Decode a PNG buffer to raw RGBA pixel data using pngjs.
  */
 function decodePng(buffer: Buffer): { data: Buffer; width: number; height: number } {
@@ -192,16 +247,24 @@ function encodePng(data: Buffer, width: number, height: number): Buffer {
  * Decodes both PNGs to raw RGBA, runs the pixel-level diff engine,
  * writes a valid diff PNG, and returns a SnapshotResult.
  */
+interface CompareMaskContext {
+  configMasks: MaskSpec[];
+  callMasks: MaskSpec[];
+  capturedRects?: CapturedMaskRect[];
+  regionOptions?: RegionOptions;
+}
+
 function compareBuffers(
   baselineBuffer: Buffer,
   candidateBuffer: Buffer,
   name: string,
   snapshotImagesDir: string,
   threshold: number,
+  maskContext: CompareMaskContext = { configMasks: [], callMasks: [] },
 ): SnapshotResult {
   // Quick byte-level comparison — identical files need no decoding
   if (baselineBuffer.equals(candidateBuffer)) {
-    return {
+    const result: SnapshotResult = {
       name,
       status: 'passed',
       diffPercent: 0,
@@ -210,6 +273,23 @@ function compareBuffers(
       baselinePath: `images/${name}/baseline.png`,
       currentPath: `images/${name}/current.png`,
     };
+    // Masks are moot for identical bytes, but the audit trail (and any
+    // could-not-apply warnings) must still surface. Header-only dims read.
+    const specCount = maskContext.configMasks.length + maskContext.callMasks.length;
+    if (specCount > 0) {
+      const dims = readPngDims(baselineBuffer);
+      if (dims) {
+        const fromConfig = resolveMasks(
+          maskContext.configMasks, dims.width, dims.height, maskContext.capturedRects, 'config');
+        const fromCall = resolveMasks(
+          maskContext.callMasks, dims.width, dims.height, maskContext.capturedRects, 'call');
+        const rects = [...fromConfig.rects, ...fromCall.rects];
+        const warnings = [...fromConfig.warnings, ...fromCall.warnings];
+        if (rects.length > 0) result.masks = rects;
+        if (warnings.length > 0) result.maskWarnings = warnings;
+      }
+    }
+    return result;
   }
 
   try {
@@ -232,7 +312,21 @@ function compareBuffers(
 
     const diffOutput = new Uint8ClampedArray(expectedLen);
 
-    const diffResult = diffEngine(baseline8, candidate8, diffOutput, width, height, { threshold });
+    // Resolve masks against this image's dimensions. Config and per-call
+    // specs are resolved separately so the audit trail records the origin.
+    const fromConfig = resolveMasks(
+      maskContext.configMasks, width, height, maskContext.capturedRects, 'config');
+    const fromCall = resolveMasks(
+      maskContext.callMasks, width, height, maskContext.capturedRects, 'call');
+    const maskRects = [...fromConfig.rects, ...fromCall.rects];
+    const maskWarnings = [...fromConfig.warnings, ...fromCall.warnings];
+
+    const diffResult = diffEngine(baseline8, candidate8, diffOutput, width, height, {
+      threshold,
+      masks: maskRects,
+      detectRegions: true,
+      regionOptions: maskContext.regionOptions,
+    });
 
     // Encode the diff RGBA back to a valid PNG and write it
     const diffPngBuffer = encodePng(Buffer.from(diffOutput.buffer), width, height);
@@ -243,7 +337,7 @@ function compareBuffers(
     // flip it to 'passed' based on the configured tolerances.
     const status: SnapshotStatus = 'changed';
 
-    return {
+    const result: SnapshotResult = {
       name,
       status,
       diffPercent: diffResult.diffPercent,
@@ -253,6 +347,10 @@ function compareBuffers(
       currentPath: `images/${name}/current.png`,
       diffPath: `images/${name}/diff.png`,
     };
+    if (diffResult.regions) result.regions = diffResult.regions;
+    if (maskRects.length > 0) result.masks = maskRects;
+    if (maskWarnings.length > 0) result.maskWarnings = maskWarnings;
+    return result;
   } catch (err) {
     // PNG decode failed (corrupt file, unexpected format) — report as changed
     // without a diff image so the user can investigate manually

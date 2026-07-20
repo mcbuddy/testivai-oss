@@ -40,6 +40,18 @@ export interface SnapshotResult {
    */
   dom?: SnapshotDomSignal;
   /**
+   * Changed-pixel clusters as bounding boxes (top-left sorted). Present
+   * for 'changed' results (and auto-passed ones — the boxes stay useful).
+   */
+  regions?: import('../diff/types').DiffRegion[];
+  /**
+   * Masks applied to this comparison (resolved to pixels, with their
+   * source) — the audit trail for excluded areas. Present when non-empty.
+   */
+  masks?: import('../diff/mask').MaskRect[];
+  /** Mask specs that could not be applied (e.g. selector without captured geometry). */
+  maskWarnings?: string[];
+  /**
    * Present when the snapshot's pixels differed but a pass criterion
    * reported it as passed: 'threshold' (within maxDiffPercent /
    * maxDiffPixels) or 'noise' (DOM identical + within noiseMaxDiffPercent,

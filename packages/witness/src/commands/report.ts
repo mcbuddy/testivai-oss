@@ -32,7 +32,10 @@ export const reportCommand = new Command('report')
         reportDir: config.reportDir ?? 'visual-report',
         threshold: config.threshold,
         autoOpen: options.open ?? config.autoOpen,
-        version: require('../../package.json').version,
+        // NOTE: `version` here is the results.json SCHEMA version (a public
+        // contract), not the package version — conflating them shipped
+        // results.json files labeled 1.3.1. Omitted → schema default.
+
       });
 
       const { summary } = report;

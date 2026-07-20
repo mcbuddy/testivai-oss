@@ -31,6 +31,20 @@ export interface LocalConfig {
    */
   ignoreSelectors?: string[];
   /**
+   * Masks: page areas excluded from the pixel diff and hatched in the
+   * report (auditable — never silent). Each entry is a CSS selector
+   * string (geometry captured by the adapter at capture time) or a
+   * geometric region: px numbers, 0–1 ratios, "NN%" strings, or a
+   * single-edge shorthand like { "top": 24 }.
+   */
+  mask?: Array<string | Record<string, number | string>>;
+  /**
+   * Diff clustering tunables: minSize = noise floor in changed pixels
+   * (default 10), mergeDistance = px gap within which nearby regions
+   * merge into one (default 12).
+   */
+  diffRegions?: { minSize?: number; mergeDistance?: number };
+  /**
    * Pass tolerance: snapshots whose diff percentage (0-100) is at or below
    * this value are reported as passed instead of changed. Default: 0 —
    * only pixel-identical (after `threshold`) runs pass.

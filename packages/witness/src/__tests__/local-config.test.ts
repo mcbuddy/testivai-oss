@@ -183,3 +183,42 @@ describe('Local Config', () => {
     });
   });
 });
+
+describe('mask + diffRegions config (additive, back-compat)', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { loadLocalConfig } = require('../config/local-config');
+
+  function withConfig(config: object, fn: (root: string) => void) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-cfg-'));
+    fs.mkdirSync(path.join(root, '.testivai'), { recursive: true });
+    fs.writeFileSync(path.join(root, '.testivai', 'config.json'), JSON.stringify(config));
+    try { fn(root); } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  }
+
+  it('configs written before masks existed load unchanged', () => {
+    withConfig({ mode: 'local', threshold: 0.2, ignoreSelectors: ['.ad'] }, (root) => {
+      const cfg = loadLocalConfig(root);
+      expect(cfg.threshold).toBe(0.2);
+      expect(cfg.ignoreSelectors).toEqual(['.ad']);
+      expect(cfg.mask).toBeUndefined();
+      expect(cfg.diffRegions).toBeUndefined();
+    });
+  });
+
+  it('mask and diffRegions parse when present', () => {
+    withConfig(
+      {
+        mode: 'local',
+        mask: ['#banner', { x: 0, y: 0, width: '50%', height: 40 }, { top: 24 }],
+        diffRegions: { minSize: 20, mergeDistance: 6 },
+      },
+      (root) => {
+        const cfg = loadLocalConfig(root);
+        expect(cfg.mask).toHaveLength(3);
+        expect(cfg.diffRegions).toEqual({ minSize: 20, mergeDistance: 6 });
+      },
+    );
+  });
+});
