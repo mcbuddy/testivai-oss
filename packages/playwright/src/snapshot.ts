@@ -480,7 +480,8 @@ export async function snapshot(
     // shift classification, and the style fingerprint on the compare
     // side. Best-effort — the screenshot path never depends on it.
     try {
-      const elementMap = await page.evaluate(buildElementMapExpression());
+      const mapIgnores = collectIgnoreSelectors(process.cwd(), projectConfig, effectiveConfig);
+      const elementMap = await page.evaluate(buildElementMapExpression(undefined, mapIgnores));
       if (Array.isArray(elementMap) && elementMap.length > 0) {
         await fs.writeJson(path.join(localSnapshotDir, 'elements.json'), elementMap);
       }

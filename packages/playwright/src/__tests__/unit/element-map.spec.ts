@@ -126,10 +126,62 @@ describe('collectElementMap', () => {
 
   it('serializes to a self-contained page expression', () => {
     const expr = buildElementMapExpression(1234);
-    expect(expr).toContain('(document, window, 1234)');
+    expect(expr).toContain('(document, window, 1234, [])');
     expect(expr).not.toContain('require(');
     expect(expr).not.toContain('exports');
     // Must be valid standalone JS
-    expect(() => new Function(`return ${expr.replace('(document, window, 1234)', '')}`)).not.toThrow();
+    expect(() => new Function(`return ${expr.replace('(document, window, 1234, [])', '')}`)).not.toThrow();
+  });
+});
+
+describe('collectElementMap — exclusions (the ignoreSelectors consistency rule)', () => {
+  // ignored = excluded from pixels AND the DOM snapshot AND the element map.
+  // Found by dogfooding: an injected badge covered by ignoreSelectors tripped
+  // the style fingerprint because its randomized styles were still mapped.
+  function makeMatchable(
+    tag: string,
+    rect: { x: number; y: number; width: number; height: number },
+    opts: { classes?: string[]; styles?: Record<string, string> } = {},
+  ): FakeEl & { matches(sel: string): boolean } {
+    const el = makeEl(tag, rect, opts) as FakeEl & { matches(sel: string): boolean };
+    el.matches = (sel: string) => {
+      if (sel.startsWith('.')) return el.classList.includes(sel.slice(1));
+      throw new Error('unsupported selector in fake');
+    };
+    return el;
+  }
+
+  it('skips elements matching ignoreSelectors (and their subtrees)', () => {
+    const body = makeMatchable('body', { x: 0, y: 0, width: 800, height: 600 });
+    const badge = makeMatchable('div', { x: 0, y: 0, width: 100, height: 30 }, { classes: ['version-badge'] });
+    const inner = makeMatchable('span', { x: 0, y: 0, width: 80, height: 20 });
+    const real = makeMatchable('div', { x: 0, y: 100, width: 100, height: 50 }, { classes: ['card'] });
+    append(body, badge, real);
+    append(badge, inner);
+
+    const doc = { body } as unknown as Document;
+    const map = collectElementMap(doc, fakeWindow(), 3000, ['.version-badge']);
+    const paths = map.map((e) => e.path);
+    expect(paths.some((p) => p.includes('version-badge'))).toBe(false);
+    expect(paths.some((p) => p.includes('span'))).toBe(false); // subtree gone too
+    expect(paths.some((p) => p.includes('div.card'))).toBe(true);
+  });
+
+  it('skips visibility:hidden elements (invisible pixels cannot explain a diff)', () => {
+    const body = makeMatchable('body', { x: 0, y: 0, width: 800, height: 600 });
+    const hidden = makeMatchable('div', { x: 0, y: 0, width: 100, height: 30 }, { styles: { visibility: 'hidden' } });
+    const shown = makeMatchable('div', { x: 0, y: 100, width: 100, height: 50 }, { styles: { visibility: 'visible' } });
+    append(body, hidden, shown);
+
+    const doc = { body } as unknown as Document;
+    const map = collectElementMap(doc, fakeWindow(), 3000, []);
+    expect(map.filter((e) => e.path.startsWith('body > div'))).toHaveLength(1);
+  });
+
+  it('an invalid ignore selector never breaks the walk', () => {
+    const body = makeMatchable('body', { x: 0, y: 0, width: 800, height: 600 });
+    append(body, makeMatchable('div', { x: 0, y: 0, width: 50, height: 50 }));
+    const doc = { body } as unknown as Document;
+    expect(() => collectElementMap(doc, fakeWindow(), 3000, ['::invalid(('])).not.toThrow();
   });
 });

@@ -33,6 +33,7 @@ export function collectElementMap(
   doc: Document,
   win: Window & typeof globalThis,
   maxElements: number,
+  ignoreSelectors: string[] = [],
 ): CollectedElement[] {
   var STYLE_PROPS = [
     'color', 'background-color', 'background-image',
@@ -95,25 +96,50 @@ export function collectElementMap(
   var stack: Element[] = [body];
   while (stack.length > 0 && out.length < maxElements) {
     var el = stack.pop() as Element;
+
+    // The consistency rule: elements covered by ignoreSelectors are
+    // excluded from pixels and the DOM snapshot — they must be excluded
+    // from the element map too (subtree included), or their dynamic
+    // styles would trip the style fingerprint they were meant to escape.
+    var ignored = false;
+    if (ignoreSelectors.length > 0 && typeof (el as Element & { matches?: unknown }).matches === 'function') {
+      for (var g = 0; g < ignoreSelectors.length; g++) {
+        try {
+          if (el.matches(ignoreSelectors[g])) { ignored = true; break; }
+        } catch (e) {
+          // invalid selector — never breaks the walk
+        }
+      }
+    }
+    if (ignored) continue; // skip element AND subtree
+
     var rect = el.getBoundingClientRect();
     if (rect.width >= 4 && rect.height >= 4) {
       var styleParts: string[] = [];
+      var hidden = false;
       try {
         var cs = win.getComputedStyle(el);
         for (var p = 0; p < STYLE_PROPS.length; p++) {
-          styleParts.push(STYLE_PROPS[p] + ':' + cs.getPropertyValue(STYLE_PROPS[p]));
+          var value = cs.getPropertyValue(STYLE_PROPS[p]);
+          if (STYLE_PROPS[p] === 'visibility' && value === 'hidden') hidden = true;
+          styleParts.push(STYLE_PROPS[p] + ':' + value);
         }
       } catch (e) {
         // styleHash stays a digest of the empty string — still deterministic
       }
-      out.push({
-        path: pathOf(el, body),
-        x: Math.round((rect.x + scrollX) * dpr),
-        y: Math.round((rect.y + scrollY) * dpr),
-        width: Math.round(rect.width * dpr),
-        height: Math.round(rect.height * dpr),
-        styleHash: fnv1a(styleParts.join(';')),
-      });
+      // visibility:hidden elements paint no pixels, so their style changes
+      // can never explain a pixel diff — keep them out of the map. Their
+      // CHILDREN may override visibility, so the subtree still walks.
+      if (!hidden) {
+        out.push({
+          path: pathOf(el, body),
+          x: Math.round((rect.x + scrollX) * dpr),
+          y: Math.round((rect.y + scrollY) * dpr),
+          width: Math.round(rect.width * dpr),
+          height: Math.round(rect.height * dpr),
+          styleHash: fnv1a(styleParts.join(';')),
+        });
+      }
     }
     // Push children in reverse so the walk stays document-ordered
     for (var c = el.children.length - 1; c >= 0; c--) {
@@ -130,6 +156,9 @@ export const DEFAULT_MAX_ELEMENTS = 3000;
  * The page-side expression evaluated by the adapter. Serializes the
  * collector so page code and unit-tested code are the same function.
  */
-export function buildElementMapExpression(maxElements: number = DEFAULT_MAX_ELEMENTS): string {
-  return `(${collectElementMap.toString()})(document, window, ${maxElements})`;
+export function buildElementMapExpression(
+  maxElements: number = DEFAULT_MAX_ELEMENTS,
+  ignoreSelectors: string[] = [],
+): string {
+  return `(${collectElementMap.toString()})(document, window, ${maxElements}, ${JSON.stringify(ignoreSelectors)})`;
 }
