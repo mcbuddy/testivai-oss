@@ -47,12 +47,29 @@ Pin to `@v1` for rolling major-version updates, or `@v1.0.0` for a fixed point r
 | `fail-on-diff` | Fail the workflow when visual changes are detected | No | `false` |
 | `upload-artifact` | Upload the report directory as a workflow artifact | No | `true` |
 | `artifact-retention-days` | Days to retain the artifact | No | `30` |
+| `artifact-name` | Name of the uploaded artifact | No | `testivai-visual-report` |
+| `status-context` | Name of the commit status context; also namespaces the PR comment | No | `TestivAI / visual` |
+
+### Multiple visual lanes in one repo
+
+When a repo runs more than one visual workflow (say, a TypeScript Playwright lane and a Python pytest lane), give each workflow its own `status-context` (and `artifact-name`). Each lane then posts its own commit status and upserts its own PR comment instead of overwriting the other's:
+
+```yaml
+- uses: mcbuddy/testivai-oss@v1
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    report-dir: visual-report
+    status-context: 'TestivAI / visual (pytest)'
+    artifact-name: testivai-visual-report-pytest
+```
+
+Requires `mcbuddy/testivai-oss@v1` ≥ v1.0.10.
 
 ## What the Action posts
 
 ### PR comment (upserted)
 
-A single comment per PR (identified by the `<!-- testivai-visual-report -->` marker) with a passed / changed / new summary. Each changed snapshot gets a collapsed `<details>` with the diff percent, the DOM noise hint (when applicable), and the approval CLI command:
+A single comment per PR (identified by the `<!-- testivai-visual-report -->` marker; namespaced per `status-context` when a non-default context is set) with a passed / changed / new summary. Each changed snapshot gets a collapsed `<details>` with the diff percent, the DOM noise hint (when applicable), and the approval CLI command:
 
 ```
 ### 🔍 TestivAI Visual Report
@@ -65,7 +82,7 @@ A single comment per PR (identified by the `<!-- testivai-visual-report -->` mar
 
 > 💡 DOM unchanged — pixel diff is likely render noise (anti-aliasing, font hinting).
 
-npx testivai approve "checkout-page"
+/testivai approve checkout-page
 </details>
 
 <details>
@@ -73,7 +90,7 @@ npx testivai approve "checkout-page"
 
 > 🧱 DOM changed — 2 added, 1 attribute change.
 
-npx testivai approve "nav-redesign"
+/testivai approve nav-redesign
 </details>
 ```
 
@@ -81,7 +98,7 @@ The DOM noise hint is the same signal the local HTML report shows. When the unde
 
 ### Commit status
 
-A status under the context `TestivAI / visual` is set on the head SHA. Default behavior:
+A status under the context `TestivAI / visual` (configurable via `status-context`) is set on the head SHA. Default behavior:
 
 | Snapshot state | `fail-on-diff: true` | `fail-on-diff: false` (default) |
 |---|---|---|
@@ -95,7 +112,9 @@ Whole `report-dir/` (HTML report, `results.json`, all diff images and DOM captur
 
 ## Approving changes from PR feedback
 
-The PR comment shows the exact approve command. Run it locally on the PR branch, commit the updated baselines, and push:
+The fastest path is the comment command: post `/testivai approve <name>` (or `/testivai approve --all`) directly on the PR. The companion `mcbuddy/testivai-oss/approve@v1` action verifies the commenter has write access, restores the pending baselines from the workflow artifact, and commits them back to the PR branch — no local checkout needed.
+
+Alternatively, approve locally on the PR branch, commit the updated baselines, and push:
 
 ```bash
 # On the PR branch, regenerate captures
