@@ -102,22 +102,25 @@ export function scaffoldPlaywrightLocal(cwd: string, force = false): string[] {
     created.push('.testivai/config.json');
   }
 
+  // Race-free: mkdir recursive never throws on an existing dir and returns the
+  // first path it created (undefined if it already existed) — no check-then-act.
   const baselinesDir = path.join(cwd, '.testivai', 'baselines');
-  if (!fs.existsSync(baselinesDir)) {
-    fs.mkdirSync(baselinesDir, { recursive: true });
+  if (fs.mkdirSync(baselinesDir, { recursive: true })) {
     created.push('.testivai/baselines/');
   }
 
+  // Race-free: read-or-empty instead of exists-then-read; appendFileSync
+  // creates the file when it's absent, so no separate write branch is needed.
   const gitignorePath = path.join(cwd, '.gitignore');
   const block = '\n# TestivAI local mode\n.testivai/temp/\nvisual-report/\n';
-  if (fs.existsSync(gitignorePath)) {
-    const existing = fs.readFileSync(gitignorePath, 'utf-8');
-    if (!existing.includes('.testivai/temp/')) {
-      fs.appendFileSync(gitignorePath, block);
-      created.push('.gitignore');
-    }
-  } else {
-    fs.writeFileSync(gitignorePath, block);
+  let existing = '';
+  try {
+    existing = fs.readFileSync(gitignorePath, 'utf-8');
+  } catch {
+    existing = '';
+  }
+  if (!existing.includes('.testivai/temp/')) {
+    fs.appendFileSync(gitignorePath, block);
     created.push('.gitignore');
   }
 
