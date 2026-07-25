@@ -6,22 +6,7 @@ import axios from 'axios';
 import { BatchPayload, BrowserInfo, GitInfo, SnapshotPayload } from './types';
 import { getCiRunId, getCiInfo, CiInfo } from './ci';
 import { CompressionHelper, type CompressionOptions } from '@testivai/common';
-
-/**
- * Check if local mode is configured by looking for .testivai/config.json with mode: 'local'
- */
-function isLocalMode(): boolean {
-  try {
-    const configPath = path.join(process.cwd(), '.testivai', 'config.json');
-    if (!fs.existsSync(configPath)) {
-      return false;
-    }
-    const config = fs.readJsonSync(configPath);
-    return config.mode === 'local';
-  } catch {
-    return false;
-  }
-}
+import { resolveLocalMode } from './mode';
 
 interface TestivaiReporterOptions {
   apiUrl?: string;
@@ -53,21 +38,17 @@ export class TestivAIPlaywrightReporter implements Reporter {
   }
 
   async onBegin(config: FullConfig, suite: Suite): Promise<void> {
-    // Check for local mode first
-    this.localMode = isLocalMode();
+    // Resolve mode. Local-first is the default: with no API key we capture
+    // and report locally rather than disabling the reporter. Cloud mode
+    // activates only when a key is present (or config/env force it).
+    this.localMode = resolveLocalMode({ apiKey: this.options.apiKey });
     if (this.localMode) {
       process.env.TESTIVAI_MODE = 'local';
-      if (this.options.debug) {
-        console.log('Testivai Reporter: [DEBUG] Local mode detected, skipping API key validation');
+      // One quiet, friendly line — not a scary "disabling reporter" error.
+      if (!this.options.apiKey && !process.env.TESTIVAI_MODE_ANNOUNCED) {
+        console.log('TestivAI: no API key set — running in local mode (report → visual-report/index.html).');
+        process.env.TESTIVAI_MODE_ANNOUNCED = '1';
       }
-    }
-
-    // API key is only required in cloud mode
-    if (!this.localMode && !this.options.apiKey) {
-      console.error('Testivai Reporter: API Key is not configured. Disabling reporter.');
-      console.error('Set TESTIVAI_API_KEY environment variable or pass apiKey in reporter options.');
-      this.options.apiUrl = undefined; // Disable reporter
-      return;
     }
 
     // 1. Clean temp directory

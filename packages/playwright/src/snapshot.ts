@@ -8,6 +8,7 @@ import { loadConfig, mergeTestConfig } from './config/loader';
 import { collectIgnoreSelectors, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
 import { buildElementMapExpression } from './capture/element-map';
 import { STABILIZE_CSS, resolveStabilize, waitForFonts } from './config/stabilize';
+import { resolveLocalMode } from './mode';
 
 /**
  * Generates a safe filename from a URL.
@@ -65,8 +66,11 @@ export async function snapshot(
   name?: string,
   config?: TestivAIConfig
 ): Promise<void> {
-  // Check for local mode - only capture screenshots, skip heavy data
-  const isLocalMode = process.env.TESTIVAI_MODE === 'local';
+  // Check for local mode - only capture screenshots, skip heavy data.
+  // Resolved from the shell env + config so it agrees with the reporter even
+  // though this runs in a Playwright worker (the reporter's runtime env writes
+  // never reach workers). Default: local unless a TESTIVAI_API_KEY is present.
+  const isLocalMode = resolveLocalMode();
 
   // Load project configuration and merge with test-specific overrides
   const projectConfig = await loadConfig();
@@ -393,7 +397,12 @@ export async function snapshot(
   if (isLocalMode) {
     const localSnapshotDir = path.join(outputDir, snapshotName);
     await fs.ensureDir(localSnapshotDir);
-    await fs.copyFile(screenshotPath, path.join(localSnapshotDir, 'screenshot.png'));
+    // Move (not copy) the flat capture into the canonical <name>/ layout so
+    // local mode leaves exactly one on-disk representation — no stray
+    // <timestamp>_<name>.png alongside it. The flat metadata .json is also
+    // skipped in local mode (see below); the local report reads the <name>/
+    // directory, not the flat files.
+    await fs.move(screenshotPath, path.join(localSnapshotDir, 'screenshot.png'), { overwrite: true });
 
     try {
       const domIgnoreSelectors = collectIgnoreSelectors(process.cwd(), projectConfig, effectiveConfig);
@@ -787,33 +796,38 @@ export async function snapshot(
   // @renamed: domAnalysis → structureAnalysis (IP protection)
   const structureAnalysis = isLocalMode ? undefined : undefined; // Will be populated by backend
 
-  // 6. Save metadata with configuration and performance data
-  const metadataPath = path.join(outputDir, `${baseFilename}.json`);
-  const metadata: Partial<SnapshotPayload> = {
-    snapshotName,
-    testName: testInfo.title,
-    timestamp,
-    url: page.url(),
-    viewport: page.viewportSize() || undefined,
-  };
+  // 6. Save metadata with configuration and performance data.
+  //    Cloud mode only: the flat <timestamp>_<name>.json is the upload
+  //    manifest the reporter reads. Local mode has no flat files — its report
+  //    is generated from the canonical .testivai/temp/<name>/ directory.
+  if (!isLocalMode) {
+    const metadataPath = path.join(outputDir, `${baseFilename}.json`);
+    const metadata: Partial<SnapshotPayload> = {
+      snapshotName,
+      testName: testInfo.title,
+      timestamp,
+      url: page.url(),
+      viewport: page.viewportSize() || undefined,
+    };
 
-  await fs.writeJson(metadataPath, {
-    ...metadata,
-    files: {
-      screenshot: screenshotPath,
-      // @renamed: dom → structure, css → styles (IP protection)
-      structure: structurePath,
-      styles: stylesPath,
-    },
-    layout,
-    // Store the effective configuration for the reporter
-    testivaiConfig: effectiveConfig,
-    // Store unified performance metrics if captured
-    performanceMetrics,
-    // Store structure analysis if captured
-    // @renamed: domAnalysis → structureAnalysis (IP protection)
-    structureAnalysis
-  });
+    await fs.writeJson(metadataPath, {
+      ...metadata,
+      files: {
+        screenshot: screenshotPath,
+        // @renamed: dom → structure, css → styles (IP protection)
+        structure: structurePath,
+        styles: stylesPath,
+      },
+      layout,
+      // Store the effective configuration for the reporter
+      testivaiConfig: effectiveConfig,
+      // Store unified performance metrics if captured
+      performanceMetrics,
+      // Store structure analysis if captured
+      // @renamed: domAnalysis → structureAnalysis (IP protection)
+      structureAnalysis
+    });
+  }
 }
 
 

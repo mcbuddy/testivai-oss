@@ -2,7 +2,9 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['**/__tests__/unit/**/*.spec.{ts,js}'],
+  // Only run TypeScript specs via ts-jest. Compiled .js/.d.ts twins must never
+  // be committed under __tests__ or they double-run against stale code.
+  testMatch: ['**/__tests__/unit/**/*.spec.ts'],
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.jest.json'

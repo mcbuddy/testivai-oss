@@ -1,6 +1,11 @@
 import { snapshot } from './snapshot';
 import { getCiRunId } from './ci';
 
+// Named export — the form the README and examples use:
+//   import { snapshot } from '@testivai/witness-playwright';
+// `testivai.witness` is kept as an equivalent alias for existing callers.
+export { snapshot };
+
 export const testivai = {
   witness: snapshot,
   ci: getCiRunId,

@@ -9,7 +9,62 @@ Run TestivAI visual tests automatically on every push and pull request. TestivAI
 
 ---
 
-## GitHub Actions
+## Local-First CI Gate (No API Key)
+
+The simplest CI setup: capture, diff, and gate on visual changes — fully local. No account, no API key, no external services. Baselines are committed to git; a changed snapshot fails the gate; the reviewer downloads the report artifact, inspects the diff, and approves locally.
+
+```yaml title=".github/workflows/visual-tests.yml"
+name: Visual Regression Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install chromium --with-deps
+
+      - run: npm run build
+
+      - run: npm test
+
+      - name: Visual diff gate
+        run: npx testivai report --fail-on-diff
+
+      - name: Upload visual report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: visual-report/
+```
+
+Baselines live in `.testivai/baselines/` — commit them to git (`git add .testivai/baselines/`).
+
+### How the gate works
+
+Baselines are committed to the repository. When a PR changes the rendering, the Playwright test run captures new screenshots into `.testivai/temp/`, and `npx testivai report --fail-on-diff` compares them against the committed baselines. Any snapshot with a pixel diff exits non-zero, failing the CI job.
+
+The reviewer downloads the `visual-report` workflow artifact from the failed run, opens `index.html` to inspect the side-by-side diffs, and decides whether the changes are intentional. To accept, re-run the tests locally, approve with `npx testivai approve --all` (or commit the updated baselines directly), and push — the next CI run passes.
+
+> For a richer PR workflow with inline diff comments and `/testivai approve` commands, see the **[GitHub Action](/github-action)**.
+
+---
+
+## GitHub Actions (Cloud)
 
 ### Playwright SDK
 
