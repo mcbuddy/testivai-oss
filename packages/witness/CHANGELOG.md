@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.7.0
+
+### Minor Changes
+
+- 5bfdca5: Agent-grade `testivai report` CLI contract:
+
+  - `--json` prints the `results.json` payload (the public schema, incl. per-snapshot region→selector attribution) to stdout instead of the pretty summary — so agents/CI parse one stable contract, no ANSI scraping.
+  - Documented exit codes, enforced when gated (`--fail-on-diff` or config `failOnDiff`): **0** pass · **1** changed · **2** new-only. New snapshots get their own code instead of conflating with regressions.
+  - `--allow-new` treats new snapshots as passing (exit 0) for first runs before baselines exist.
+
+  `--json` also added to `approve` (`{ approved, failed }`) and `init` (Playwright scaffold `{ framework, mode, created }`).
+
+- 9db57c2: `testivai init` now detects Playwright projects **first** and scaffolds the local reporter flow — `.testivai/config.json` (`mode: "local"`), the baselines directory, `.gitignore` entries, and the reporter snippet to add to `playwright.config.ts` — instead of emitting the CDP `browserPort` sidecar config. It is idempotent (existing config left untouched without `--force`) and exits 0 cleanly on success.
+
 ## 1.6.0
 
 ### Minor Changes

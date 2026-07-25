@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.0
+
+### Minor Changes
+
+- 5bfdca5: `ignoreSelectors` now supports per-selector modes. Entries may be a bare CSS
+  string (default **mask** — `visibility:hidden`, layout preserved) or an object
+  `{ selector, mode }` where `mode: "collapse"` uses `display:none` to remove the
+  element's layout influence entirely. Collapse fixes the flake class where a
+  variable-height ignored region (e.g. a dynamic footer) shifts everything below
+  it. The `string[]` shape stays fully valid; both shapes can be mixed and are
+  honored from `.testivai/config.json`, `testivai.config.ts`, and per-`snapshot()`
+  overrides.
+- 9db57c2: Local-first is now the zero-config default. With no `TESTIVAI_API_KEY`, the Playwright reporter runs in **local mode** — capturing to `.testivai/temp/<name>/` and writing the HTML report — instead of disabling itself. The scary `API Key is not configured. Disabling reporter.` error is gone, replaced by a single quiet info line; cloud mode activates only when a key is present.
+
+  Mode is now resolved from a shared rule (`TESTIVAI_MODE` env → `.testivai/config.json` → API-key presence) used by both the reporter and `snapshot()`, fixing a mismatch where worker processes never saw the reporter's runtime mode.
+
+  Local mode also writes a **single canonical layout** — the flat `<timestamp>_<name>.{png,json}` duplicates are no longer emitted alongside `.testivai/temp/<name>/`.
+
+  Restored the named `snapshot` export (`import { snapshot } from '@testivai/witness-playwright'`) as documented, kept as an alias of `testivai.witness`.
+
+### Patch Changes
+
+- Updated dependencies [5bfdca5]
+- Updated dependencies [9db57c2]
+  - @testivai/witness@1.7.0
+
 ## 1.5.2
 
 ### Patch Changes
