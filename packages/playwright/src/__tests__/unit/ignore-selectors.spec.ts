@@ -12,6 +12,7 @@ import * as path from 'path';
 import {
   readWitnessConfigSelectors,
   collectIgnoreSelectors,
+  collectIgnoreRules,
   buildIgnoreSelectorsCSS,
 } from '../../config/ignore-selectors';
 import { TestivAIProjectConfig } from '../../types';
@@ -193,6 +194,62 @@ describe('buildIgnoreSelectorsCSS', () => {
     expect(css).toContain('[data-testivai-ignore] { visibility: hidden !important; }');
     expect(css).toContain('header .badge:first-child { visibility: hidden !important; }');
     expect(css).toContain('div > span { visibility: hidden !important; }');
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Per-selector modes: mask (default) vs collapse
+// ────────────────────────────────────────────────────────────
+
+describe('ignore modes (mask / collapse)', () => {
+  it('a bare string defaults to mask (visibility:hidden)', () => {
+    const css = buildIgnoreSelectorsCSS(['.badge']);
+    expect(css).toBe('.badge { visibility: hidden !important; }');
+  });
+
+  it('an object with mode:collapse emits display:none', () => {
+    const css = buildIgnoreSelectorsCSS([{ selector: '#footer', mode: 'collapse' }]);
+    expect(css).toBe('#footer { display: none !important; }');
+  });
+
+  it('an object with mode:mask emits visibility:hidden', () => {
+    const css = buildIgnoreSelectorsCSS([{ selector: '#footer', mode: 'mask' }]);
+    expect(css).toBe('#footer { visibility: hidden !important; }');
+  });
+
+  it('an object without a mode defaults to mask', () => {
+    const css = buildIgnoreSelectorsCSS([{ selector: '#footer' }]);
+    expect(css).toBe('#footer { visibility: hidden !important; }');
+  });
+
+  it('mixes strings and objects in one list', () => {
+    const css = buildIgnoreSelectorsCSS(['.badge', { selector: '#footer', mode: 'collapse' }]);
+    expect(css).toBe(
+      '.badge { visibility: hidden !important; }\n' +
+        '#footer { display: none !important; }',
+    );
+  });
+
+  it('collectIgnoreRules resolves modes and defaults strings to mask', () => {
+    writeWitnessConfig({ ignoreSelectors: ['.badge', { selector: '#footer', mode: 'collapse' }] });
+    const rules = collectIgnoreRules(tmpDir, MINIMAL_PROJECT_CONFIG, {});
+    expect(rules).toEqual([
+      { selector: '.badge', mode: 'mask' },
+      { selector: '#footer', mode: 'collapse' },
+    ]);
+  });
+
+  it('collectIgnoreSelectors still returns just selector strings for object entries', () => {
+    writeWitnessConfig({ ignoreSelectors: [{ selector: '#footer', mode: 'collapse' }, '.badge'] });
+    expect(collectIgnoreSelectors(tmpDir, MINIMAL_PROJECT_CONFIG, {})).toEqual(['#footer', '.badge']);
+  });
+
+  it('dedupes by selector across mixed string/object sources (first mode wins)', () => {
+    writeWitnessConfig({ ignoreSelectors: [{ selector: '#footer', mode: 'collapse' }] });
+    const rules = collectIgnoreRules(tmpDir, MINIMAL_PROJECT_CONFIG, {
+      ignoreSelectors: ['#footer'],
+    });
+    expect(rules).toEqual([{ selector: '#footer', mode: 'collapse' }]);
   });
 });
 

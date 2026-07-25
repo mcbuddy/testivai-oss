@@ -76,8 +76,11 @@ claude mcp add testivai -- npx -y @testivai/mcp
 | Tool | Returns |
 |---|---|
 | `get_visual_results` | Per-snapshot verdicts phrased for agent decision-making |
-| `get_snapshot_diff` | Baseline, current, and diff PNGs for one snapshot |
+| `get_report` | The raw `results.json` payload (structured: status, diff %, DOM signal, region→selector) |
+| `get_diff` (alias `get_snapshot_diff`) | Baseline, current, and diff PNGs for one snapshot |
 | `list_baselines` | Committed baselines under `.testivai/baselines/` |
+| `approve_snapshot` | Promote one confirmed snapshot to its committed baseline |
+| `approve_all` | Promote every pending snapshot (only after review) |
 
 The server reads the project from its working directory (`--root <path>` to
 override) and honors `reportDir` from `.testivai/config.json`. By design it

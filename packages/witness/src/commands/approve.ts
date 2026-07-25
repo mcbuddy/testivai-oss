@@ -9,7 +9,8 @@ export const approveCommand = new Command('approve')
   .option('--all', 'Approve all changed/new snapshots')
   .option('--undo', 'Undo the last approval (restore previous baseline)')
   .option('--dry-run', 'Show what would be approved without modifying any files')
-  .action(async (name: string | undefined, options: { all?: boolean; undo?: boolean; dryRun?: boolean }) => {
+  .option('--json', 'Print a machine-readable result to stdout instead of the pretty output')
+  .action(async (name: string | undefined, options: { all?: boolean; undo?: boolean; dryRun?: boolean; json?: boolean }) => {
     try {
       const cwd = process.cwd();
       const store = new BaselineStore(cwd);
@@ -58,24 +59,32 @@ export const approveCommand = new Command('approve')
       if (options.all) {
         const tempNames = store.listTemp();
         if (tempNames.length === 0) {
-          console.log(chalk.yellow('  No temp snapshots found. Run your tests first.'));
+          if (options.json) process.stdout.write(JSON.stringify({ approved: [], failed: [] }) + '\n');
+          else console.log(chalk.yellow('  No temp snapshots found. Run your tests first.'));
           return;
         }
 
-        let approved = 0;
+        const approvedNames: string[] = [];
+        const failed: Array<{ name: string; error: string }> = [];
         for (const snapName of tempNames) {
           try {
             store.approve(snapName);
-            console.log(chalk.green(`  ✓ Approved: ${snapName}`));
-            approved++;
+            approvedNames.push(snapName);
+            if (!options.json) console.log(chalk.green(`  ✓ Approved: ${snapName}`));
           } catch (err: any) {
-            logger.error(`  ✗ Failed to approve "${snapName}": ${err.message}`);
+            failed.push({ name: snapName, error: err.message });
+            if (!options.json) logger.error(`  ✗ Failed to approve "${snapName}": ${err.message}`);
           }
         }
 
-        console.log();
-        console.log(chalk.cyan(`  ${approved}/${tempNames.length} snapshot(s) approved.`));
-        console.log(chalk.gray('  git add .testivai/baselines/'));
+        if (options.json) {
+          process.stdout.write(JSON.stringify({ approved: approvedNames, failed }) + '\n');
+        } else {
+          console.log();
+          console.log(chalk.cyan(`  ${approvedNames.length}/${tempNames.length} snapshot(s) approved.`));
+          console.log(chalk.gray('  git add .testivai/baselines/'));
+        }
+        if (failed.length > 0) process.exitCode = 1;
         return;
       }
 
@@ -83,10 +92,14 @@ export const approveCommand = new Command('approve')
       if (name) {
         try {
           store.approve(name);
-          console.log(chalk.green(`  ✓ Approved: ${name}`));
-          console.log(chalk.gray(`    git add .testivai/baselines/${name}/`));
+          if (options.json) process.stdout.write(JSON.stringify({ approved: [name], failed: [] }) + '\n');
+          else {
+            console.log(chalk.green(`  ✓ Approved: ${name}`));
+            console.log(chalk.gray(`    git add .testivai/baselines/${name}/`));
+          }
         } catch (err: any) {
-          logger.error(err.message);
+          if (options.json) process.stdout.write(JSON.stringify({ approved: [], failed: [{ name, error: err.message }] }) + '\n');
+          else logger.error(err.message);
           process.exit(1);
         }
         return;

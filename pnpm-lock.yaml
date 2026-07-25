@@ -113,6 +113,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.0
         version: 1.29.0(zod@3.25.76)
+      '@testivai/witness':
+        specifier: workspace:*
+        version: link:../witness
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0

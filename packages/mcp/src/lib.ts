@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { PNG } from 'pngjs';
+import { BaselineStore } from '@testivai/witness/baselines';
 
 /** Subset of the semver-governed results.json contract this server reads. */
 export interface DomInfo {
@@ -77,6 +78,43 @@ export function resolveImage(paths: ProjectPaths, relativePath: string): string 
   const abs = path.resolve(paths.reportDir, relativePath);
   if (!abs.startsWith(path.resolve(paths.reportDir) + path.sep)) return null; // no traversal
   return fs.existsSync(abs) ? abs : null;
+}
+
+/** Result of an approve operation — machine-readable for agents. */
+export interface ApproveResult {
+  approved: string[];
+  failed: Array<{ name: string; error: string }>;
+}
+
+/**
+ * Approve one snapshot: promote its current capture in `.testivai/temp/<name>/`
+ * to the committed baseline. Reuses the same BaselineStore the CLI uses, so
+ * semantics (and undo) match `testivai approve <name>` exactly.
+ */
+export function approveSnapshot(root: string, name: string): ApproveResult {
+  const store = new BaselineStore(root);
+  try {
+    store.approve(name);
+    return { approved: [name], failed: [] };
+  } catch (e) {
+    return { approved: [], failed: [{ name, error: e instanceof Error ? e.message : String(e) }] };
+  }
+}
+
+/** Approve every pending snapshot under `.testivai/temp/` (like `approve --all`). */
+export function approveAll(root: string): ApproveResult {
+  const store = new BaselineStore(root);
+  const approved: string[] = [];
+  const failed: Array<{ name: string; error: string }> = [];
+  for (const name of store.listTemp()) {
+    try {
+      store.approve(name);
+      approved.push(name);
+    } catch (e) {
+      failed.push({ name, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  return { approved, failed };
 }
 
 export function listBaselines(root: string): string[] {

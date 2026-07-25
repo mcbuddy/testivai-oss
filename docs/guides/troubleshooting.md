@@ -147,6 +147,8 @@ withCredentials([string(credentialsId: 'testivai-api-key', variable: 'API_KEY')]
 3. **Disable animations** during tests
 4. **Reduce screenshot size** by testing specific components
 
+See also: [Stable Baselines](./stable-baselines.md) — a guide to freezing animations, using `ignoreSelectors` modes, and tuning tolerance to eliminate flaky diffs.
+
 ### Memory usage high
 
 - **Playwright**: Reuse browser context between tests

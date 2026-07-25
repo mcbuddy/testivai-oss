@@ -5,7 +5,7 @@ import { URL } from 'url';
 import sharp from 'sharp';
 import { SnapshotPayload, LayoutData, TestivAIConfig, StructureAnalysis, StructureAnalysisConfig } from './types';
 import { loadConfig, mergeTestConfig } from './config/loader';
-import { collectIgnoreSelectors, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
+import { collectIgnoreSelectors, collectIgnoreRules, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
 import { buildElementMapExpression } from './capture/element-map';
 import { STABILIZE_CSS, resolveStabilize, waitForFonts } from './config/stabilize';
 import { resolveLocalMode } from './mode';
@@ -105,8 +105,10 @@ export async function snapshot(
   //   3. testivai.witness(...)  → { ignoreSelectors } (per-snapshot override)
   let ignoreStyleEl: import('@playwright/test').ElementHandle | null = null;
   if (isLocalMode) {
-    const allSelectors = collectIgnoreSelectors(process.cwd(), projectConfig, effectiveConfig);
-    const css = buildIgnoreSelectorsCSS(allSelectors);
+    // Rules carry per-selector mode: mask (visibility:hidden, layout kept) or
+    // collapse (display:none, layout removed — fixes variable-height shift).
+    const ignoreRules = collectIgnoreRules(process.cwd(), projectConfig, effectiveConfig);
+    const css = buildIgnoreSelectorsCSS(ignoreRules);
     if (css) {
       ignoreStyleEl = await page.addStyleTag({ content: css });
     }

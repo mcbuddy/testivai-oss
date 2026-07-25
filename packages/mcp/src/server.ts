@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { z, type ZodRawShape } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng } from './lib';
+import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng, approveSnapshot, approveAll } from './lib';
 
 const packageJson = require('../package.json');
 
@@ -48,49 +48,105 @@ server.registerTool(
   }
 );
 
+// Shared handler for the diff-image tools (registered under two names).
+const snapshotDiffHandler = async ({ name }: { name: string }) => {
+  const paths = resolvePaths(projectRoot);
+  const results = readResults(paths);
+  const snapshot = results?.snapshots.find((s) => s.name === name);
+  if (!results || !snapshot) {
+    return { content: [{ type: 'text', text: `No snapshot named "${name}" in the latest results.` }] };
+  }
+  const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [
+    { type: 'text', text: `${snapshot.name}: ${verdictFor(snapshot)}` },
+  ];
+  for (const [label, rel] of [
+    ['baseline', snapshot.baselinePath],
+    ['current', snapshot.currentPath],
+    ['diff', snapshot.diffPath],
+  ] as const) {
+    const abs = rel ? resolveImage(paths, rel) : null;
+    if (abs) {
+      const raw = fs.readFileSync(abs);
+      const downscaled = downscalePng(raw);
+      const wasDownscaled =
+        downscaled.originalWidth !== downscaled.width ||
+        downscaled.originalHeight !== downscaled.height;
+      const textLabel = wasDownscaled
+        ? `${label} (downscaled from ${downscaled.originalWidth}x${downscaled.originalHeight}):`
+        : `${label}:`;
+      content.push({ type: 'text', text: textLabel });
+      content.push({ type: 'image', data: downscaled.data.toString('base64'), mimeType: 'image/png' });
+    }
+  }
+  return { content };
+};
+
+const diffToolMeta = {
+  title: 'View snapshot diff images',
+  description:
+    'Return the baseline, current, and diff images for one changed snapshot so you can see what changed visually. ' +
+    'Use get_report / get_visual_results first to find snapshot names.',
+  inputSchema: { name: z.string().describe('Snapshot name from the results') },
+};
+
 // registerTool is called through an untyped alias: zod@3.25 + TS 6 blow the
 // type-depth limit (TS2589) when inferring the schema generics. Runtime
 // validation of the input schema is unaffected.
-(server.registerTool as Function)(
-  'get_snapshot_diff',
+// `get_diff` is the canonical name; `get_snapshot_diff` is kept as an alias.
+(server.registerTool as Function)('get_diff', diffToolMeta, snapshotDiffHandler);
+(server.registerTool as Function)('get_snapshot_diff', diffToolMeta, snapshotDiffHandler);
+
+// get_report — the raw results.json payload (the public schema) for agents
+// that want to parse structured data rather than the human summary.
+server.registerTool(
+  'get_report',
   {
-    title: 'View snapshot diff images',
+    title: 'Get the raw visual report (results.json)',
     description:
-      'Return the baseline, current, and diff images for one changed snapshot so you can see what changed visually. ' +
-      'Use get_visual_results first to find snapshot names.',
-    inputSchema: { name: z.string().describe('Snapshot name from get_visual_results') },
+      'Return the machine-readable results.json payload verbatim (summary + per-snapshot status, diff %, ' +
+      'DOM signal, and region→selector attribution). Parse this instead of scraping CLI output.',
+    inputSchema: {},
   },
-  (async ({ name }: { name: string }) => {
-    const paths = resolvePaths(projectRoot);
-    const results = readResults(paths);
-    const snapshot = results?.snapshots.find((s) => s.name === name);
-    if (!results || !snapshot) {
-      return { content: [{ type: 'text', text: `No snapshot named "${name}" in the latest results.` }] };
+  async () => {
+    const results = readResults(resolvePaths(projectRoot));
+    if (!results) {
+      return { content: [{ type: 'text', text: 'No results found. Run the visual tests first (e.g. npx playwright test).' }] };
     }
-    const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [
-      { type: 'text', text: `${snapshot.name}: ${verdictFor(snapshot)}` },
-    ];
-    for (const [label, rel] of [
-      ['baseline', snapshot.baselinePath],
-      ['current', snapshot.currentPath],
-      ['diff', snapshot.diffPath],
-    ] as const) {
-      const abs = rel ? resolveImage(paths, rel) : null;
-      if (abs) {
-        const raw = fs.readFileSync(abs);
-        const downscaled = downscalePng(raw);
-        const wasDownscaled =
-          downscaled.originalWidth !== downscaled.width ||
-          downscaled.originalHeight !== downscaled.height;
-        const textLabel = wasDownscaled
-          ? `${label} (downscaled from ${downscaled.originalWidth}x${downscaled.originalHeight}):`
-          : `${label}:`;
-        content.push({ type: 'text', text: textLabel });
-        content.push({ type: 'image', data: downscaled.data.toString('base64'), mimeType: 'image/png' });
-      }
-    }
-    return { content };
-  })
+    return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
+  }
+);
+
+// approve_snapshot / approve_all — promote current captures to committed
+// baselines. Approval accepts a new visual truth, so only call these once a
+// reviewer has confirmed the change is intended (not a regression).
+(server.registerTool as Function)(
+  'approve_snapshot',
+  {
+    title: 'Approve one snapshot as the new baseline',
+    description:
+      'Promote .testivai/temp/<name>/ to the committed baseline (same as `testivai approve <name>`). ' +
+      'Only approve changes a reviewer has confirmed are intended; then commit .testivai/baselines/.',
+    inputSchema: { name: z.string().describe('Snapshot name to approve') },
+  },
+  async ({ name }: { name: string }) => {
+    const result = approveSnapshot(projectRoot, name);
+    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+  }
+);
+
+server.registerTool(
+  'approve_all',
+  {
+    title: 'Approve all pending snapshots as baselines',
+    description:
+      'Promote every pending capture under .testivai/temp/ to committed baselines (same as `testivai approve --all`). ' +
+      'Only run this after a reviewer has confirmed the changes; then commit .testivai/baselines/.',
+    inputSchema: {},
+  },
+  async () => {
+    const result = approveAll(projectRoot);
+    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+  }
 );
 
 server.registerTool(

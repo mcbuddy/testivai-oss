@@ -26,7 +26,13 @@ program
   .description('TestivAI Witness SDK - Framework-agnostic visual regression testing')
   .version(packageJson.version, '-V, --version', 'Display version number')
   .hook('preAction', () => {
-    if (!process.argv.includes('--quiet') && !process.argv.includes('-q')) {
+    // Keep stdout clean for machine-readable output: no banner under --json
+    // (or --quiet/-q). Agents parse stdout as a single JSON document.
+    const quiet =
+      process.argv.includes('--quiet') ||
+      process.argv.includes('-q') ||
+      process.argv.includes('--json');
+    if (!quiet) {
       showBanner();
     }
   });

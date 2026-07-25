@@ -141,6 +141,7 @@ export const initCommand = new Command('init')
   .description('Initialize TestivAI Witness SDK in your project')
   .option('-f, --force', 'Overwrite existing configuration files')
   .option('-y, --yes',   'Skip prompts and use auto-detected framework')
+  .option('--json',      'Print a machine-readable result to stdout (Playwright projects)')
   .action(async (options) => {
     try {
       const cwd = process.cwd();
@@ -151,6 +152,12 @@ export const initCommand = new Command('init')
       // the CDP browserPort sidecar config.
       if (isPlaywrightProject(cwd)) {
         const created = scaffoldPlaywrightLocal(cwd, options.force ?? false);
+        if (options.json) {
+          process.stdout.write(
+            JSON.stringify({ framework: 'playwright', mode: 'local', created }) + '\n',
+          );
+          return; // exit 0
+        }
         console.log();
         console.log(chalk.green.bold('  ✓ TestivAI is set up for Playwright (local mode).'));
         if (created.length > 0) {

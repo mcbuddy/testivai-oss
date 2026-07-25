@@ -179,3 +179,58 @@ describe('@testivai/mcp lib', () => {
     });
   });
 });
+
+describe('@testivai/mcp approve helpers', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-mcp-approve-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const writeTemp = (name: string) => {
+    const dir = path.join(root, '.testivai', 'temp', name);
+    fs.mkdirSync(dir, { recursive: true });
+    const png = new PNG({ width: 2, height: 2 });
+    fs.writeFileSync(path.join(dir, 'screenshot.png'), PNG.sync.write(png));
+    fs.writeFileSync(path.join(dir, 'dom.html'), '<html></html>');
+  };
+
+  const baselineExists = (name: string) =>
+    fs.existsSync(path.join(root, '.testivai', 'baselines', name, 'screenshot.png'));
+
+  it('approveSnapshot promotes a temp capture to a baseline', () => {
+    const { approveSnapshot } = require('../lib');
+    writeTemp('homepage');
+    const result = approveSnapshot(root, 'homepage');
+    expect(result.approved).toEqual(['homepage']);
+    expect(result.failed).toEqual([]);
+    expect(baselineExists('homepage')).toBe(true);
+  });
+
+  it('approveSnapshot reports failure for a missing snapshot', () => {
+    const { approveSnapshot } = require('../lib');
+    const result = approveSnapshot(root, 'does-not-exist');
+    expect(result.approved).toEqual([]);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0].name).toBe('does-not-exist');
+  });
+
+  it('approveAll promotes every pending capture', () => {
+    const { approveAll } = require('../lib');
+    writeTemp('a');
+    writeTemp('b');
+    const result = approveAll(root);
+    expect(result.approved.sort()).toEqual(['a', 'b']);
+    expect(baselineExists('a')).toBe(true);
+    expect(baselineExists('b')).toBe(true);
+  });
+
+  it('approveAll returns empty when there is nothing pending', () => {
+    const { approveAll } = require('../lib');
+    expect(approveAll(root)).toEqual({ approved: [], failed: [] });
+  });
+});

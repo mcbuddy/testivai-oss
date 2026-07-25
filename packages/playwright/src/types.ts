@@ -1,11 +1,29 @@
 /**
  * Types for Testivai Witness Playwright SDK
- * 
+ *
  * Defines the data shapes for evidence collection:
  * - SnapshotPayload: DOM + Layout data for a single snapshot
  * - BatchPayload: Git + Browser info + collection of snapshots
  * - TestivAIConfig: Configuration for visual analysis behavior
  */
+
+/**
+ * How an ignored selector is neutralized before capture:
+ * - `mask`     — `visibility: hidden` (default): the box is blanked but keeps
+ *                its layout, so surrounding elements don't shift.
+ * - `collapse` — `display: none`: the element is removed from layout entirely,
+ *                so variable-height ignored content (e.g. a dynamic footer)
+ *                stops shifting everything below it.
+ */
+export type IgnoreMode = 'mask' | 'collapse';
+
+/**
+ * An ignoreSelectors entry: a plain CSS selector string (defaults to `mask`
+ * mode), or an object choosing the mode per selector.
+ */
+export type IgnoreSelectorInput =
+  | string
+  | { selector: string; mode?: IgnoreMode };
 
 /**
  * Layout configuration for visual analysis
@@ -239,8 +257,12 @@ export interface TestivAIConfig {
    * Per-snapshot values are merged with (not replaced by) the global list.
    *
    * Example: ["[data-testivai-ignore]", ".version-badge", "#live-chat-widget"]
+   *
+   * Entries may also be objects to choose a per-selector mode, e.g.
+   * [{ selector: "#footer", mode: "collapse" }] to remove layout influence.
+   * A bare string defaults to "mask" (visibility:hidden, layout preserved).
    */
-  ignoreSelectors?: string[];
+  ignoreSelectors?: IgnoreSelectorInput[];
   /**
    * Stabilize the page before capture: disable CSS animations/transitions,
    * hide the text caret, and wait for web fonts to finish loading — the top
