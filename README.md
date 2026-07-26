@@ -35,6 +35,7 @@ If an AI agent (Claude Code, Cursor, Copilot, …) writes your UI code, someone 
 - **No account, no API key, no network** — an agent can run it inside any sandbox without you provisioning secrets.
 - **Machine-readable output** — every run writes `visual-report/results.json` (a [semver-governed schema](./docs/how-it-works.md)) with per-snapshot diff percentages and DOM change summaries, so an agent can read the result and self-correct.
 - **Noise-aware verdicts** — the DOM hint tells the agent whether a pixel diff is *likely render noise* or a *real structural change* (`2 added, 1 removed`), so it doesn't chase anti-aliasing ghosts.
+- **Explanations, bring-your-own-model** — the MCP `explain_snapshot` tool hands your agent layered evidence (which selectors shifted vs changed, whole-page shift detection, style-only changes) and your model writes the narrative: *"card #2 shifted +24px — likely the banner injected above it."* No hosted AI service in the loop.
 - **Human approval stays in the PR** — the agent iterates locally; you approve baselines with one `/testivai approve` comment.
 
 Paste this into your project's `AGENTS.md` / `CLAUDE.md` to wire it up (full guide with MCP setup, a real agent transcript, and the approval rule: [docs/guides/ai-agents.md](./docs/guides/ai-agents.md)):
@@ -94,7 +95,9 @@ npx playwright install chromium
 ```
 
 ```jsonc
-// 2. Tell TestivAI to run in local mode (no API key, no upload)
+// 2. (OPTIONAL) Customize tolerances and report settings.
+// Local mode is the default when no TESTIVAI_API_KEY is set — no config needed.
+// Only create this file if you want to tune threshold, reportDir, etc.
 // File: .testivai/config.json
 {
   "mode": "local",

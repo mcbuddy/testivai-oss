@@ -187,7 +187,7 @@ describe('Report Generator', () => {
   });
 
   describe('T3.9 - OSS noise warning in HTML report', () => {
-    it('should include the OSS mode notice in the sidebar', () => {
+    it('should include the pixel-exact notice in the sidebar', () => {
       generateReport({
         projectRoot: tmpDir,
         reportDir: 'visual-report',
@@ -200,8 +200,8 @@ describe('Report Generator', () => {
       );
 
       expect(html).toContain('oss-notice');
-      expect(html).toContain('OSS mode');
-      expect(html).toContain('pixel-exact');
+      expect(html).toContain('Pixel-exact');
+      expect(html).toContain('collapse'); // variable-height noise tip
     });
 
     it('should mention threshold config option in the notice', () => {
@@ -235,7 +235,7 @@ describe('Report Generator', () => {
       expect(html).toContain('ignoreSelectors');
     });
 
-    it('should include a link to TestivAI Cloud in the notice', () => {
+    it('points agents at the MCP server instead of a hosted-service upsell', () => {
       generateReport({
         projectRoot: tmpDir,
         reportDir: 'visual-report',
@@ -247,7 +247,11 @@ describe('Report Generator', () => {
         'utf-8',
       );
 
-      expect(html).toContain('https://testiv.ai');
+      expect(html).toContain('@testivai/mcp');
+      expect(html).toContain('explain_snapshot');
+      // The cloud upsell is gone from the report entirely.
+      expect(html).not.toContain('TestivAI Cloud');
+      expect(html).not.toContain('AI-powered');
     });
 
     it('should render the renderHtml template with OSS notice directly', () => {
@@ -261,10 +265,10 @@ describe('Report Generator', () => {
       const html = renderHtml(data);
 
       expect(html).toContain('oss-notice');
-      expect(html).toContain('OSS mode');
+      expect(html).toContain('Pixel-exact');
       expect(html).toContain('ignoreSelectors');
       expect(html).toContain('threshold');
-      expect(html).toContain('testiv.ai');
+      expect(html).toContain('@testivai/mcp');
     });
   });
 

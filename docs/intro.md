@@ -30,9 +30,11 @@ npm install -D @testivai/witness-playwright @playwright/test
 npx playwright install chromium
 ```
 
-### 2. Enable local mode
+### 2. (Optional) Customize settings
 
-Create `.testivai/config.json` at your project root:
+Local mode is automatic when no `TESTIVAI_API_KEY` is set — the reporter compares locally and writes an HTML report with zero configuration. **No API key required.**
+
+If you want to tune tolerances or change the report output directory, create `.testivai/config.json` at your project root:
 
 ```json
 {
@@ -42,8 +44,6 @@ Create `.testivai/config.json` at your project root:
   "autoOpen": false
 }
 ```
-
-This tells the reporter to compare locally and write an HTML report instead of uploading to the cloud. **No API key required.**
 
 Optional tolerance and capture settings (all have safe defaults):
 

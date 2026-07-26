@@ -8,6 +8,22 @@ export interface DomInfo {
   changed: boolean;
   noiseHint: boolean;
   summary: { added: number; removed: number; attributeChanges: number; textChanges?: number } | null;
+  /** Style-fingerprint verdict: 'mismatch' = styles changed with identical DOM (a REAL change). */
+  styleCheck?: 'match' | 'mismatch' | 'unavailable';
+  styleChanges?: { count: number; elements: string[] };
+}
+
+export interface RegionInfo {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  diffPercent?: number;
+  /** Elements this region maps to, smallest first. */
+  elements?: Array<{ selector: string; role: 'shifted' | 'changed' }>;
+  /** 'shift' = pure translation of the primary element; else 'change'. */
+  classification?: 'shift' | 'change';
+  shift?: { dx: number; dy: number };
 }
 
 export interface SnapshotResult {
@@ -18,6 +34,11 @@ export interface SnapshotResult {
   currentPath?: string;
   diffPath?: string;
   dom?: DomInfo;
+  regions?: RegionInfo[];
+  /** Whole-page uniform displacement — the injected-banner signature. */
+  pageShift?: { dy: number; belowY: number; count: number };
+  autoPassed?: 'threshold' | 'noise';
+  maskWarnings?: string[];
 }
 
 export interface ResultsFile {
@@ -78,6 +99,106 @@ export function resolveImage(paths: ProjectPaths, relativePath: string): string 
   const abs = path.resolve(paths.reportDir, relativePath);
   if (!abs.startsWith(path.resolve(paths.reportDir) + path.sep)) return null; // no traversal
   return fs.existsSync(abs) ? abs : null;
+}
+
+/**
+ * Layered evidence bundle for one snapshot — the input a client LLM turns
+ * into a REVEAL-style narrative ("card #2 shifted +24px — likely the banner
+ * injected above it"). Assembled entirely from signals already computed by
+ * the local diff pipeline; the server ships evidence, the client's model is
+ * the analysis layer.
+ */
+export interface SnapshotExplanation {
+  name: string;
+  status: 'passed' | 'changed' | 'new';
+  verdict: string;
+  layers: {
+    /** Raw pixel evidence: how much changed and where. */
+    pixel: {
+      diffPercent: number | null;
+      regionCount: number;
+      /** Top regions by area, largest first (max 10). */
+      regions: RegionInfo[];
+    };
+    /** Element-level evidence: which elements, moved vs changed. */
+    element: {
+      pageShift: { dy: number; belowY: number; count: number } | null;
+      shiftedSelectors: string[];
+      changedSelectors: string[];
+    };
+    /** Structural evidence from the DOM pair. */
+    dom: DomInfo | null;
+  };
+  /** Interpretation rules the evidence supports, phrased for the model. */
+  guidance: string[];
+}
+
+/** Build the layered explanation bundle for one snapshot, or null if absent. */
+export function explainSnapshot(root: string, name: string): SnapshotExplanation | null {
+  const results = readResults(resolvePaths(root));
+  const snapshot = results?.snapshots.find((s) => s.name === name);
+  if (!results || !snapshot) return null;
+
+  const regions = [...(snapshot.regions ?? [])]
+    .sort((a, b) => b.width * b.height - a.width * a.height)
+    .slice(0, 10);
+
+  const shifted = new Set<string>();
+  const changed = new Set<string>();
+  for (const r of snapshot.regions ?? []) {
+    for (const el of r.elements ?? []) {
+      (el.role === 'shifted' ? shifted : changed).add(el.selector);
+    }
+  }
+
+  const guidance: string[] = [];
+  if (snapshot.status === 'new') {
+    guidance.push('No baseline exists yet — this is a first capture, not a regression. A human should review and approve it.');
+  }
+  if (snapshot.dom?.noiseHint) {
+    guidance.push('Pixels differ but the DOM is structurally identical and style digests match — likely render noise (anti-aliasing, font hinting). Mention it; do not block on it.');
+  }
+  if (snapshot.dom?.styleCheck === 'mismatch') {
+    const els = snapshot.dom.styleChanges?.elements?.slice(0, 5).join(', ');
+    guidance.push(`Computed styles changed on ${snapshot.dom.styleChanges?.count ?? 'some'} element(s)${els ? ` (${els})` : ''} while the DOM stayed identical — a stylesheet-only change. This is REAL, not noise.`);
+  }
+  if (snapshot.pageShift) {
+    guidance.push(`Everything at or below y=${snapshot.pageShift.belowY} moved ${snapshot.pageShift.dy > 0 ? 'down' : 'up'} by ${Math.abs(snapshot.pageShift.dy)}px (${snapshot.pageShift.count} elements together) — the signature of content inserted or removed above that line. Look there for the root cause, not at the moved elements.`);
+  }
+  if (shifted.size > 0 && changed.size === 0 && !snapshot.pageShift) {
+    guidance.push('All attributed regions are pure shifts (elements moved, content unchanged) — usually a layout/spacing change upstream, not a content change.');
+  }
+  if (snapshot.dom?.changed && snapshot.dom.summary) {
+    const s = snapshot.dom.summary;
+    guidance.push(`The DOM changed structurally (${s.added} added, ${s.removed} removed, ${s.attributeChanges} attribute changes${s.textChanges ? `, ${s.textChanges} text changes` : ''}) — confirm the change is intended before approving.`);
+  }
+  if (snapshot.autoPassed) {
+    guidance.push(`This diff auto-passed via the '${snapshot.autoPassed}' criterion — reported for transparency, no action needed.`);
+  }
+  if (snapshot.maskWarnings?.length) {
+    guidance.push(`Mask warnings: ${snapshot.maskWarnings.join('; ')} — some configured masks could not be applied.`);
+  }
+  guidance.push('Baseline approval is a human decision: propose, do not auto-approve.');
+
+  return {
+    name: snapshot.name,
+    status: snapshot.status,
+    verdict: verdictFor(snapshot),
+    layers: {
+      pixel: {
+        diffPercent: snapshot.diffPercent ?? null,
+        regionCount: snapshot.regions?.length ?? 0,
+        regions,
+      },
+      element: {
+        pageShift: snapshot.pageShift ?? null,
+        shiftedSelectors: [...shifted].slice(0, 10),
+        changedSelectors: [...changed].slice(0, 10),
+      },
+      dom: snapshot.dom ?? null,
+    },
+    guidance,
+  };
 }
 
 /** Result of an approve operation — machine-readable for agents. */

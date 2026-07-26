@@ -153,19 +153,19 @@ export function renderHtml(data: ReportData): string {
     </ul>
 
     <div class="cta">
-      <h3>Need AI-powered analysis?</h3>
-      <p>TestivAI Cloud adds smart matching, AI verdicts, and team collaboration.</p>
-      <a href="https://testiv.ai" target="_blank">Learn More</a>
+      <h3>Reviewing with an AI agent?</h3>
+      <p>The <code>@testivai/mcp</code> server gives Claude Code, Cursor, and any MCP client this report as structured data — including <code>explain_snapshot</code>, which attributes each diff to selectors and explains why it happened.</p>
+      <a href="https://github.com/mcbuddy/testivai-oss/blob/main/docs/guides/ai-agents.md" target="_blank">Agent setup guide</a>
     </div>
 
     <div class="oss-notice">
-      <h4>⚠️ OSS mode — pixel-exact</h4>
+      <h4>⚠️ Pixel-exact mode</h4>
       <p>Dynamic content (images, fonts, animations) may cause false positives. The <strong>💡 DOM unchanged</strong> hint identifies likely render noise.</p>
       <p>To reduce noise:<br>
         • Raise <code>threshold</code> in <code>.testivai/config.json</code><br>
-        • Add <code>ignoreSelectors</code> for dynamic elements
+        • Add <code>ignoreSelectors</code> for dynamic elements<br>
+        • Use <code>mode: "collapse"</code> for variable-height regions
       </p>
-      <p><a href="https://testiv.ai" target="_blank">TestivAI Cloud</a> uses AI-powered noise filtering.</p>
     </div>
   </aside>
 

@@ -234,3 +234,94 @@ describe('@testivai/mcp approve helpers', () => {
     expect(approveAll(root)).toEqual({ approved: [], failed: [] });
   });
 });
+
+describe('@testivai/mcp explainSnapshot', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-mcp-explain-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const writeResults = (snapshots: unknown[]) => {
+    const dir = path.join(root, 'visual-report');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'results.json'),
+      JSON.stringify({
+        version: '2.2.0',
+        timestamp: 't',
+        summary: { total: snapshots.length, passed: 0, changed: snapshots.length, newSnapshots: 0 },
+        snapshots,
+      }),
+    );
+  };
+
+  it('returns null for an unknown snapshot', () => {
+    const { explainSnapshot } = require('../lib');
+    writeResults([]);
+    expect(explainSnapshot(root, 'nope')).toBeNull();
+  });
+
+  it('noise case: guidance says do not block', () => {
+    const { explainSnapshot } = require('../lib');
+    writeResults([{
+      name: 'home', status: 'changed', diffPercent: 0.4,
+      dom: { changed: false, noiseHint: true, summary: null, styleCheck: 'match' },
+    }]);
+    const e = explainSnapshot(root, 'home');
+    expect(e.layers.dom.noiseHint).toBe(true);
+    expect(e.guidance.join(' ')).toMatch(/render noise/i);
+    expect(e.guidance.join(' ')).toMatch(/human decision/i);
+  });
+
+  it('style-mismatch case: flags a REAL stylesheet-only change with element names', () => {
+    const { explainSnapshot } = require('../lib');
+    writeResults([{
+      name: 'cta', status: 'changed', diffPercent: 2.1,
+      dom: {
+        changed: false, noiseHint: false, summary: null,
+        styleCheck: 'mismatch', styleChanges: { count: 1, elements: ['button.cta'] },
+      },
+    }]);
+    const e = explainSnapshot(root, 'cta');
+    const g = e.guidance.join(' ');
+    expect(g).toMatch(/styles changed/i);
+    expect(g).toContain('button.cta');
+    expect(g).toMatch(/REAL/);
+  });
+
+  it('injected-banner case: pageShift guidance points above the shift line', () => {
+    const { explainSnapshot } = require('../lib');
+    writeResults([{
+      name: 'page', status: 'changed', diffPercent: 12,
+      pageShift: { dy: 24, belowY: 80, count: 17 },
+      regions: [
+        { x: 0, y: 80, width: 1280, height: 600, diffPercent: 30,
+          classification: 'shift', shift: { dx: 0, dy: 24 },
+          elements: [{ selector: 'div.card:nth-of-type(2)', role: 'shifted' }] },
+        { x: 0, y: 0, width: 1280, height: 80, diffPercent: 90,
+          classification: 'change',
+          elements: [{ selector: 'header .banner', role: 'changed' }] },
+      ],
+      dom: { changed: true, noiseHint: false, summary: { added: 1, removed: 0, attributeChanges: 0 } },
+    }]);
+    const e = explainSnapshot(root, 'page');
+    expect(e.layers.element.pageShift).toEqual({ dy: 24, belowY: 80, count: 17 });
+    expect(e.layers.element.shiftedSelectors).toContain('div.card:nth-of-type(2)');
+    expect(e.layers.element.changedSelectors).toContain('header .banner');
+    expect(e.guidance.join(' ')).toMatch(/y=80.*moved down by 24px|inserted or removed above/i);
+    // regions sorted largest-first
+    expect(e.layers.pixel.regions[0].height).toBe(600);
+  });
+
+  it('new snapshot: guidance frames it as first capture, not regression', () => {
+    const { explainSnapshot } = require('../lib');
+    writeResults([{ name: 'fresh', status: 'new', diffPercent: 0 }]);
+    const e = explainSnapshot(root, 'fresh');
+    expect(e.guidance.join(' ')).toMatch(/first capture, not a regression/i);
+  });
+});

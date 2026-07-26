@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { z, type ZodRawShape } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng, approveSnapshot, approveAll } from './lib';
+import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng, approveSnapshot, approveAll, explainSnapshot } from './lib';
 
 const packageJson = require('../package.json');
 
@@ -167,6 +167,61 @@ server.registerTool(
       ],
     };
   }
+);
+
+// explain_snapshot — the layered evidence bundle (pixel regions → element
+// attribution → DOM/style signals → guidance). The client's own model turns
+// this into the narrative; the server ships evidence, not an LLM.
+(server.registerTool as Function)(
+  'explain_snapshot',
+  {
+    title: 'Explain what changed in one snapshot',
+    description:
+      'Layered evidence for one snapshot: pixel regions with bounding boxes, element attribution ' +
+      '(which selectors shifted vs changed, whole-page shift detection), the DOM/style signal, and ' +
+      'interpretation guidance. Use this to explain WHY a diff happened — pair with get_diff for the images.',
+    inputSchema: { name: z.string().describe('Snapshot name from the results') },
+  },
+  async ({ name }: { name: string }) => {
+    const explanation = explainSnapshot(projectRoot, name);
+    if (!explanation) {
+      return { content: [{ type: 'text', text: `No snapshot named "${name}" in the latest results. Run the visual tests first.` }] };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify(explanation, null, 2) }] };
+  }
+);
+
+// A reusable prompt that turns the evidence into a review narrative.
+server.registerPrompt(
+  'review-visual-changes',
+  {
+    title: 'Review visual changes',
+    description:
+      'Walk the latest visual results and produce a human-quality review: what changed, why, and what to do.',
+  },
+  async () => ({
+    messages: [
+      {
+        role: 'user' as const,
+        content: {
+          type: 'text' as const,
+          text: [
+            'Review the latest TestivAI visual regression results in this project:',
+            '',
+            '1. Call get_report for the summary. If nothing changed and nothing is new, say so and stop.',
+            '2. For every changed snapshot, call explain_snapshot(name) and read its layers and guidance.',
+            '   When the evidence is ambiguous, call get_diff(name) and inspect the images.',
+            '3. For each snapshot, explain in one short paragraph WHAT changed (name the selectors),',
+            '   WHY it likely happened (use pageShift/shift classifications — e.g. content injected above),',
+            '   and whether it is render noise, a style-only change, or a structural change.',
+            '4. End with a recommendation per snapshot: approve, investigate, or ignore-as-noise.',
+            '   Never call approve_snapshot/approve_all yourself unless the human has explicitly',
+            '   confirmed the changes are intended — baseline approval is a human decision.',
+          ].join('\n'),
+        },
+      },
+    ],
+  })
 );
 
 async function main(): Promise<void> {

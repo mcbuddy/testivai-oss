@@ -77,10 +77,13 @@ claude mcp add testivai -- npx -y @testivai/mcp
 |---|---|
 | `get_visual_results` | Per-snapshot verdicts phrased for agent decision-making |
 | `get_report` | The raw `results.json` payload (structured: status, diff %, DOM signal, region→selector) |
+| `explain_snapshot` | Layered evidence for one snapshot: pixel regions, element attribution (shifted vs changed selectors, whole-page shift detection), DOM/style signal, and interpretation guidance — everything a model needs to explain *why* a diff happened |
 | `get_diff` (alias `get_snapshot_diff`) | Baseline, current, and diff PNGs for one snapshot |
 | `list_baselines` | Committed baselines under `.testivai/baselines/` |
 | `approve_snapshot` | Promote one confirmed snapshot to its committed baseline |
 | `approve_all` | Promote every pending snapshot (only after review) |
+
+The server also ships a prompt, **`review-visual-changes`**, that walks the agent through a full review: summary → `explain_snapshot` per change → diff images when ambiguous → a per-snapshot recommendation (approve / investigate / ignore-as-noise). Your model does the reasoning; the server supplies the evidence — so the quality of the narrative scales with the model you already use, no hosted analysis service required.
 
 The server reads the project from its working directory (`--root <path>` to
 override) and honors `reportDir` from `.testivai/config.json`. By design it
