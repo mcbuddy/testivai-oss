@@ -1,5 +1,13 @@
 # @testivai/mcp
 
+## 0.5.2
+
+### Patch Changes
+
+- 381279b: `list_baselines` (and the approve tools via the shared store) now honor the `baselinesDir` config, including the new `{platform}` token — agreeing with the CLI's resolution.
+- Updated dependencies [381279b]
+  - @testivai/witness@1.9.0
+
 ## 0.5.1
 
 ### Patch Changes
