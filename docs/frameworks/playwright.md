@@ -33,15 +33,9 @@ Playwright uses a dedicated SDK, not the `@testivai/witness` CLI. Do not run `te
 
 ---
 
-## 2. Choose your mode
+## 2. Configure (optional)
 
-The Playwright SDK supports two modes. **You only need to configure one.**
-
-### Mode A — Local mode (recommended for OSS)
-
-No API key required. Diffs and reports are produced on disk.
-
-Create `.testivai/config.json` at your project root:
+Local mode is the default — no API key, no account; diffs and reports are produced on disk with zero configuration. To customize thresholds or paths, create `.testivai/config.json` at your project root:
 
 ```json
 {
@@ -64,30 +58,6 @@ Tolerance & capture settings (all optional — full reference in [Getting Starte
 - `noiseAutoPass` + `noiseMaxDiffPercent` — auto-pass DOM-identical diffs (the noise hint) within the bound
 - `stabilize` (default `true`) — before every capture: animations/transitions frozen, caret hidden, web fonts awaited — the top causes of flaky visual diffs, neutralized by default
 - `ignoreSelectors` — elements hidden (`visibility: hidden`) during capture
-
-### Mode B — Cloud mode (optional, hosted)
-
-Get your API key from the [TestivAI Dashboard](https://dashboard.testiv.ai) and set it as a **shell environment variable**:
-
-```bash
-export TESTIVAI_API_KEY=your-api-key
-```
-
-To make this permanent, add it to your shell profile:
-
-```bash
-# zsh (macOS default)
-echo 'export TESTIVAI_API_KEY=your-api-key' >> ~/.zshrc
-source ~/.zshrc
-
-# bash
-echo 'export TESTIVAI_API_KEY=your-api-key' >> ~/.bashrc
-source ~/.bashrc
-```
-
-:::warning Shell environment variables only
-TestivAI SDKs read configuration **exclusively from shell environment variables** (`process.env`). Do **not** use `.env` files or `dotenv` — the SDK will not load them. Always `export` your variables in your shell or CI environment.
-:::
 
 ---
 
@@ -121,9 +91,6 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `debug` | `boolean` | `false` | Enable verbose logging. Can also be set via `TESTIVAI_DEBUG=true` |
-| `apiUrl` | `string` | `https://core-api.testiv.ai` | Custom API endpoint URL |
-| `apiKey` | `string` | `process.env.TESTIVAI_API_KEY` | API key (overrides environment variable) |
-| `compression` | `object` | `{}` | Compression settings for uploads |
 
 ---
 
@@ -237,8 +204,9 @@ GitHub Actions example:
 
 - name: Run visual tests
   run: npx playwright test
-  env:
-    TESTIVAI_API_KEY: ${{ secrets.TESTIVAI_API_KEY }}
+
+- name: Visual diff gate
+  run: npx testivai report --fail-on-diff
 ```
 
 **Baselines belong to the environment that compares them.** Font
@@ -264,7 +232,7 @@ useful as a smoke check, just not as the source of truth.
 | Bounding boxes / layout JSON | — | ✅ |
 | Performance metrics (Web Vitals) | — | ✅ |
 
-In local mode, the screenshot and a DOM snapshot are captured — the DOM snapshot powers the render-noise hint and text-change detection. Cloud mode additionally captures computed styles, layout, and performance data for REVEAL Engine™ analysis.
+The screenshot and a DOM snapshot are captured — the DOM snapshot powers the render-noise hint and text-change detection, and the element map powers region→selector attribution, shift detection, and the style-change check.
 
 ---
 
@@ -281,7 +249,7 @@ The Playwright SDK uses Playwright's native `page.screenshot()`, `page.evaluate(
 - **v1.1.3** (Latest) — Fix: local-mode snapshots now write the subdirectory layout expected by `@testivai/witness/report`, so the HTML report is correctly populated.
 - **v1.1.2** — First release from [`testivai-oss`](https://github.com/mcbuddy/testivai-oss); URLs/workspace topology updates only.
 - **v1.1.0** — Local mode (config-driven) added.
-- **v1.0.0** — REVEAL Engine terminology rename.
+- **v1.0.0** — terminology rename.
 - **v0.3.1** — Fixed dist build.
 - **v0.3.0** — Reporter crash fix, debug logging, unified format with Witness SDK.
 - **v0.2.0** — Structure analysis and styles fingerprinting.

@@ -82,7 +82,7 @@ That's the entire contract for capture. After the test run, the user invokes `np
 }
 ```
 
-`mode: "local"` is required to opt into the OSS local-mode behavior. With no `config.json`, tools default to cloud mode.
+Local mode is the default: with no `config.json` (and no `TESTIVAI_API_KEY` in the environment), tools behave as `mode: "local"`. The file exists to customize thresholds and paths, not to enable the behavior.
 
 ## `results.json` schema
 

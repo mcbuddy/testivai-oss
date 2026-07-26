@@ -153,14 +153,4 @@ Run `npx testivai approve <name>` (or `--all`) to promote a temp capture to the 
 
 ---
 
-## Optional: Cloud Mode
-
-If `TESTIVAI_API_KEY` is set (and `.testivai/config.json` is **not** in local mode), the reporter uploads evidence to the TestivAI cloud instead of generating a local report. Cloud mode adds:
-
-- **REVEAL Engine™** — multi-layer non-AI + AI-assisted analysis
-- **Hosted dashboard** — team workflow, PR comments, approval gates
-- **Smart Baselines** — automatic baseline branching per environment
-
-Cloud mode is **opt-in**. The OSS SDKs work entirely without it.
-
-→ Continue to **[Playwright adapter](./frameworks/playwright.md)** or **[WebdriverIO adapter](./frameworks/webdriverio.md)**, or read the **[OSS vs Cloud](./oss-vs-cloud.md)** capability matrix.
+→ Continue to **[Playwright adapter](./frameworks/playwright.md)** or **[WebdriverIO adapter](./frameworks/webdriverio.md)**, or read the project **[philosophy](./philosophy.md)**.

@@ -8,7 +8,7 @@
 
 **Local-first visual regression testing SDKs for modern web applications.**
 
-This is the public, open-source home for the TestivAI SDKs. It contains everything you need to capture, diff, and report visual regressions **fully locally** — with optional cloud upgrade via the TestivAI hosted service.
+This is the home of TestivAI. It contains everything you need to capture, diff, and report visual regressions **fully locally** — MIT-licensed, no account, no server.
 
 > 👀 **[See a live report →](https://www.budisugianto.com/testivai-demo-app/)** — a real TestivAI OSS report rendered in your browser, straight from CI. No install, no signup.
 
@@ -26,7 +26,7 @@ Pixel-only visual testing drowns you in false positives — a font re-hint or an
 - 📍 **Element attribution & exact shift detection** — the report names *which element* changed ("`div.card:nth-of-type(2)` shifted +8px vertically — content unchanged") and spots the injected-banner case ("everything below y=80 moved +24px"), derived from layout, not pixel guesswork. No local-first tool does this.
 - 🔌 **First-class adapters** — Playwright (TS/JS **and Python**, Java experimental) and WebdriverIO, using each framework's native APIs; every language shares one set of baselines and one report.
 - 🤖 **PR-native workflow** — a GitHub Action posts the diff and approves baselines from a `/testivai approve` comment.
-- ☁️ **Optional cloud upgrade** — opt into [the hosted service](https://testiv.ai) for AI analysis, history, and team approvals. Never required.
+- 🔓 **No lock-in** — MIT license, baselines live in your git, and `results.json` is a semver-governed public contract.
 
 ## Eyes for your coding agent
 
@@ -152,15 +152,6 @@ npx playwright test
 - ✅ Self-contained HTML report (`visual-report/index.html`)
 - ✅ Machine-readable results (`visual-report/results.json`)
 - ✅ Committed baselines under `.testivai/baselines/` (just `git add` them)
-
-## Optional: Cloud Mode
-
-Set `TESTIVAI_API_KEY` in your shell to opt into the [hosted TestivAI service](https://testiv.ai), which adds:
-- AI-powered change analysis (REVEAL Engine™)
-- Hosted dashboard, team workflow, PR-based approvals
-- Smart Baseline approval flow
-
-Cloud mode is **opt-in**. The SDKs work entirely locally without it.
 
 ## CI Integration (GitHub Actions)
 

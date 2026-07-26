@@ -1,15 +1,13 @@
 # TestivAI OSS Documentation
 
-The public, open-source documentation for `@testivai/witness` and the framework adapters. Everything here applies to the **local-first OSS lane**: no account, no API key, no upload — capture, diff, report, approve, all on disk.
-
-For cloud-only features (REVEAL AI counselor, dashboard, history, team approval, smart baselines, the other 11 frameworks), see [testiv.ai/docs](https://testiv.ai/docs).
+The documentation for `@testivai/witness` and the framework adapters. Everything here is **local-first**: no account, no API key, no upload — capture, diff, report, approve, all on disk.
 
 ## Start here
 
 - **[Getting Started](./intro.md)** — install + first capture, 5 minutes
 - **[How It Works](./how-it-works.md)** — high-level architecture
 - **[Comparison: masks, regions, tolerances](./comparison.md)** — excluding dynamic areas, region-level diffs
-- **[OSS vs Cloud](./oss-vs-cloud.md)** — capability matrix, where the boundary is drawn
+- **[Philosophy](./philosophy.md)** — local-first detection, bring-your-own-model AI
 
 ## Frameworks (OSS adapters)
 
@@ -20,14 +18,14 @@ Pick the framework you use:
 - **[WebdriverIO](./frameworks/webdriverio.md)** — `@testivai/witness-webdriverio` (local mode)
 - **[Python](./frameworks/python.md)** — `testivai` on PyPI (playwright-python + Selenium)
 - **[Java](./frameworks/java.md)** — `ai.testiv:testivai` (playwright-java + Selenium, experimental)
-- **[Other frameworks](./frameworks/cloud-only-frameworks.md)** — Cypress, Puppeteer, Robot, RSpec, Cucumber
+- Other frameworks (Cypress, Puppeteer, …) — planned after Playwright adoption; the [`testivai run` sidecar](./sidecar-testivai-run.md) works today (experimental)
 
 ## CLI Reference
 
 - **[`testivai init`](./cli/init.md)** — set up local mode in your project
 - **[`testivai run`](./cli/run.md)** — experimental sidecar for non-adapter frameworks (see also [sidecar caveats](./sidecar-testivai-run.md))
 - **[`testivai capture`](./cli/capture.md)** — manual single-snapshot capture
-- **[`testivai auth`](./cli/auth.md)** — authenticate against the cloud service (cloud lane only)
+- **[`testivai report`](./cli/report.md)** — compare + report, `--json`, CI exit codes
 
 ## Reference
 
@@ -42,7 +40,7 @@ Pick the framework you use:
 - **[AI agents & code assistants](./guides/ai-agents.md)**
 - **[Vibe-coded apps (Lovable, Bolt, v0)](./guides/vibe-coded-apps.md)**
 - **[CI/CD](./guides/ci-cd.md)**
-- **[GitHub Integration](./guides/github-integration.md)**
+- **[Stable Baselines](./guides/stable-baselines.md)**
 - **[Headless](./guides/headless.md)**
 - **[Docker](./guides/docker.md)**
 - **[Troubleshooting](./guides/troubleshooting.md)**

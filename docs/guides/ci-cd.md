@@ -5,13 +5,13 @@ title: CI/CD Integration
 
 # CI/CD Integration
 
-Run TestivAI visual tests automatically on every push and pull request. TestivAI auto-detects your CI environment and attaches metadata (provider, PR number, run URL) to each batch — no extra configuration needed.
+Run TestivAI visual tests automatically on every push and pull request — fully local, no account, no API key, no external services. TestivAI auto-detects your CI environment and attaches metadata (provider, PR number, run URL) to each report.
 
 ---
 
-## Local-First CI Gate (No API Key)
+## The CI Gate
 
-The simplest CI setup: capture, diff, and gate on visual changes — fully local. No account, no API key, no external services. Baselines are committed to git; a changed snapshot fails the gate; the reviewer downloads the report artifact, inspects the diff, and approves locally.
+The core setup: capture, diff, and gate on visual changes. Baselines are committed to git; a changed snapshot fails the gate; the reviewer downloads the report artifact, inspects the diff, and approves locally.
 
 ```yaml title=".github/workflows/visual-tests.yml"
 name: Visual Regression Tests
@@ -56,7 +56,7 @@ Baselines live in `.testivai/baselines/` — commit them to git (`git add .testi
 
 ### How the gate works
 
-Baselines are committed to the repository. When a PR changes the rendering, the Playwright test run captures new screenshots into `.testivai/temp/`, and `npx testivai report --fail-on-diff` compares them against the committed baselines. Any snapshot with a pixel diff exits non-zero, failing the CI job.
+Baselines are committed to the repository. When a PR changes the rendering, the Playwright test run captures new screenshots into `.testivai/temp/`, and `npx testivai report --fail-on-diff` compares them against the committed baselines. Any snapshot with a pixel diff exits non-zero, failing the CI job — exit `1` for changed snapshots, exit `2` for new-only (add `--allow-new` on first runs). See the [`testivai report` reference](../cli/report.md) for the full exit-code contract and `--json` output.
 
 The reviewer downloads the `visual-report` workflow artifact from the failed run, opens `index.html` to inspect the side-by-side diffs, and decides whether the changes are intentional. To accept, re-run the tests locally, approve with `npx testivai approve --all` (or commit the updated baselines directly), and push — the next CI run passes.
 
@@ -64,123 +64,15 @@ The reviewer downloads the `visual-report` workflow artifact from the failed run
 
 ---
 
-## GitHub Actions (Cloud)
+## Baselines belong to the environment that compares them
 
-### Playwright SDK
-
-This is the recommended setup for Playwright projects. It uses the dedicated `@testivai/witness-playwright` SDK.
-
-```yaml title=".github/workflows/visual-tests.yml"
-name: Visual Regression Tests
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  visual-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run visual regression tests
-        run: npx playwright test
-        env:
-          TESTIVAI_API_KEY: ${{ secrets.TESTIVAI_API_KEY }}
-```
-
-### Witness SDK (Cypress, Selenium, WebdriverIO, etc.)
-
-For all other frameworks, use the `@testivai/witness` CLI wrapper.
-
-```yaml title=".github/workflows/visual-tests.yml"
-name: Visual Regression Tests
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  visual-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install TestivAI CLI
-        run: npm install -g @testivai/witness
-
-      - name: Run visual regression tests
-        run: testivai run "npx cypress run --browser chrome --headless"
-        env:
-          TESTIVAI_API_KEY: ${{ secrets.TESTIVAI_API_KEY }}
-```
-
-:::tip Replace the test command
-Swap the Cypress command for your framework's equivalent:
-- **Selenium (pytest)**: `testivai run "pytest tests/ -v"`
-- **Selenium (JUnit)**: `testivai run "mvn test"`
-- **WebdriverIO**: `testivai run "npx wdio run wdio.conf.js"`
-- **Puppeteer**: `testivai run "npx jest --testPathPattern=visual"`
-:::
-
-### Setting Up the `TESTIVAI_API_KEY` Secret
-
-1. Go to the [TestivAI Dashboard](https://dashboard.testiv.ai) and copy your project API key
-2. In your GitHub repo, go to **Settings → Secrets and variables → Actions**
-3. Click **New repository secret**
-4. Name: `TESTIVAI_API_KEY`
-5. Value: paste your API key
-6. Click **Add secret**
-
----
-
-## What Gets Captured Automatically in CI
-
-TestivAI SDKs auto-detect GitHub Actions and attach the following metadata to every batch:
-
-| Field | Source | Example |
-|-------|--------|---------|
-| `provider` | `GITHUB_ACTIONS` env var | `github_actions` |
-| `buildId` | `GITHUB_RUN_ID` | `8734562910` |
-| `runUrl` | Computed from `GITHUB_SERVER_URL`, `GITHUB_REPOSITORY`, `GITHUB_RUN_ID` | `https://github.com/owner/repo/actions/runs/8734562910` |
-| `prNumber` | `GITHUB_EVENT_NUMBER` (on `pull_request` events) | `42` |
-
-This metadata is displayed on the batch detail page in the dashboard and is used by the [GitHub Integration](/guides/github-integration) to post commit statuses and PR comments.
-
-**You don't need to configure any of this** — it's automatic when running in a supported CI environment.
+Font rasterization differs between macOS, Windows, and Linux, so a baseline captured on your laptop will report diffs on a Linux CI runner every time. If CI is where comparisons happen, adopt CI's own captures as baselines: the [GitHub Action](/github-action) bundles every changed capture into the artifact as `visual-report/pending-baselines/`, and a `/testivai approve` PR comment commits them back to the branch.
 
 ---
 
 ## Advanced: Matrix Testing
 
-Run visual tests across multiple browsers or viewports:
+Run visual tests across multiple browsers:
 
 ```yaml title=".github/workflows/visual-matrix.yml"
 name: Visual Regression Matrix
@@ -210,9 +102,12 @@ jobs:
 
       - name: Run visual tests (${{ matrix.browser }})
         run: npx playwright test --project=${{ matrix.browser }}
-        env:
-          TESTIVAI_API_KEY: ${{ secrets.TESTIVAI_API_KEY }}
+
+      - name: Visual diff gate
+        run: npx testivai report --fail-on-diff
 ```
+
+> Snapshot names should include the browser (e.g. `homepage-${browserName}`) so matrix runs don't overwrite each other's baselines.
 
 ---
 
@@ -233,15 +128,13 @@ Skip visual tests when no UI code changed:
       - name: Run visual tests
         if: steps.changes.outputs.visual == 'true'
         run: npx playwright test
-        env:
-          TESTIVAI_API_KEY: ${{ secrets.TESTIVAI_API_KEY }}
 ```
 
 ---
 
 ## Other CI Providers
 
-TestivAI auto-detects these providers — no SDK configuration needed:
+The same recipe works anywhere Node and a browser run — no provider configuration needed:
 
 ### GitLab CI
 
@@ -252,8 +145,11 @@ visual-tests:
   script:
     - npm ci
     - npx playwright test
-  variables:
-    TESTIVAI_API_KEY: $TESTIVAI_API_KEY
+    - npx testivai report --fail-on-diff
+  artifacts:
+    when: on_failure
+    paths:
+      - visual-report/
 ```
 
 ### CircleCI
@@ -267,11 +163,12 @@ jobs:
     steps:
       - checkout
       - run: npm ci
+      - run: npx playwright test
       - run:
-          name: Run visual tests
-          command: npx playwright test
-          environment:
-            TESTIVAI_API_KEY: $TESTIVAI_API_KEY
+          name: Visual diff gate
+          command: npx testivai report --fail-on-diff
+      - store_artifacts:
+          path: visual-report
 ```
 
 ### Jenkins
@@ -279,16 +176,19 @@ jobs:
 ```groovy title="Jenkinsfile"
 pipeline {
     agent any
-    environment {
-        TESTIVAI_API_KEY = credentials('testivai-api-key')
-    }
     stages {
         stage('Visual Tests') {
             steps {
                 sh 'npm ci'
                 sh 'npx playwright install --with-deps chromium'
                 sh 'npx playwright test'
+                sh 'npx testivai report --fail-on-diff'
             }
+        }
+    }
+    post {
+        failure {
+            archiveArtifacts artifacts: 'visual-report/**'
         }
     }
 }
@@ -298,5 +198,6 @@ pipeline {
 
 ## Next Steps
 
-- **[GitHub Integration](/guides/github-integration)** — Post commit statuses and PR comments with test results
-- **[Troubleshooting](/guides/troubleshooting)** — Common CI issues and solutions
+- **[GitHub Action](/github-action)** — PR comments, commit statuses, and `/testivai approve`
+- **[`testivai report`](../cli/report.md)** — exit codes and `--json` for scripting the gate
+- **[Troubleshooting](/guides/troubleshooting)** — common CI issues and solutions

@@ -125,7 +125,7 @@ it('homepage looks correct', async () => {
 
 Same `.testivai/baselines/` layout, same HTML report, same approval workflow as the Playwright lane.
 
-→ See the full [WebdriverIO quickstart](./frameworks/webdriverio.md) for service options + cloud-mode caveat.
+→ See the full [WebdriverIO quickstart](./frameworks/webdriverio.md) for service options.
 
 ---
 
@@ -204,32 +204,10 @@ visual-report/
 
 ---
 
-## Optional — Cloud Mode
-
-If you want AI-powered change analysis (REVEAL Engine™), a hosted dashboard, and a team approval workflow, opt into [TestivAI Cloud](https://testiv.ai):
-
-```bash
-export TESTIVAI_API_KEY=your-api-key
-```
-
-Or store it locally for the witness CLI:
-
-```bash
-npx testivai auth <your-api-key>
-```
-
-:::warning Shell environment variables only
-TestivAI SDKs read configuration from **shell environment variables only**. `.env` files and `dotenv` are not loaded.
-:::
-
-When `TESTIVAI_API_KEY` is set, runs upload evidence to the cloud instead of generating a local report. Removing the variable (or removing it from CI) reverts to local mode automatically.
-
----
-
 ## What's Next
 
 - **[How It Works](./how-it-works.md)** — local pipeline, capture layers, diff algorithm
-- **[OSS vs Cloud](./oss-vs-cloud.md)** — capability matrix
+- **[Philosophy](./philosophy.md)** — local-first detection, bring-your-own-model AI
 - **[Playwright adapter](./frameworks/playwright.md)** / **[WebdriverIO adapter](./frameworks/webdriverio.md)**
 - **[GitHub Action](./github-action.md)** — post results to PRs
 - **[Extension API](./extension-api.md)** — write a community adapter for your framework

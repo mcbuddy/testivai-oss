@@ -11,12 +11,17 @@ import {
 import { logger } from '../utils/logger';
 
 export const authCommand = new Command('auth')
-  .description('Authenticate with your TestivAI API key')
+  .description('[DEPRECATED] Authenticate with a TestivAI API key (the hosted service is discontinued)')
   .argument('[api-key]', 'Your TestivAI API key (optional if TESTIVAI_API_KEY env var is set)')
   .option('--check', 'Check if you are authenticated')
   .option('--show', 'Show current API key')
   .option('--delete', 'Delete stored credentials')
   .action(async (apiKey, options) => {
+    // TestivAI is local-first and no longer operates a hosted service; auth
+    // serves no purpose and will be removed in the next major version.
+    console.log(chalk.yellow('⚠  `testivai auth` is deprecated — TestivAI runs fully locally, no account or API key needed.'));
+    console.log(chalk.gray('   It will be removed in the next major release. Use `--delete` to clear any stored credentials.'));
+    console.log();
     try {
       // Check authentication status
       if (options.check) {

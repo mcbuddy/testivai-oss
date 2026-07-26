@@ -166,11 +166,9 @@ All options are optional; defaults come from `.testivai/config.json`.
 
 ---
 
-## Cloud mode (not yet supported)
+## Local-only by design
 
-The Playwright adapter has both local and cloud lanes. The WDIO adapter ships local-only in the first iteration. Cloud upload from WDIO will be added once the local path is broadly used.
-
-If you set `mode: "cloud"` in `.testivai/config.json` while using WDIO, the adapter logs a clear warning and exits without generating a report.
+The WDIO adapter is local-only: captures, diffs, and the report are all produced on disk. If a legacy config sets `mode: "cloud"`, the adapter logs a clear warning and exits without generating a report.
 
 ---
 
