@@ -113,6 +113,15 @@ export const reportCommand = new Command('report')
         if (shareUrl) {
           console.log(chalk.cyan(`  Shared: ${shareUrl}`));
         }
+        // Guard against silently-green CI: visible changes with no diff
+        // gate configured is almost never what a pipeline author wants.
+        if (!gate && summary.changed > 0) {
+          console.log(
+            chalk.yellow(
+              `  ⚠ ${summary.changed} snapshot(s) changed but exiting 0 — no diff gate is configured. For CI, pass --fail-on-diff or set "failOnDiff": true in .testivai/config.json.`,
+            ),
+          );
+        }
       }
 
       // exitCode is already 0 when the gate is off (report-only).

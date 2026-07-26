@@ -239,7 +239,10 @@ export function approveAll(root: string): ApproveResult {
 }
 
 export function listBaselines(root: string): string[] {
-  const dir = path.join(root, '.testivai', 'baselines');
+  // Honor config.json baselinesDir (incl. the {platform} token) so this
+  // agrees with the store's resolution — see witness resolveBaselinesDir.
+  const { resolveBaselinesDir } = require('@testivai/witness/baselines');
+  const dir: string = resolveBaselinesDir(root);
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir, { withFileTypes: true })

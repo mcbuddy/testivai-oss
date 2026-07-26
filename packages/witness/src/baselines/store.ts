@@ -15,6 +15,37 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+/**
+ * Resolve the baselines directory: explicit override → config.json
+ * `baselinesDir` → the default `.testivai/baselines`.
+ *
+ * A literal `{platform}` token is replaced with `process.platform`
+ * (darwin / linux / win32), giving cross-platform teams per-OS baselines
+ * without any wrapper scripts:
+ *
+ *   { "baselinesDir": ".testivai/baselines-{platform}" }
+ *
+ * mac devs and linux CI then gate against their own renders, instead of
+ * flagging every snapshot on font-rasterization differences.
+ */
+export function resolveBaselinesDir(projectRoot: string, override?: string): string {
+  let dir = override;
+  if (!dir) {
+    try {
+      const raw = fs.readFileSync(path.join(projectRoot, '.testivai', 'config.json'), 'utf-8');
+      const cfg = JSON.parse(raw);
+      if (typeof cfg.baselinesDir === 'string' && cfg.baselinesDir.length > 0) {
+        dir = cfg.baselinesDir;
+      }
+    } catch {
+      // no config / malformed → default
+    }
+  }
+  if (!dir) dir = path.join('.testivai', 'baselines');
+  dir = dir.split('{platform}').join(process.platform);
+  return path.isAbsolute(dir) ? dir : path.join(projectRoot, dir);
+}
+
 export interface BaselineMetadata {
   name: string;
   createdAt: string;
@@ -28,8 +59,8 @@ export class BaselineStore {
   private readonly baselinesDir: string;
   private readonly tempDir: string;
 
-  constructor(private readonly projectRoot: string) {
-    this.baselinesDir = path.join(projectRoot, '.testivai', 'baselines');
+  constructor(private readonly projectRoot: string, baselinesDirOverride?: string) {
+    this.baselinesDir = resolveBaselinesDir(projectRoot, baselinesDirOverride);
     this.tempDir = path.join(projectRoot, '.testivai', 'temp');
   }
 

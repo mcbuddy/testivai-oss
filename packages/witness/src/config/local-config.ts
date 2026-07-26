@@ -25,6 +25,13 @@ export interface LocalConfig {
    */
   failOnMissing?: boolean;
   /**
+   * Attribute names whose VALUES the DOM diff ignores (presence still
+   * counts) — for per-run URLs in `src`/`srcset`/`href` that would
+   * otherwise poison the noise hint with `attributeChanges`. `blob:`
+   * values are always normalized regardless. Default: [].
+   */
+  volatileAttributes?: string[];
+  /**
    * Storage-agnostic upload hook for `report --share`: a shell command
    * template run after share.html is written, with `{file}` replaced by
    * the share file's absolute path. The command's last stdout line is

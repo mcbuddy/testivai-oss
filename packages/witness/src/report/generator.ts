@@ -98,6 +98,7 @@ export function generateReport(options: GenerateReportOptions): ReportData {
     passCriteria,
     mask: localConfig.mask,
     diffRegions: localConfig.diffRegions,
+    volatileAttributes: localConfig.volatileAttributes,
   };
   const snapshots = compareAll(compareOptions);
 

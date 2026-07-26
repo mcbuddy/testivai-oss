@@ -9,7 +9,7 @@ import * as path from 'path';
 import { PNG } from 'pngjs';
 import { diff as diffEngine } from '../diff';
 import { domDiff } from '../diff/dom-diff';
-import { BaselineStore } from '../baselines/store';
+import { BaselineStore, resolveBaselinesDir } from '../baselines/store';
 import { SnapshotDomSignal, SnapshotResult, SnapshotStatus } from './results';
 import {
   CapturedMaskRect,
@@ -42,6 +42,12 @@ export interface CompareOptions {
   mask?: MaskSpec[];
   /** Region clustering tunables (config `diffRegions`). */
   diffRegions?: RegionOptions;
+  /**
+   * Attribute names whose values are ignored by the DOM diff (config
+   * `volatileAttributes`) — for per-run URLs in `src`/`srcset`/`href`
+   * that would otherwise poison the noise hint.
+   */
+  volatileAttributes?: string[];
 }
 
 /** The mask-related slice of a capture's metadata.json (all optional). */
@@ -55,7 +61,10 @@ interface CaptureMaskMetadata {
 }
 
 function readElementMap(projectRoot: string, kind: 'baselines' | 'temp', name: string): ElementMapEntry[] {
-  const p = path.join(projectRoot, '.testivai', kind, name, 'elements.json');
+  const p =
+    kind === 'baselines'
+      ? path.join(resolveBaselinesDir(projectRoot), name, 'elements.json')
+      : path.join(projectRoot, '.testivai', 'temp', name, 'elements.json');
   try {
     return parseElementMap(JSON.parse(fs.readFileSync(p, 'utf-8')));
   } catch {
@@ -162,7 +171,7 @@ export function compareAll(options: CompareOptions): SnapshotResult[] {
     if (result.status === 'changed') {
       const baselineDom = store.readDom(name);
       const candidateDom = store.readTempDom(name);
-      const domSignal = computeDomSignal(baselineDom, candidateDom);
+      const domSignal = computeDomSignal(baselineDom, candidateDom, options.volatileAttributes);
 
       // Element attribution + shift classification (element maps are
       // optional; without them regions pass through untouched).
@@ -251,9 +260,10 @@ function applyPassCriteria(result: SnapshotResult, criteria: PassCriteria): void
 function computeDomSignal(
   baselineDom: string | null,
   candidateDom: string | null,
+  volatileAttributes?: string[],
 ): SnapshotDomSignal | null {
   if (!baselineDom || !candidateDom) return null;
-  const result = domDiff(baselineDom, candidateDom);
+  const result = domDiff(baselineDom, candidateDom, { volatileAttributes });
   return {
     changed: result.domChanged,
     summary: result.summary,

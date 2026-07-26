@@ -80,7 +80,24 @@ interface OpenEvent {
  *
  * Otherwise tokenizes both and produces a summary.
  */
-export function domDiff(baselineHtml: string | null | undefined, candidateHtml: string | null | undefined): DomDiffResult {
+export interface DomDiffOptions {
+  /**
+   * Attribute names whose VALUES are ignored in the comparison (the
+   * attribute's presence still counts). For pages where `src`/`srcset`
+   * carry per-run URLs (CDN hashes, signed URLs) that would otherwise
+   * poison the noise hint with `attributeChanges: 1`.
+   *
+   * Note: `blob:` URLs are always normalized regardless of this list —
+   * object URLs are per-session by construction and can never match.
+   */
+  volatileAttributes?: string[];
+}
+
+export function domDiff(
+  baselineHtml: string | null | undefined,
+  candidateHtml: string | null | undefined,
+  options: DomDiffOptions = {},
+): DomDiffResult {
   // Fast path: missing data on either side → no signal
   if (!baselineHtml || !candidateHtml) {
     return { domChanged: false, summary: null };
@@ -91,8 +108,9 @@ export function domDiff(baselineHtml: string | null | undefined, candidateHtml: 
     return { domChanged: false, summary: null };
   }
 
-  const baselineTok = tokenize(baselineHtml);
-  const candidateTok = tokenize(candidateHtml);
+  const volatile = new Set((options.volatileAttributes ?? []).map((a) => a.toLowerCase()));
+  const baselineTok = tokenize(baselineHtml, volatile);
+  const candidateTok = tokenize(candidateHtml, volatile);
 
   // Bucket by tag name; within each bucket, count attrSig multisets
   const baselineBuckets = bucketize(baselineTok.events);
@@ -179,7 +197,7 @@ function sumValues(m: Map<string, number>): number {
  * Robust against malformed HTML — we never throw; on weird input we
  * just stop emitting events. Worst case = false "no DOM signal".
  */
-function tokenize(html: string): { events: OpenEvent[]; texts: Map<string, number> } {
+function tokenize(html: string, volatile: Set<string> = new Set()): { events: OpenEvent[]; texts: Map<string, number> } {
   const events: OpenEvent[] = [];
   const texts = new Map<string, number>();
   const len = html.length;
@@ -245,7 +263,7 @@ function tokenize(html: string): { events: OpenEvent[]; texts: Map<string, numbe
     if (tagEnd < 0) break;
 
     const raw = html.slice(i, tagEnd);
-    const ev = parseOpenTag(raw);
+    const ev = parseOpenTag(raw, volatile);
     if (ev) {
       events.push(ev);
       // For script/style, skip body opaquely until matching close
@@ -290,7 +308,7 @@ function findTagEnd(html: string, start: number): number {
  * Parse the raw inside of a `<...>` (excluding the angle brackets) into
  * an OpenEvent. Returns null for the empty / malformed case.
  */
-function parseOpenTag(raw: string): OpenEvent | null {
+function parseOpenTag(raw: string, volatile: Set<string> = new Set()): OpenEvent | null {
   // Strip trailing '/' for self-closing forms <br/>
   const trimmed = raw.trim().replace(/\/$/, '').trim();
   if (!trimmed) return null;
@@ -333,11 +351,21 @@ function parseOpenTag(raw: string): OpenEvent | null {
   }
 
   // Build a stable, sorted attribute signature.
-  // Some attributes are inherently dynamic (id like 'react-aria-:r1:'); we
-  // don't try to be smart about that here — the signature is stable across
-  // identical pages but flags any attr-value drift.
+  // Two volatility escapes keep per-run URL churn from poisoning the
+  // noise hint:
+  //   - `blob:` values are ALWAYS normalized (object URLs are per-session
+  //     by construction — they can never match across runs). `data:` URIs
+  //     stay significant: they encode content, so a change is a change.
+  //   - names in the configured volatileAttributes list keep their
+  //     presence but drop their value.
   const keys = Object.keys(attrs).sort();
-  const attrSig = keys.map((k) => `${k}=${attrs[k]}`).join('\0');
+  const attrSig = keys
+    .map((k) => {
+      if (volatile.has(k)) return `${k}=*`;
+      const v = attrs[k];
+      return v.startsWith('blob:') ? `${k}=blob:*` : `${k}=${v}`;
+    })
+    .join('\0');
 
   return { tag, attrSig };
 }

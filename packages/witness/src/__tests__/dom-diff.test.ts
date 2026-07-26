@@ -187,3 +187,44 @@ describe('domDiff', () => {
     });
   });
 });
+
+describe('volatile attributes (per-run URL churn)', () => {
+  const { domDiff } = require('../diff/dom-diff');
+
+  it('blob: URLs are always normalized — no attributeChanges, noise hint survives', () => {
+    const a = '<div><img src="blob:https://app/1111-aaaa"></div>';
+    const b = '<div><img src="blob:https://app/2222-bbbb"></div>';
+    const r = domDiff(a, b);
+    expect(r.domChanged).toBe(false);
+    expect(r.summary?.attributeChanges ?? 0).toBe(0);
+  });
+
+  it('data: URIs stay significant (content-addressed)', () => {
+    const a = '<img src="data:image/png;base64,AAAA">';
+    const b = '<img src="data:image/png;base64,BBBB">';
+    const r = domDiff(a, b);
+    expect(r.domChanged).toBe(true);
+  });
+
+  it('http src change counts by default', () => {
+    const a = '<img src="https://cdn/x.1.png">';
+    const b = '<img src="https://cdn/x.2.png">';
+    expect(domDiff(a, b).domChanged).toBe(true);
+  });
+
+  it('volatileAttributes ignores the value but keeps presence', () => {
+    const a = '<img src="https://cdn/x.1.png">';
+    const b = '<img src="https://cdn/x.2.png">';
+    const r = domDiff(a, b, { volatileAttributes: ['src'] });
+    expect(r.domChanged).toBe(false);
+    // removing the attribute entirely is still a change
+    const r2 = domDiff(a, '<img>', { volatileAttributes: ['src'] });
+    expect(r2.domChanged).toBe(true);
+  });
+
+  it('volatileAttributes is case-insensitive', () => {
+    const a = '<img SRC="https://cdn/x.1.png">';
+    const b = '<img src="https://cdn/x.2.png">';
+    expect(domDiff(a, b, { volatileAttributes: ['SRC'] }).domChanged).toBe(false);
+  });
+});

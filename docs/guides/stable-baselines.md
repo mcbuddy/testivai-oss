@@ -173,6 +173,8 @@ defaults.
 | `failOnDiff` | `boolean` | `false` | When `true`, exit with a non-zero code if any diffs are detected (useful in CI) |
 | `failOnMissing` | `boolean` | `true` | Exit `3` from `testivai report` when a baseline received no capture this run — silent coverage loss. Set `false` (or pass `--allow-missing`) for filtered runs |
 | `shareUploadCommand` | `string` | — | Storage-agnostic upload hook for `report --share`: shell command with `{file}` placeholder; last stdout line is the shared URL (`aws s3 cp …`, `gsutil`, `rclone`, `curl`) |
+| `volatileAttributes` | `string[]` | `[]` | Attribute names whose *values* the DOM diff ignores (presence still counts) — for per-run URLs in `src`/`srcset` that otherwise poison the noise hint. `blob:` URLs are always normalized |
+| `baselinesDir` | `string` | `.testivai/baselines` | Where baselines live. Supports a `{platform}` token (`darwin`/`linux`/`win32`) for per-OS baselines |
 
 ### Complete example
 
@@ -204,3 +206,32 @@ defaults.
 
 This is the same file that `npx testivai init` scaffolds. Delete any field you
 don't need — every key shown above falls back to its default.
+
+
+## Cross-platform baselines
+
+Font rasterization differs between macOS, Linux, and Windows — a baseline captured on a Mac laptop will flag on a Linux CI runner forever. Two good setups:
+
+**1. One gating platform (simplest).** Let CI (Linux) own the baselines: capture and approve them from CI via the [GitHub Action](/github-action)'s `/testivai approve` flow, and treat local runs as advisory.
+
+**2. Per-platform baselines.** Give each OS its own baseline set with the `{platform}` token:
+
+```json
+{
+  "baselinesDir": ".testivai/baselines-{platform}"
+}
+```
+
+Mac devs gate against `baselines-darwin/`, CI gates against `baselines-linux/` — both committed, no cross-OS noise. Remember each platform's baselines must be approved from a run on that platform.
+
+## Volatile attributes
+
+If your app rewrites `src`/`srcset`/`href` per run (CDN hashes, signed URLs), the DOM diff sees `attributeChanges: 1` and withholds the render-noise hint even for pure anti-aliasing diffs. Declare those attributes volatile:
+
+```json
+{
+  "volatileAttributes": ["src", "srcset"]
+}
+```
+
+The attribute's *presence* still counts (removing an image is a real change); only its value churn is ignored. `blob:` object URLs are always normalized — they are per-session by construction — while `data:` URIs stay significant because they encode content.
