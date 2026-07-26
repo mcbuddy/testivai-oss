@@ -58,3 +58,18 @@ describe('reportExitCode — missing-baselines gate (exit 3)', () => {
     expect(reportExitCode({ changed: 0, newSnapshots: 0, missing: 1 }, { gate: false, failOnMissing: true })).toBe(EXIT_MISSING_ONLY);
   });
 });
+
+describe('failOnMissing default', () => {
+  it('loadLocalConfig defaults failOnMissing to true (missing is a failure out of the box)', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const { loadLocalConfig } = require('../../config/local-config');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-defaults-'));
+    try {
+      expect(loadLocalConfig(tmp).failOnMissing).toBe(true);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});

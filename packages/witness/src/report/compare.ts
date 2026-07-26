@@ -150,6 +150,12 @@ export function compareAll(options: CompareOptions): SnapshotResult[] {
       },
     );
 
+    // Baseline provenance: when this baseline was last approved/added.
+    const baselineMeta = store.readMetadata(name);
+    if (baselineMeta) {
+      result.baselineApprovedAt = baselineMeta.updatedAt ?? baselineMeta.createdAt;
+    }
+
     // DOM-level noise hint. Only meaningful when both sides captured DOM.
     // For 'passed' (pixel-identical) we skip the work — it's already the
     // strongest possible signal.

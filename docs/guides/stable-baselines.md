@@ -171,6 +171,8 @@ defaults.
 | `baselinesDir` | `string` | `".testivai/baselines"` | Directory for committed baseline screenshots |
 | `autoOpen` | `boolean` | `true` | Automatically open the HTML report in your browser after a run |
 | `failOnDiff` | `boolean` | `false` | When `true`, exit with a non-zero code if any diffs are detected (useful in CI) |
+| `failOnMissing` | `boolean` | `true` | Exit `3` from `testivai report` when a baseline received no capture this run — silent coverage loss. Set `false` (or pass `--allow-missing`) for filtered runs |
+| `shareUploadCommand` | `string` | — | Storage-agnostic upload hook for `report --share`: shell command with `{file}` placeholder; last stdout line is the shared URL (`aws s3 cp …`, `gsutil`, `rclone`, `curl`) |
 
 ### Complete example
 

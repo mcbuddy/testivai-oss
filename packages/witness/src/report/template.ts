@@ -358,7 +358,7 @@ function renderSnapshot(snapshot: SnapshotResult): string {
         <span class="snapshot-name">${escapeHtml(snapshot.name)}</span>
         <span class="snapshot-badge ${badgeClass}">${snapshot.status}</span>
       </div>
-      ${snapshot.status === 'changed' || snapshot.autoPassed ? `<div class="snapshot-stats">Diff: ${snapshot.diffPercent.toFixed(2)}% (${snapshot.diffCount} pixels)${snapshot.autoPassed ? ` — auto-passed: ${snapshot.autoPassed === 'noise' ? 'DOM unchanged, within noise tolerance' : 'within configured diff tolerance'}` : ''}</div>` : ''}
+      ${renderStats(snapshot)}
       ${renderAnalysis(snapshot)}
       <div class="${gridClass}">
         ${hasBaseline ? `<div class="diff-col"><label>Baseline</label><img src="${snapshot.baselinePath}" alt="Baseline"></div>` : ''}
@@ -371,6 +371,28 @@ function renderSnapshot(snapshot: SnapshotResult): string {
         <button class="copy-btn" data-cmd="npx testivai approve ${escapeHtml(snapshot.name)}">Copy</button>
       </div>` : ''}
     </div>`;
+}
+
+/**
+ * Stats line: diff numbers (for changed/auto-passed) plus baseline
+ * provenance — when the compared baseline was last approved. A months-old
+ * baseline deserves a closer look than yesterday's.
+ */
+function renderStats(snapshot: SnapshotResult): string {
+  const parts: string[] = [];
+  if (snapshot.status === 'changed' || snapshot.autoPassed) {
+    parts.push(
+      `Diff: ${snapshot.diffPercent.toFixed(2)}% (${snapshot.diffCount} pixels)${snapshot.autoPassed ? ` — auto-passed: ${snapshot.autoPassed === 'noise' ? 'DOM unchanged, within noise tolerance' : 'within configured diff tolerance'}` : ''}`,
+    );
+  }
+  if (snapshot.baselineApprovedAt) {
+    const d = new Date(snapshot.baselineApprovedAt);
+    if (!isNaN(d.getTime())) {
+      parts.push(`baseline approved ${d.toISOString().slice(0, 10)}`);
+    }
+  }
+  if (parts.length === 0) return '';
+  return `<div class="snapshot-stats">${parts.join(' · ')}</div>`;
 }
 
 /**

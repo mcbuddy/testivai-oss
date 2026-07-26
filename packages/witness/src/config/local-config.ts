@@ -19,10 +19,22 @@ export interface LocalConfig {
   failOnDiff: boolean;
   /**
    * Exit 3 from `testivai report` when baselines received no capture this
-   * run (coverage-loss gate). Opt-in — filtered runs legitimately skip
-   * baselines. Default: false.
+   * run (coverage-loss gate). Default: true — a baseline nobody compares
+   * is silent coverage loss. Set false in config (or pass
+   * `--allow-missing` per run) for filtered runs that skip baselines.
    */
   failOnMissing?: boolean;
+  /**
+   * Storage-agnostic upload hook for `report --share`: a shell command
+   * template run after share.html is written, with `{file}` replaced by
+   * the share file's absolute path. The command's last stdout line is
+   * treated as the shared URL. Examples:
+   *   "aws s3 cp {file} s3://bucket/reports/ && echo https://…"
+   *   "gsutil cp {file} gs://bucket/ && echo https://…"
+   *   "rclone copyto {file} remote:reports/share.html && echo …"
+   * Local file only when unset (the default).
+   */
+  shareUploadCommand?: string;
   /** Directory for baselines relative to project root. Default: '.testivai/baselines' */
   baselinesDir?: string;
   /** Directory for report output. Default: 'visual-report' */
@@ -99,6 +111,7 @@ const DEFAULT_CONFIG: LocalConfig = {
   threshold: 0.1,
   autoOpen: true,
   failOnDiff: false,
+  failOnMissing: true,
   maxDiffPercent: 0,
   noiseAutoPass: false,
   noiseMaxDiffPercent: 1,

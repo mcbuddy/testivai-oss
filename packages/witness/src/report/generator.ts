@@ -183,6 +183,25 @@ export function generateShareFile(reportDir: string): string {
 }
 
 /**
+ * Storage-agnostic share upload: run the user's configured shell command
+ * (from `.testivai/config.json` `shareUploadCommand`) with `{file}` replaced
+ * by the share file's path. The last non-empty stdout line is returned as
+ * the shared URL — so `aws s3 cp … && echo https://…`, `gsutil`, `rclone`,
+ * or a plain `curl` all work without TestivAI shipping any cloud SDK.
+ *
+ * Returns the URL string, or null when the command produced no output.
+ * Throws on a non-zero exit (caller decides how loud to be).
+ */
+export function uploadShareFile(commandTemplate: string, sharePath: string): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { execSync } = require('child_process') as typeof import('child_process');
+  const command = commandTemplate.split('{file}').join(JSON.stringify(sharePath));
+  const stdout = execSync(command, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'inherit'] });
+  const lines = stdout.split('\n').map((l: string) => l.trim()).filter(Boolean);
+  return lines.length > 0 ? lines[lines.length - 1] : null;
+}
+
+/**
  * Open a file in the default browser.
  * Best-effort — does not throw on failure.
  */

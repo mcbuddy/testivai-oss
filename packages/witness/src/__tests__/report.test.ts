@@ -508,3 +508,52 @@ describe('generateShareFile — single-file share bundle', () => {
     expect(share).not.toMatch(/data-diff="images\//);
   });
 });
+
+describe('baseline provenance (baselineApprovedAt)', () => {
+  let tmp4: string;
+  let store4: BaselineStore;
+
+  beforeEach(() => {
+    tmp4 = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-prov-'));
+    store4 = new BaselineStore(tmp4);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmp4, { recursive: true, force: true });
+  });
+
+  it('results carry the baseline approval timestamp and the report shows it', () => {
+    store4.write('home', Buffer.from('aaaa'));
+    store4.writeTemp('home', Buffer.from('bbbb'));
+    const data = generateReport({ projectRoot: tmp4, reportDir: 'visual-report', autoOpen: false });
+
+    const snap = data.snapshots[0];
+    expect(snap.baselineApprovedAt).toBeTruthy();
+    expect(new Date(snap.baselineApprovedAt!).getTime()).not.toBeNaN();
+
+    const html = fs.readFileSync(path.join(tmp4, 'visual-report', 'index.html'), 'utf-8');
+    expect(html).toContain('baseline approved');
+  });
+
+  it('approve() refreshes the approval timestamp', () => {
+    store4.write('home', Buffer.from('aaaa'));
+    const before = store4.readMetadata('home')!.updatedAt;
+    store4.writeTemp('home', Buffer.from('bbbb'));
+    store4.approve('home');
+    const after = store4.readMetadata('home')!.updatedAt;
+    expect(new Date(after).getTime()).toBeGreaterThanOrEqual(new Date(before).getTime());
+  });
+});
+
+describe('uploadShareFile — storage-agnostic upload hook', () => {
+  const { uploadShareFile } = require('../report/generator');
+
+  it('runs the command with {file} substituted and returns the last stdout line', () => {
+    const url = uploadShareFile('echo uploading {file} && echo https://example.test/share/abc', '/tmp/share file.html');
+    expect(url).toBe('https://example.test/share/abc');
+  });
+
+  it('throws on a failing command', () => {
+    expect(() => uploadShareFile('exit 7', '/tmp/x.html')).toThrow();
+  });
+});

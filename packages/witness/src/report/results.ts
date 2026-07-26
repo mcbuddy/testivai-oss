@@ -74,6 +74,12 @@ export interface SnapshotResult {
    * with noiseAutoPass enabled). The diff image is still written.
    */
   autoPassed?: 'threshold' | 'noise';
+  /**
+   * ISO timestamp of when the compared baseline was last approved/added
+   * (from the baseline's metadata.json). Provenance for reviewers: a
+   * months-old baseline deserves a closer look than yesterday's.
+   */
+  baselineApprovedAt?: string;
 }
 
 export interface ReportSummary {

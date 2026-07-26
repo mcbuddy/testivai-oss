@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import * as path from 'path';
-import { generateReport, generateShareFile } from '../report/generator';
+import { generateReport, generateShareFile, uploadShareFile } from '../report/generator';
 import { loadLocalConfig } from '../config/local-config';
 import { logger } from '../utils/logger';
 import { reportExitCode } from './exit-codes';
@@ -34,11 +34,12 @@ export const reportCommand = new Command('report')
   )
   .option('--fail-on-diff', 'Exit non-zero on changes (1) / new-only (2); overrides config failOnDiff')
   .option('--allow-new', 'Treat new snapshots as passing (exit 0) — for first runs before baselines exist')
-  .option('--fail-on-missing', 'Exit 3 when baselines received no capture this run (coverage-loss gate; overrides config failOnMissing). Do not use with filtered test runs')
+  .option('--fail-on-missing', 'Force the missing-baselines gate on (exit 3), overriding config failOnMissing:false')
+  .option('--allow-missing', 'Skip the missing-baselines gate for this run — use with filtered test runs (--grep) where skipped baselines are expected')
   .option('--share', 'Also write share.html — a single self-contained file with all images inlined, ready to drop into Slack/issues')
   .option('--json', 'Print the machine-readable results.json payload to stdout instead of the pretty summary')
   .option('--open', 'Open the HTML report in a browser (overrides config autoOpen)')
-  .action(async (options: { failOnDiff?: boolean; allowNew?: boolean; failOnMissing?: boolean; share?: boolean; json?: boolean; open?: boolean }) => {
+  .action(async (options: { failOnDiff?: boolean; allowNew?: boolean; failOnMissing?: boolean; allowMissing?: boolean; share?: boolean; json?: boolean; open?: boolean }) => {
     try {
       const projectRoot = process.cwd();
       const config = loadLocalConfig(projectRoot);
@@ -56,18 +57,31 @@ export const reportCommand = new Command('report')
 
       const { summary } = report;
 
-      // Optional single-file share bundle (images inlined as data URIs).
+      // Optional single-file share bundle (images inlined as data URIs),
+      // plus the storage-agnostic upload hook when configured.
       let sharePath: string | null = null;
+      let shareUrl: string | null = null;
       if (options.share) {
         const reportDir = config.reportDir ?? 'visual-report';
         sharePath = generateShareFile(
           path.isAbsolute(reportDir) ? reportDir : path.join(projectRoot, reportDir),
         );
+        if (config.shareUploadCommand) {
+          try {
+            shareUrl = uploadShareFile(config.shareUploadCommand, sharePath);
+          } catch (err) {
+            logger.error(`Share upload command failed (local file kept at ${sharePath}):`, err);
+          }
+        }
       }
 
-      // Exit-code contract (only enforced when the corresponding gate is on).
+      // Exit-code contract. The missing-baselines gate is ON by default
+      // (a baseline nobody compares is silent coverage loss); disable via
+      // config failOnMissing:false or per-run --allow-missing.
       const gate = options.failOnDiff ?? config.failOnDiff ?? false;
-      const failOnMissing = options.failOnMissing ?? config.failOnMissing ?? false;
+      const failOnMissing = options.allowMissing
+        ? false
+        : (options.failOnMissing || (config.failOnMissing ?? true));
       const exitCode = reportExitCode(summary, { gate, allowNew: options.allowNew, failOnMissing });
 
       if (options.json) {
@@ -95,6 +109,9 @@ export const reportCommand = new Command('report')
         }
         if (sharePath) {
           console.log(chalk.gray(`  Share: ${sharePath} (single file, images inlined)`));
+        }
+        if (shareUrl) {
+          console.log(chalk.cyan(`  Shared: ${shareUrl}`));
         }
       }
 
