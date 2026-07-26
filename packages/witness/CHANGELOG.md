@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.1
+
+### Patch Changes
+
+- fa0deb5: `testivai auth` now prints a deprecation notice: TestivAI is local-first and the hosted service is discontinued — no account or API key is needed. The command still works (`--delete` clears stored credentials) and will be removed in the next major release.
+- e37eb33: The HTML report sidebar now points AI-agent users at `@testivai/mcp` (including the new `explain_snapshot` tool) instead of a hosted-service upsell, and the noise-reduction tips mention `mode: "collapse"` for variable-height regions.
+
 ## 1.7.0
 
 ### Minor Changes
