@@ -12,6 +12,7 @@ import { compareAll, CompareOptions, PassCriteria } from './compare';
 import { ReportData, ReportSummary, SnapshotResult} from './results';
 import { renderHtml } from './template';
 import { loadLocalConfig } from '../config/local-config';
+import { BaselineStore } from '../baselines/store';
 
 export interface GenerateReportOptions {
   projectRoot: string;
@@ -44,11 +45,13 @@ export interface GenerateReportOptions {
  * @returns The report data
  */
 /**
- * results.json schema version. 2.2.0 adds per-snapshot `regions[]`
- * (clustered diff bounding boxes), `masks[]` (applied masks with their
- * source — the audit trail), and `maskWarnings[]`. Additive over 2.1.0.
+ * results.json schema version. 2.3.0 adds top-level `missingBaselines[]`
+ * and `summary.missing` (baselines that received no capture this run — the
+ * coverage-loss signal). 2.2.0 added per-snapshot `regions[]` (clustered
+ * diff bounding boxes), `masks[]` (applied masks with their source — the
+ * audit trail), and `maskWarnings[]`. All additive.
  */
-export const RESULTS_SCHEMA_VERSION = '2.2.0';
+export const RESULTS_SCHEMA_VERSION = '2.3.0';
 
 /**
  * Write results.json for an already-computed set of snapshot results.
@@ -98,8 +101,16 @@ export function generateReport(options: GenerateReportOptions): ReportData {
   };
   const snapshots = compareAll(compareOptions);
 
+  // 1.5. Coverage-loss signal: baselines that received no capture this run
+  // (a deleted/renamed test silently stops guarding its page). Reported
+  // always; gated only via `--fail-on-missing` / config `failOnMissing`,
+  // because filtered runs (`--grep`) legitimately skip most baselines.
+  const store = new BaselineStore(projectRoot);
+  const capturedNames = new Set(store.listTemp());
+  const missingBaselines = store.list().filter((n) => !capturedNames.has(n));
+
   // 2-3. Build summary + report data
-  const reportData = buildReportData(snapshots, version);
+  const reportData = buildReportData(snapshots, version, missingBaselines);
 
   // 4. Write results.json
   const resultsPath = path.join(reportDir, 'results.json');
@@ -119,19 +130,56 @@ export function generateReport(options: GenerateReportOptions): ReportData {
 }
 
 /** Assemble the ReportData envelope for a set of snapshot results. */
-function buildReportData(snapshots: SnapshotResult[], version: string): ReportData {
+function buildReportData(
+  snapshots: SnapshotResult[],
+  version: string,
+  missingBaselines: string[] = [],
+): ReportData {
   const summary: ReportSummary = {
     total: snapshots.length,
     passed: snapshots.filter((s) => s.status === 'passed').length,
     changed: snapshots.filter((s) => s.status === 'changed').length,
     newSnapshots: snapshots.filter((s) => s.status === 'new').length,
+    missing: missingBaselines.length,
   };
   return {
     version,
     timestamp: new Date().toISOString(),
     summary,
     snapshots,
+    missingBaselines,
   };
+}
+
+/**
+ * Build a single-file, shareable copy of the report: every report-relative
+ * image reference (`src` and the region-chip `data-diff` attributes) is
+ * inlined as a base64 data URI, so the resulting HTML can be dropped into
+ * Slack, an issue, or an email with nothing else attached.
+ *
+ * Reads `<reportDir>/index.html`, writes `<reportDir>/share.html`, and
+ * returns the absolute path of the share file.
+ */
+export function generateShareFile(reportDir: string): string {
+  const indexPath = path.join(reportDir, 'index.html');
+  const html = fs.readFileSync(indexPath, 'utf-8');
+
+  const inlined = html.replace(
+    /(src|data-diff)="(images\/[^"]+)"/g,
+    (match, attr: string, rel: string) => {
+      try {
+        const abs = path.join(reportDir, rel);
+        const data = fs.readFileSync(abs);
+        return `${attr}="data:image/png;base64,${data.toString('base64')}"`;
+      } catch {
+        return match; // missing image: leave the reference as-is
+      }
+    },
+  );
+
+  const sharePath = path.join(reportDir, 'share.html');
+  fs.writeFileSync(sharePath, inlined);
+  return sharePath;
 }
 
 /**

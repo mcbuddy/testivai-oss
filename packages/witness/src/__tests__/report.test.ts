@@ -441,3 +441,70 @@ describe('Report Generator', () => {
     });
   });
 });
+
+describe('Missing-baselines coverage signal (schema 2.3.0)', () => {
+  let tmpDir2: string;
+  let store2: BaselineStore;
+  const PNG_A = Buffer.from('aaaa-fake-png-baseline');
+  const PNG_B = Buffer.from('bbbb-fake-png-different');
+
+  beforeEach(() => {
+    tmpDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-missing-'));
+    store2 = new BaselineStore(tmpDir2);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir2, { recursive: true, force: true });
+  });
+
+  it('reports baselines that received no capture', () => {
+    store2.write('guarded-page', PNG_A);   // baseline, no temp capture
+    store2.writeTemp('other-page', PNG_B); // captured
+
+    const data = generateReport({ projectRoot: tmpDir2, reportDir: 'visual-report', autoOpen: false });
+
+    expect(data.summary.missing).toBe(1);
+    expect(data.missingBaselines).toEqual(['guarded-page']);
+
+    const html = fs.readFileSync(path.join(tmpDir2, 'visual-report', 'index.html'), 'utf-8');
+    expect(html).toContain('missing-notice');
+    expect(html).toContain('guarded-page');
+  });
+
+  it('reports zero missing when every baseline is captured', () => {
+    store2.write('home', PNG_A);
+    store2.writeTemp('home', PNG_A);
+    const data = generateReport({ projectRoot: tmpDir2, reportDir: 'visual-report', autoOpen: false });
+    expect(data.summary.missing).toBe(0);
+    expect(data.missingBaselines).toEqual([]);
+  });
+});
+
+describe('generateShareFile — single-file share bundle', () => {
+  const { generateShareFile } = require('../report/generator');
+  let tmpDir3: string;
+  let store3: BaselineStore;
+
+  beforeEach(() => {
+    tmpDir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-share-'));
+    store3 = new BaselineStore(tmpDir3);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir3, { recursive: true, force: true });
+  });
+
+  it('inlines report images as data URIs', () => {
+    store3.write('home', Buffer.from('aaaa-fake-png-baseline'));
+    store3.writeTemp('home', Buffer.from('bbbb-fake-png-different')); // changed -> images written
+    generateReport({ projectRoot: tmpDir3, reportDir: 'visual-report', autoOpen: false });
+
+    const sharePath = generateShareFile(path.join(tmpDir3, 'visual-report'));
+    const share = fs.readFileSync(sharePath, 'utf-8');
+
+    expect(sharePath.endsWith('share.html')).toBe(true);
+    expect(share).toContain('data:image/png;base64,');
+    expect(share).not.toMatch(/src="images\//);
+    expect(share).not.toMatch(/data-diff="images\//);
+  });
+});

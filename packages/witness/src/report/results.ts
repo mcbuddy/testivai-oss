@@ -81,6 +81,12 @@ export interface ReportSummary {
   passed: number;
   changed: number;
   newSnapshots: number;
+  /**
+   * Baselines that received NO capture this run (baseline exists, nothing to
+   * compare). Coverage-loss signal: a deleted/renamed test silently stops
+   * guarding its page. Present (possibly 0) from schema 2.3.0.
+   */
+  missing?: number;
 }
 
 export interface ReportData {
@@ -88,4 +94,6 @@ export interface ReportData {
   timestamp: string;
   summary: ReportSummary;
   snapshots: SnapshotResult[];
+  /** Names of baselines with no capture this run (schema 2.3.0+). */
+  missingBaselines?: string[];
 }

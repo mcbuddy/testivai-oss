@@ -34,3 +34,27 @@ describe('reportExitCode contract', () => {
     expect(reportExitCode({ changed: 1, newSnapshots: 3 }, { gate: true, allowNew: true })).toBe(EXIT_CHANGED);
   });
 });
+
+describe('reportExitCode — missing-baselines gate (exit 3)', () => {
+  const { EXIT_MISSING_ONLY } = require('../../commands/exit-codes');
+
+  it('returns 3 when failOnMissing and baselines are missing (no changes)', () => {
+    expect(reportExitCode({ changed: 0, newSnapshots: 0, missing: 2 }, { gate: false, failOnMissing: true })).toBe(EXIT_MISSING_ONLY);
+  });
+
+  it('changed takes precedence over missing (1, not 3)', () => {
+    expect(reportExitCode({ changed: 1, newSnapshots: 0, missing: 2 }, { gate: true, failOnMissing: true })).toBe(EXIT_CHANGED);
+  });
+
+  it('missing takes precedence over new (3, not 2)', () => {
+    expect(reportExitCode({ changed: 0, newSnapshots: 1, missing: 2 }, { gate: true, failOnMissing: true })).toBe(EXIT_MISSING_ONLY);
+  });
+
+  it('missing does NOT gate without failOnMissing (filtered runs stay green)', () => {
+    expect(reportExitCode({ changed: 0, newSnapshots: 0, missing: 5 }, { gate: true })).toBe(EXIT_PASS);
+  });
+
+  it('failOnMissing alone works without --fail-on-diff', () => {
+    expect(reportExitCode({ changed: 0, newSnapshots: 0, missing: 1 }, { gate: false, failOnMissing: true })).toBe(EXIT_MISSING_ONLY);
+  });
+});

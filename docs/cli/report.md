@@ -22,6 +22,8 @@ npx testivai report [options]
 | `--fail-on-diff` | Enable the exit-code gate — exit non-zero on changes or new snapshots (overrides config `failOnDiff`) |
 | `--allow-new` | Treat new snapshots as passing (exit 0). Use with `--fail-on-diff` so first runs don't fail |
 | `--json` | Print the `results.json` payload to stdout instead of the pretty summary |
+| `--fail-on-missing` | Exit `3` when baselines received **no capture** this run (coverage-loss gate; overrides config `failOnMissing`). Don't use with filtered runs (`--grep`) |
+| `--share` | Also write `share.html` — a single self-contained file with every image inlined as a data URI, ready to drop into Slack, an issue, or an email |
 | `--open` | Open the HTML report in a browser (overrides config `autoOpen`) |
 
 ## Exit Codes
@@ -33,6 +35,7 @@ Exit codes are a public contract, enforced **only** when the gate is on (`--fail
 | `0` | Pass — nothing changed; no new snapshots, or `--allow-new` was set |
 | `1` | Changed — at least one snapshot differs from its baseline |
 | `2` | New-only — new snapshots exist with no changes. Distinct from 1 so first runs and newly added tests aren't mistaken for regressions |
+| `3` | Missing-only — baselines exist that received no capture this run (a deleted/renamed test silently stopped guarding its page). Enforced only by `--fail-on-missing` / config `failOnMissing`; precedence: changed (1) > missing (3) > new (2) |
 
 ## `--json` Output
 

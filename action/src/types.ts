@@ -20,6 +20,9 @@ export interface SnapshotDomSignal {
    * render noise (anti-aliasing, font hinting, sub-pixel layout).
    */
   noiseHint: boolean;
+  /** witness 1.4+: 'mismatch' = styles changed with identical DOM (a REAL change). */
+  styleCheck?: 'match' | 'mismatch' | 'unavailable';
+  styleChanges?: { count: number; elements: string[] };
 }
 
 export interface SnapshotResult {
@@ -37,6 +40,8 @@ export interface SnapshotResult {
   diffPath?: string;
   /** Present when the adapter captured DOM alongside the screenshot. */
   dom?: SnapshotDomSignal;
+  /** witness 1.5+: whole-page uniform displacement (injected-banner signature). */
+  pageShift?: { dy: number; belowY: number; count: number };
 }
 
 export interface Summary {
@@ -44,11 +49,15 @@ export interface Summary {
   passed: number;
   changed: number;
   newSnapshots: number;
+  /** witness schema 2.3.0+: baselines that received no capture this run. */
+  missing?: number;
 }
 
 export interface ResultsData {
   timestamp: number;
   summary: Summary;
   snapshots: SnapshotResult[];
+  /** witness schema 2.3.0+: names of baselines with no capture this run. */
+  missingBaselines?: string[];
 }
 

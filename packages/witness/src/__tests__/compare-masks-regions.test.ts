@@ -156,7 +156,7 @@ describe('compareAll with masks and regions', () => {
     generateResults(results, reportDir);
 
     const written = JSON.parse(fs.readFileSync(path.join(reportDir, 'results.json'), 'utf-8'));
-    expect(written.version).toBe('2.2.0');
+    expect(written.version).toBe('2.3.0');
     expect(written.snapshots[0].regions).toBeDefined();
   });
 

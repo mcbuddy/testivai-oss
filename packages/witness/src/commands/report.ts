@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { generateReport } from '../report/generator';
+import * as path from 'path';
+import { generateReport, generateShareFile } from '../report/generator';
 import { loadLocalConfig } from '../config/local-config';
 import { logger } from '../utils/logger';
 import { reportExitCode } from './exit-codes';
@@ -33,9 +34,11 @@ export const reportCommand = new Command('report')
   )
   .option('--fail-on-diff', 'Exit non-zero on changes (1) / new-only (2); overrides config failOnDiff')
   .option('--allow-new', 'Treat new snapshots as passing (exit 0) — for first runs before baselines exist')
+  .option('--fail-on-missing', 'Exit 3 when baselines received no capture this run (coverage-loss gate; overrides config failOnMissing). Do not use with filtered test runs')
+  .option('--share', 'Also write share.html — a single self-contained file with all images inlined, ready to drop into Slack/issues')
   .option('--json', 'Print the machine-readable results.json payload to stdout instead of the pretty summary')
   .option('--open', 'Open the HTML report in a browser (overrides config autoOpen)')
-  .action(async (options: { failOnDiff?: boolean; allowNew?: boolean; json?: boolean; open?: boolean }) => {
+  .action(async (options: { failOnDiff?: boolean; allowNew?: boolean; failOnMissing?: boolean; share?: boolean; json?: boolean; open?: boolean }) => {
     try {
       const projectRoot = process.cwd();
       const config = loadLocalConfig(projectRoot);
@@ -53,9 +56,19 @@ export const reportCommand = new Command('report')
 
       const { summary } = report;
 
-      // Exit-code contract (only enforced when the gate is on).
+      // Optional single-file share bundle (images inlined as data URIs).
+      let sharePath: string | null = null;
+      if (options.share) {
+        const reportDir = config.reportDir ?? 'visual-report';
+        sharePath = generateShareFile(
+          path.isAbsolute(reportDir) ? reportDir : path.join(projectRoot, reportDir),
+        );
+      }
+
+      // Exit-code contract (only enforced when the corresponding gate is on).
       const gate = options.failOnDiff ?? config.failOnDiff ?? false;
-      const exitCode = reportExitCode(summary, { gate, allowNew: options.allowNew });
+      const failOnMissing = options.failOnMissing ?? config.failOnMissing ?? false;
+      const exitCode = reportExitCode(summary, { gate, allowNew: options.allowNew, failOnMissing });
 
       if (options.json) {
         // `report` IS the results.json schema — emit it verbatim so agents get
@@ -74,6 +87,14 @@ export const reportCommand = new Command('report')
           console.log(
             chalk.gray(`  Review: ${config.reportDir ?? 'visual-report'}/index.html — approve with: npx testivai approve <name>`),
           );
+        }
+        if ((summary.missing ?? 0) > 0) {
+          console.log(
+            chalk.yellow(`  Missing: ${summary.missing} baseline(s) received no capture this run — ${(report.missingBaselines ?? []).slice(0, 5).join(', ')}${(report.missingBaselines ?? []).length > 5 ? ', …' : ''}`),
+          );
+        }
+        if (sharePath) {
+          console.log(chalk.gray(`  Share: ${sharePath} (single file, images inlined)`));
         }
       }
 

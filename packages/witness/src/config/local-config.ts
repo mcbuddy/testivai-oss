@@ -17,6 +17,12 @@ export interface LocalConfig {
   autoOpen: boolean;
   /** Fail the test run if any diffs are detected. Default: false */
   failOnDiff: boolean;
+  /**
+   * Exit 3 from `testivai report` when baselines received no capture this
+   * run (coverage-loss gate). Opt-in — filtered runs legitimately skip
+   * baselines. Default: false.
+   */
+  failOnMissing?: boolean;
   /** Directory for baselines relative to project root. Default: '.testivai/baselines' */
   baselinesDir?: string;
   /** Directory for report output. Default: 'visual-report' */

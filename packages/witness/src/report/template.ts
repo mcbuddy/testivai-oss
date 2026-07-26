@@ -20,6 +20,7 @@ export function renderHtml(data: ReportData): string {
   const changed = snapshots.filter((s) => s.status === 'changed');
   const newSnapshots = snapshots.filter((s) => s.status === 'new');
   const passed = snapshots.filter((s) => s.status === 'passed');
+  const missing = data.missingBaselines ?? [];
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -189,6 +190,12 @@ export function renderHtml(data: ReportData): string {
     .zoom-overlay.active { display: flex; }
     .zoom-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
 
+    /* Missing-baselines notice (coverage loss) */
+    .missing-notice { background: var(--new-bg); border: 1px solid color-mix(in srgb, var(--new) 30%, transparent); border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; font-size: 13px; color: var(--new); }
+    .missing-notice .m-title { font-weight: 700; margin-bottom: 4px; }
+    .missing-notice code { background: var(--code-bg); border-radius: 3px; padding: 1px 5px; font-size: 12px; }
+    .missing-notice .m-hint { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+
     /* Notices / empty state */
     .oss-notice { margin-top: 14px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 8px; font-size: 11px; color: var(--text-muted); line-height: 1.6; box-shadow: var(--shadow); }
     .oss-notice h4 { margin: 0 0 8px; font-size: 11px; color: var(--text); }
@@ -240,6 +247,12 @@ export function renderHtml(data: ReportData): string {
   </aside>
 
   <main class="main">
+    ${missing.length > 0 ? `
+    <div class="missing-notice">
+      <div class="m-title">⚠️ ${missing.length} baseline${missing.length === 1 ? '' : 's'} received no capture this run</div>
+      ${missing.map((n) => `<code>${escapeHtml(n)}</code>`).join(' ')}
+      <div class="m-hint">A deleted or renamed test silently stops guarding its page. If intentional, remove the baseline (and commit); if this was a filtered run (<code>--grep</code>), ignore this notice.</div>
+    </div>` : ''}
     ${summary.total === 0 ? `
     <div class="empty">
       <div class="icon">📸</div>

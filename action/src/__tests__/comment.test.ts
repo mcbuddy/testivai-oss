@@ -224,3 +224,60 @@ describe('buildComment', () => {
     });
   });
 });
+
+describe('verdict lines in the PR comment (layered analysis)', () => {
+  const base = {
+    timestamp: 0,
+    summary: { total: 1, passed: 0, changed: 1, newSnapshots: 0 },
+  };
+
+  it('style-only change renders as real-not-noise with the element name', () => {
+    const comment = buildComment({
+      ...base,
+      snapshots: [{
+        name: 'cta', status: 'changed', diffPercent: 2.1,
+        dom: { changed: false, noiseHint: false, summary: null, styleCheck: 'mismatch', styleChanges: { count: 1, elements: ['main > button.cta'] } },
+      }],
+    } as any);
+    expect(comment).toContain('Style-only change — real, not noise');
+    expect(comment).toContain('button.cta');
+    expect(comment).not.toContain('DOM unchanged');
+  });
+
+  it('pageShift renders the look-above guidance', () => {
+    const comment = buildComment({
+      ...base,
+      snapshots: [{
+        name: 'home', status: 'changed', diffPercent: 12,
+        pageShift: { dy: 24, belowY: 80, count: 17 },
+        dom: { changed: true, noiseHint: false, summary: { added: 1, removed: 0, attributeChanges: 0 } },
+      }],
+    } as any);
+    expect(comment).toContain('Layout shift');
+    expect(comment).toContain('below y=80 moved down 24px');
+    expect(comment).toContain('DOM changed');
+  });
+
+  it('missing baselines are surfaced as a coverage warning', () => {
+    const comment = buildComment({
+      timestamp: 0,
+      summary: { total: 1, passed: 1, changed: 0, newSnapshots: 0, missing: 2 },
+      snapshots: [{ name: 'ok', status: 'passed', diffPercent: 0 }],
+      missingBaselines: ['pricing', 'checkout'],
+    } as any);
+    expect(comment).toContain('2 baselines received no capture');
+    expect(comment).toContain('`pricing`');
+    expect(comment).toContain('coverage just shrank');
+  });
+
+  it('older results.json without new fields still renders (backcompat)', () => {
+    const comment = buildComment({
+      ...base,
+      snapshots: [{
+        name: 'legacy', status: 'changed', diffPercent: 1,
+        dom: { changed: false, noiseHint: true, summary: null },
+      }],
+    } as any);
+    expect(comment).toContain('DOM unchanged');
+  });
+});
