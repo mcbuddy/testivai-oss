@@ -1,10 +1,12 @@
 /**
  * TestivAI Report — HTML Template
  *
- * Single-file HTML with inlined CSS/JS.
- * Dark navy sidebar, cyan accents, summary cards,
- * Changed → New → Passed sections, 3-column diff view,
- * approve command copy button, cloud upgrade CTA, image zoom overlay.
+ * Single-file HTML with inlined CSS/JS. Light theme by default with a
+ * persisted dark-mode toggle (CSS custom properties). Sidebar + summary
+ * cards, Changed → New → Passed sections, a per-snapshot "Layered analysis"
+ * panel (verdict + DOM/style signal + attributed regions + page-shift +
+ * masks — the same evidence agents get via @testivai/mcp explain_snapshot),
+ * 3-column diff view, approve command copy button, image zoom overlay.
  */
 
 import { ReportData, SnapshotResult } from './results';
@@ -26,62 +28,128 @@ export function renderHtml(data: ReportData): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TestivAI Visual Report</title>
   <style>
+    /* ── Theme tokens ─────────────────────────────────────────────────────
+       Light is the default (no attribute); html[data-theme="dark"] overrides.
+       The toggle persists to localStorage("testivai-theme"). */
+    :root {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #eef1f4;
+      --border: #d0d7de;
+      --border-soft: #e4e8ec;
+      --text: #1f2328;
+      --text-muted: #59636e;
+      --accent: #0e7490;
+      --accent-contrast: #ffffff;
+      --link: #0969da;
+      --changed: #cf222e;      --changed-bg: #cf222e14;
+      --new: #bc4c00;          --new-bg: #bc4c0014;
+      --passed: #1a7f37;       --passed-bg: #1a7f3714;
+      --info: #0969da;         --info-bg: #0969da12;
+      --code-bg: #eff2f5;
+      --shadow: 0 1px 3px rgba(31,35,40,0.06), 0 8px 24px rgba(31,35,40,0.04);
+      --sidebar-bg: #ffffff;
+      --hatch-a: #eef1f4; --hatch-b: #e4e8ec;
+    }
+    html[data-theme="dark"] {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-2: #1c2129;
+      --border: #30363d;
+      --border-soft: #21262d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #00d4ff;
+      --accent-contrast: #08111f;
+      --link: #58a6ff;
+      --changed: #f85149;      --changed-bg: #f8514922;
+      --new: #f0883e;          --new-bg: #f0883e22;
+      --passed: #3fb950;       --passed-bg: #3fb95022;
+      --info: #79c0ff;         --info-bg: #1f6feb1a;
+      --code-bg: #0d1117;
+      --shadow: none;
+      --sidebar-bg: #08111f;
+      --hatch-a: #161b22; --hatch-b: #1c2129;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #e6edf3; display: flex; min-height: 100vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+    code, .mono { font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace; }
 
     /* Sidebar */
-    .sidebar { width: 260px; background: #08111f; padding: 24px 16px; flex-shrink: 0; border-right: 1px solid #21262d; position: fixed; height: 100vh; overflow-y: auto; }
-    .sidebar h1 { font-size: 18px; color: #00d4ff; margin-bottom: 4px; }
-    .sidebar .version { font-size: 12px; color: #8b949e; margin-bottom: 24px; }
-    .sidebar .timestamp { font-size: 11px; color: #8b949e; margin-bottom: 24px; }
+    .sidebar { width: 264px; background: var(--sidebar-bg); padding: 24px 16px; flex-shrink: 0; border-right: 1px solid var(--border-soft); position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+    .brand-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .sidebar h1 { font-size: 18px; color: var(--accent); letter-spacing: -0.2px; }
+    .theme-toggle { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all .15s; }
+    .theme-toggle:hover { border-color: var(--accent); }
+    .sidebar .version { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+    .sidebar .timestamp { font-size: 11px; color: var(--text-muted); margin-bottom: 20px; }
 
     /* Summary cards */
-    .summary-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-    .card { padding: 12px; border-radius: 8px; background: #161b22; border: 1px solid #21262d; }
-    .card .label { font-size: 11px; text-transform: uppercase; color: #8b949e; letter-spacing: 0.5px; }
-    .card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
-    .card.total .value { color: #e6edf3; }
-    .card.changed .value { color: #f85149; }
-    .card.new .value { color: #f0883e; }
-    .card.passed .value { color: #3fb950; }
+    .summary-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .card { padding: 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border-soft); box-shadow: var(--shadow); }
+    .card .label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.6px; }
+    .card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .card.total .value { color: var(--text); }
+    .card.changed .value { color: var(--changed); }
+    .card.new .value { color: var(--new); }
+    .card.passed .value { color: var(--passed); }
 
     /* Nav */
-    .nav { list-style: none; margin-bottom: 24px; }
+    .nav { list-style: none; margin-bottom: 20px; }
     .nav li { margin-bottom: 2px; }
-    .nav a { display: block; padding: 8px 12px; border-radius: 6px; color: #8b949e; text-decoration: none; font-size: 13px; transition: all 0.15s; }
-    .nav a:hover { background: #161b22; color: #e6edf3; }
-    .nav a .count { float: right; background: #21262d; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .nav a { display: block; padding: 8px 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 13px; transition: all 0.15s; }
+    .nav a:hover { background: var(--surface-2); color: var(--text); }
+    .nav a .count { float: right; background: var(--surface-2); border: 1px solid var(--border-soft); padding: 1px 8px; border-radius: 10px; font-size: 11px; }
 
-    /* CTA */
-    .cta { background: linear-gradient(135deg, #0d419d 0%, #1158d9 100%); padding: 16px; border-radius: 8px; margin-top: auto; }
-    .cta h3 { font-size: 13px; color: #fff; margin-bottom: 6px; }
-    .cta p { font-size: 11px; color: #a5d6ff; line-height: 1.5; }
-    .cta a { display: inline-block; margin-top: 8px; padding: 6px 14px; background: #00d4ff; color: #08111f; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; }
+    /* Agent CTA */
+    .cta { background: var(--surface); border: 1px solid var(--border-soft); padding: 14px; border-radius: 10px; box-shadow: var(--shadow); }
+    .cta h3 { font-size: 13px; color: var(--text); margin-bottom: 6px; }
+    .cta p { font-size: 11px; color: var(--text-muted); line-height: 1.55; }
+    .cta code { background: var(--code-bg); border-radius: 4px; padding: 1px 4px; font-size: 10px; }
+    .cta a { display: inline-block; margin-top: 8px; padding: 6px 14px; background: var(--accent); color: var(--accent-contrast); border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; }
 
     /* Main content */
-    .main { margin-left: 260px; flex: 1; padding: 32px; }
-    .section { margin-bottom: 48px; }
-    .section-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
-    .section-title.changed { color: #f85149; }
-    .section-title.new { color: #f0883e; }
-    .section-title.passed { color: #3fb950; }
+    .main { margin-left: 264px; flex: 1; padding: 32px 36px; max-width: 1280px; }
+    .section { margin-bottom: 44px; }
+    .section-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+    .section-title::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+    .section-title.changed { color: var(--changed); } .section-title.changed::before { background: var(--changed); }
+    .section-title.new { color: var(--new); } .section-title.new::before { background: var(--new); }
+    .section-title.passed { color: var(--passed); } .section-title.passed::before { background: var(--passed); }
 
     /* Snapshot card */
-    .snapshot { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    .snapshot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .snapshot-name { font-size: 16px; font-weight: 600; }
-    .snapshot-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    .badge-changed { background: #f8514922; color: #f85149; }
-    .badge-new { background: #f0883e22; color: #f0883e; }
-    .badge-passed { background: #3fb95022; color: #3fb950; }
-    .snapshot-stats { font-size: 12px; color: #8b949e; margin-bottom: 16px; }
+    .snapshot { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .snapshot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .snapshot-name { font-size: 15px; font-weight: 650; }
+    .snapshot-badge { padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+    .badge-changed { background: var(--changed-bg); color: var(--changed); }
+    .badge-new { background: var(--new-bg); color: var(--new); }
+    .badge-passed { background: var(--passed-bg); color: var(--passed); }
+    .snapshot-stats { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+
+    /* Layered analysis panel — the same evidence agents get via MCP */
+    .analysis { border: 1px solid var(--border-soft); background: var(--surface-2); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    .analysis-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .analysis-title { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); }
+    .analysis-mcp { font-size: 10px; color: var(--text-muted); }
+    .analysis-mcp code { background: var(--code-bg); border-radius: 3px; padding: 1px 4px; }
+    .verdict { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; font-weight: 550; margin-bottom: 8px; }
+    .verdict .v-icon { flex-shrink: 0; }
+    .verdict.v-noise { background: var(--info-bg); color: var(--info); border: 1px solid var(--info); border-color: color-mix(in srgb, var(--info) 30%, transparent); }
+    .verdict.v-style { background: var(--new-bg); color: var(--new); border: 1px solid color-mix(in srgb, var(--new) 30%, transparent); }
+    .verdict.v-structural { background: var(--changed-bg); color: var(--changed); border: 1px solid color-mix(in srgb, var(--changed) 30%, transparent); }
+    .verdict.v-shift { background: var(--info-bg); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 30%, transparent); }
+    .verdict.v-new { background: var(--new-bg); color: var(--new); border: 1px solid color-mix(in srgb, var(--new) 30%, transparent); }
+    .verdict.v-pass { background: var(--passed-bg); color: var(--passed); border: 1px solid color-mix(in srgb, var(--passed) 30%, transparent); }
+    .verdict code { background: var(--code-bg); border-radius: 3px; padding: 1px 4px; font-size: 12px; }
 
     /* DOM noise hint */
-    .dom-hint { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.5; }
-    .dom-hint.noise { background: #1f6feb1a; border: 1px solid #1f6feb44; color: #79c0ff; }
-    .dom-hint.changed { background: #6e768166; border: 1px solid #8b949e44; color: #c9d1d9; }
-    .dom-hint.style-changed { background: #f0883e1a; border: 1px solid #f0883e44; color: #f0883e; }
-    .dom-hint.style-changed code { background: #0d1117; border-radius: 3px; padding: 1px 4px; font-size: 11px; }
+    .dom-hint { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 9px 12px; border-radius: 8px; font-size: 12px; line-height: 1.5; }
+    .dom-hint.noise { background: var(--info-bg); color: var(--info); }
+    .dom-hint.changed { background: var(--surface); border: 1px solid var(--border-soft); color: var(--text); }
+    .dom-hint.style-changed { background: var(--new-bg); color: var(--new); }
+    .dom-hint.style-changed code { background: var(--code-bg); border-radius: 3px; padding: 1px 4px; font-size: 11px; }
     .dom-hint .label { font-weight: 600; }
     .dom-hint .summary { color: inherit; opacity: 0.85; }
 
@@ -90,52 +158,54 @@ export function renderHtml(data: ReportData): string {
     .diff-view.two-col { grid-template-columns: 1fr 1fr; }
     .diff-view.one-col { grid-template-columns: 1fr; }
     .diff-col { text-align: center; }
-    .diff-col label { display: block; font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
-    .diff-col img { max-width: 100%; border-radius: 6px; border: 1px solid #21262d; cursor: zoom-in; transition: transform 0.2s; }
+    .diff-col label { display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+    .diff-col img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: zoom-in; transition: transform 0.2s; background: #fff; }
     .diff-col img:hover { transform: scale(1.02); }
 
     /* Approve command */
-    .approve-cmd { margin-top: 16px; background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
-    .approve-cmd code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: #00d4ff; }
-    .approve-cmd button { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s; }
-    .approve-cmd button:hover { background: #30363d; }
-    .approve-cmd button.copied { background: #3fb950; color: #0d1117; }
+    .approve-cmd { margin-top: 16px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .approve-cmd code { font-size: 13px; color: var(--accent); }
+    .approve-cmd button { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s; }
+    .approve-cmd button:hover { border-color: var(--accent); }
+    .approve-cmd button.copied { background: var(--passed); border-color: var(--passed); color: #fff; }
 
     /* Regions */
-    .regions { margin-top: 8px; padding: 10px 12px; background: #0d1117; border: 1px solid #21262d; border-radius: 8px; font-size: 12px; }
-    .regions .regions-title { color: #8b949e; font-weight: 600; margin-bottom: 6px; }
+    .regions { margin-top: 8px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 8px; font-size: 12px; }
+    .regions .regions-title { color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
     .regions ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-    .regions li a { display: inline-block; padding: 3px 10px; border-radius: 10px; background: #f8514922; color: #f85149; text-decoration: none; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
-    .regions li a:hover { background: #f8514944; }
-    .regions li a.region-shift { background: #1f6feb22; color: #79c0ff; }
-    .regions li a.region-shift:hover { background: #1f6feb44; }
-    .page-shift { margin-top: 8px; padding: 8px 10px; background: #1f6feb1a; border: 1px solid #1f6feb44; border-radius: 6px; font-size: 12px; color: #79c0ff; }
+    .regions li a { display: inline-block; padding: 3px 10px; border-radius: 10px; background: var(--changed-bg); color: var(--changed); text-decoration: none; font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace; font-size: 11px; }
+    .regions li a:hover { filter: brightness(0.95); }
+    .regions li a.region-shift { background: var(--info-bg); color: var(--info); }
+    .page-shift { margin-top: 8px; padding: 8px 10px; background: var(--info-bg); border-radius: 6px; font-size: 12px; color: var(--info); }
 
     /* Masks (audit trail) */
-    .masks { margin-top: 8px; padding: 10px 12px; background: repeating-linear-gradient(45deg, #161b22, #161b22 6px, #1c2129 6px, #1c2129 8px); border: 1px solid #30363d; border-radius: 8px; font-size: 12px; color: #8b949e; }
-    .masks .label { font-weight: 600; color: #c9d1d9; }
-    .masks code { color: #79c0ff; font-size: 11px; }
-    .mask-warning { margin-top: 8px; padding: 10px 12px; background: #f0883e1a; border: 1px solid #f0883e44; border-radius: 8px; font-size: 12px; color: #f0883e; }
+    .masks { margin-top: 8px; padding: 10px 12px; background: repeating-linear-gradient(45deg, var(--hatch-a), var(--hatch-a) 6px, var(--hatch-b) 6px, var(--hatch-b) 8px); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-muted); }
+    .masks .label { font-weight: 600; color: var(--text); }
+    .masks code { color: var(--link); font-size: 11px; }
+    .mask-warning { margin-top: 8px; padding: 10px 12px; background: var(--new-bg); border-radius: 8px; font-size: 12px; color: var(--new); }
 
     /* Zoom overlay */
     .zoom-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; cursor: zoom-out; }
     .zoom-overlay.active { display: flex; }
     .zoom-overlay img { max-width: 95%; max-height: 95%; border-radius: 8px; }
 
-    /* Empty state */
-    .oss-notice { margin-top: 16px; padding: 12px 14px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; font-size: 11px; color: #8b949e; line-height: 1.6; }
-    .oss-notice h4 { margin: 0 0 8px; font-size: 11px; color: #e6edf3; }
+    /* Notices / empty state */
+    .oss-notice { margin-top: 14px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 8px; font-size: 11px; color: var(--text-muted); line-height: 1.6; box-shadow: var(--shadow); }
+    .oss-notice h4 { margin: 0 0 8px; font-size: 11px; color: var(--text); }
     .oss-notice p { margin: 0 0 6px; }
     .oss-notice p:last-child { margin-bottom: 0; }
-    .oss-notice code { background: #0d1117; border: 1px solid #30363d; border-radius: 3px; padding: 1px 4px; font-size: 10px; color: #79c0ff; }
-    .oss-notice a { color: #58a6ff; }
-    .empty { text-align: center; padding: 48px; color: #8b949e; }
+    .oss-notice code { background: var(--code-bg); border-radius: 3px; padding: 1px 4px; font-size: 10px; }
+    .oss-notice a { color: var(--link); }
+    .empty { text-align: center; padding: 48px; color: var(--text-muted); }
     .empty .icon { font-size: 48px; margin-bottom: 16px; }
   </style>
 </head>
 <body>
   <aside class="sidebar">
-    <h1>TestivAI</h1>
+    <div class="brand-row">
+      <h1>TestivAI</h1>
+      <button class="theme-toggle" id="themeToggle" title="Switch between light and dark theme">🌙 Dark</button>
+    </div>
     <div class="version">Visual Report v${escapeHtml(version)}</div>
     <div class="timestamp">${escapeHtml(new Date(timestamp).toLocaleString())}</div>
 
@@ -174,7 +244,7 @@ export function renderHtml(data: ReportData): string {
     <div class="empty">
       <div class="icon">📸</div>
       <h2>No snapshots found</h2>
-      <p>Run your tests to generate visual snapshots.</p>
+      <p>Run your tests to capture snapshots, then re-run the report.</p>
     </div>` : ''}
 
     ${changed.length > 0 ? `
@@ -196,15 +266,31 @@ export function renderHtml(data: ReportData): string {
     </section>` : ''}
   </main>
 
-  <div class="zoom-overlay" id="zoomOverlay">
-    <img id="zoomImage" src="" alt="Zoomed">
-  </div>
+  <div class="zoom-overlay" id="zoomOverlay"><img id="zoomImg" src="" alt="Zoomed"></div>
 
   <script>
-    // Image zoom
+    // Theme: light is the default; a stored preference of "dark" overrides.
+    (function () {
+      const KEY = 'testivai-theme';
+      const btn = document.getElementById('themeToggle');
+      const apply = (theme) => {
+        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        else document.documentElement.removeAttribute('data-theme');
+        btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+      };
+      let theme = 'light';
+      try { theme = localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light'; } catch {}
+      apply(theme);
+      btn.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem(KEY, theme); } catch {}
+        apply(theme);
+      });
+    })();
+
     document.querySelectorAll('.diff-col img').forEach(img => {
       img.addEventListener('click', () => {
-        document.getElementById('zoomImage').src = img.src;
+        document.getElementById('zoomImg').src = img.src;
         document.getElementById('zoomOverlay').classList.add('active');
       });
     });
@@ -212,18 +298,17 @@ export function renderHtml(data: ReportData): string {
       document.getElementById('zoomOverlay').classList.remove('active');
     });
 
-    // Region chips zoom the diff image for inspection
     document.querySelectorAll('.region-chip').forEach(chip => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const diff = chip.dataset.diff;
-        if (!diff) return;
-        document.getElementById('zoomImage').src = diff;
-        document.getElementById('zoomOverlay').classList.add('active');
+        if (diff) {
+          document.getElementById('zoomImg').src = diff;
+          document.getElementById('zoomOverlay').classList.add('active');
+        }
       });
     });
 
-    // Copy approve command
     document.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const cmd = btn.dataset.cmd;
@@ -261,9 +346,7 @@ function renderSnapshot(snapshot: SnapshotResult): string {
         <span class="snapshot-badge ${badgeClass}">${snapshot.status}</span>
       </div>
       ${snapshot.status === 'changed' || snapshot.autoPassed ? `<div class="snapshot-stats">Diff: ${snapshot.diffPercent.toFixed(2)}% (${snapshot.diffCount} pixels)${snapshot.autoPassed ? ` — auto-passed: ${snapshot.autoPassed === 'noise' ? 'DOM unchanged, within noise tolerance' : 'within configured diff tolerance'}` : ''}</div>` : ''}
-      ${renderDomHint(snapshot)}
-      ${renderRegions(snapshot)}
-      ${renderMasks(snapshot)}
+      ${renderAnalysis(snapshot)}
       <div class="${gridClass}">
         ${hasBaseline ? `<div class="diff-col"><label>Baseline</label><img src="${snapshot.baselinePath}" alt="Baseline"></div>` : ''}
         ${hasDiff ? `<div class="diff-col"><label>Diff</label><img src="${snapshot.diffPath}" alt="Diff"></div>` : ''}
@@ -275,6 +358,73 @@ function renderSnapshot(snapshot: SnapshotResult): string {
         <button class="copy-btn" data-cmd="npx testivai approve ${escapeHtml(snapshot.name)}">Copy</button>
       </div>` : ''}
     </div>`;
+}
+
+/**
+ * The "Layered analysis" panel: a synthesized verdict headline followed by
+ * the individual evidence layers (DOM/style signal, attributed regions,
+ * page shift, masks). This is the human-facing view of the same layered
+ * evidence @testivai/mcp's explain_snapshot serves to AI agents.
+ */
+function renderAnalysis(snapshot: SnapshotResult): string {
+  const verdict = renderVerdict(snapshot);
+  const layers = [renderDomHint(snapshot), renderRegions(snapshot), renderMasks(snapshot)].filter(Boolean).join('');
+  if (!verdict && !layers) return '';
+
+  return `
+      <div class="analysis">
+        <div class="analysis-head">
+          <span class="analysis-title">Layered analysis</span>
+          <span class="analysis-mcp">agents get this via <code>@testivai/mcp</code> · <code>explain_snapshot</code></span>
+        </div>
+        ${verdict}
+        ${layers}
+      </div>`;
+}
+
+/**
+ * Verdict headline: one plain-language line synthesizing the layers, in
+ * priority order — style-only change (real) > page shift (injected content)
+ * > structural DOM change > render noise > new snapshot > auto-pass.
+ */
+function renderVerdict(snapshot: SnapshotResult): string {
+  if (snapshot.status === 'passed' && !snapshot.autoPassed) return '';
+
+  if (snapshot.status === 'new') {
+    return `<div class="verdict v-new"><span class="v-icon">🆕</span><span>First capture — no baseline yet. Review the image, then approve to make it the baseline.</span></div>`;
+  }
+
+  if (snapshot.dom?.styleCheck === 'mismatch' && snapshot.dom.styleChanges) {
+    const n = snapshot.dom.styleChanges.count;
+    const first = snapshot.dom.styleChanges.elements[0];
+    const el = first ? `<code>${escapeHtml(first.split(' > ').slice(-1)[0])}</code>` : '';
+    return `<div class="verdict v-style"><span class="v-icon">🎨</span><span>Style-only change — a real change, not noise: ${n} element${n === 1 ? '' : 's'} restyled with identical DOM${el ? ` (${el}${n > 1 ? ', …' : ''})` : ''}. Confirm it's intended before approving.</span></div>`;
+  }
+
+  if (snapshot.pageShift) {
+    const p = snapshot.pageShift;
+    return `<div class="verdict v-shift"><span class="v-icon">↕️</span><span>Layout shift — everything below y=${p.belowY} moved ${p.dy > 0 ? 'down' : 'up'} ${Math.abs(p.dy)}px (${p.count} elements together). Look <em>above</em> that line for inserted or removed content; the moved elements themselves are unchanged.</span></div>`;
+  }
+
+  if (snapshot.dom?.changed && snapshot.dom.summary) {
+    const s = snapshot.dom.summary;
+    const parts: string[] = [];
+    if (s.added > 0) parts.push(`${s.added} added`);
+    if (s.removed > 0) parts.push(`${s.removed} removed`);
+    if (s.attributeChanges > 0) parts.push(`${s.attributeChanges} attribute`);
+    if (s.textChanges) parts.push(`${s.textChanges} text`);
+    return `<div class="verdict v-structural"><span class="v-icon">🧱</span><span>Structural change — the DOM differs (${escapeHtml(parts.join(', ') || 'structural difference')}). Review the diff and confirm the change is intended before approving.</span></div>`;
+  }
+
+  if (snapshot.dom?.noiseHint) {
+    return `<div class="verdict v-noise"><span class="v-icon">💡</span><span>Likely render noise — pixels differ but the DOM${snapshot.dom.styleCheck === 'match' ? ' and computed styles are' : ' is'} identical (anti-aliasing, font hinting). Worth a glance, not a block.</span></div>`;
+  }
+
+  if (snapshot.autoPassed) {
+    return `<div class="verdict v-pass"><span class="v-icon">✅</span><span>Auto-passed via the <code>${snapshot.autoPassed}</code> criterion — reported for transparency, no action needed.</span></div>`;
+  }
+
+  return '';
 }
 
 /**
