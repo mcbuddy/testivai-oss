@@ -170,8 +170,8 @@ export const initCommand = new Command('init')
         console.log(chalk.gray('       reporter: [') + chalk.white("['list'], ['@testivai/witness-playwright/reporter']") + chalk.gray('],'));
         console.log();
         console.log(chalk.cyan('  2. Capture a snapshot in a test:'));
-        console.log(chalk.gray("       import { snapshot } from '@testivai/witness-playwright';"));
-        console.log(chalk.gray("       await snapshot(page, testInfo, 'homepage');"));
+        console.log(chalk.gray("       import { witness } from '@testivai/witness-playwright';"));
+        console.log(chalk.gray("       await witness(page, testInfo, 'homepage');"));
         console.log();
         console.log(chalk.cyan('  3. Run, review, approve:'));
         console.log(chalk.gray('       npx playwright test'));

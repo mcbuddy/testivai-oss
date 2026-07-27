@@ -1,10 +1,13 @@
 import { snapshot } from './snapshot';
 import { getCiRunId } from './ci';
 
-// Named export — the form the README and examples use:
-//   import { snapshot } from '@testivai/witness-playwright';
-// `testivai.witness` is kept as an equivalent alias for existing callers.
-export { snapshot };
+// `witness` is the canonical capture call — it aligns with the package
+// family (@testivai/witness*) and the other adapters (browser.witness,
+// python's witness). The forms below are equivalent; `snapshot` and
+// `testivai.witness` are kept as compatible aliases for existing callers:
+//   import { witness } from '@testivai/witness-playwright';
+//   await witness(page, testInfo, 'homepage');
+export { snapshot, snapshot as witness };
 
 export const testivai = {
   witness: snapshot,

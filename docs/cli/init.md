@@ -75,8 +75,8 @@ npx testivai init --json
     reporter: [['list'], ['@testivai/witness-playwright/reporter']],
 
 2. Capture a snapshot in a test:
-    import { snapshot } from '@testivai/witness-playwright';
-    await snapshot(page, testInfo, 'homepage');
+    import { witness } from '@testivai/witness-playwright';
+    await witness(page, testInfo, 'homepage');
 
 3. Run, review, approve:
     npx playwright test

@@ -34,11 +34,11 @@ npm install -D @testivai/witness-playwright
 3. **Capture snapshots in your tests**
    ```typescript
    import { test, expect } from '@playwright/test';
-   import { snapshot } from '@testivai/witness-playwright';
+   import { witness } from '@testivai/witness-playwright';
 
    test('homepage visual', async ({ page }, testInfo) => {
      await page.goto('https://example.com');
-     await snapshot(page, testInfo, 'homepage');
+     await witness(page, testInfo, 'homepage');
    });
    ```
 
@@ -79,18 +79,18 @@ export default defineConfig({
 
 ## API Reference
 
-### `snapshot(page, testInfo, name?, config?)`
+### `witness(page, testInfo, name?, config?)`
 
 Capture a visual snapshot of the current page.
 
 ```typescript
-import { snapshot } from '@testivai/witness-playwright';
+import { witness } from '@testivai/witness-playwright';
 
 // Basic usage
-await snapshot(page, testInfo, 'my-snapshot');
+await witness(page, testInfo, 'my-snapshot');
 
 // With per-snapshot overrides
-await snapshot(page, testInfo, 'checkout-page', {
+await witness(page, testInfo, 'checkout-page', {
   ignoreSelectors: ['.live-chat', '[data-testid=clock]'], // hidden for this capture
   stabilize: false, // opt out of animation-freeze + font-wait for this snapshot
 });
