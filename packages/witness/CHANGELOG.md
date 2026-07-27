@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.1
+
+### Patch Changes
+
+- b70ebd9: The HTML report is now mobile-friendly: on narrow screens (≤900px) the sidebar becomes an off-canvas drawer — collapsed by default behind a hamburger top bar — the baseline/diff/current images stack vertically, and long commands/selectors wrap instead of overflowing. Desktop layout is unchanged.
+
 ## 1.11.0
 
 ### Minor Changes
