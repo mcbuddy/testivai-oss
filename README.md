@@ -248,7 +248,7 @@ Changed Snapshots
 
 ## Real-World Example
 
-A complete, minimal consumer project lives at [`testivai-example`](https://github.com/mcbuddy/testivai-example): a static page, three `snapshot()` calls, the PR `/testivai approve` flow, and a [live report on Pages](https://www.budisugianto.com/testivai-example/) — all against the published packages.
+A complete, minimal consumer project lives at [`testivai-example`](https://github.com/mcbuddy/testivai-example): a static page, three `witness()` calls, the PR `/testivai approve` flow, and a [live report on Pages](https://www.budisugianto.com/testivai-example/) — all against the published packages.
 
 ## Repository Layout
 
