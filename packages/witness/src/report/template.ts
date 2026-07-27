@@ -77,8 +77,15 @@ export function renderHtml(data: ReportData): string {
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
     code, .mono { font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace; }
 
+    /* Mobile top bar (hidden on desktop) */
+    .mobile-topbar { display: none; position: sticky; top: 0; z-index: 50; align-items: center; gap: 12px; padding: 10px 14px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border-soft); }
+    .menu-toggle { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 12px; font-size: 16px; line-height: 1; cursor: pointer; }
+    .topbar-title { font-size: 15px; font-weight: 700; color: var(--accent); }
+    .topbar-title span { font-weight: 400; font-size: 12px; color: var(--text-muted); }
+    .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 55; }
+
     /* Sidebar */
-    .sidebar { width: 264px; background: var(--sidebar-bg); padding: 24px 16px; flex-shrink: 0; border-right: 1px solid var(--border-soft); position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar { width: 264px; background: var(--sidebar-bg); padding: 24px 16px; flex-shrink: 0; border-right: 1px solid var(--border-soft); position: fixed; top: 0; height: 100vh; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; }
     .brand-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
     .sidebar h1 { font-size: 18px; color: var(--accent); letter-spacing: -0.2px; }
     .theme-toggle { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all .15s; }
@@ -207,10 +214,35 @@ export function renderHtml(data: ReportData): string {
     .oss-notice a { color: var(--link); }
     .empty { text-align: center; padding: 48px; color: var(--text-muted); }
     .empty .icon { font-size: 48px; margin-bottom: 16px; }
+
+    /* Mobile / narrow screens: sidebar becomes an off-canvas drawer, collapsed
+       by default; diff images stack; everything wraps instead of overflowing. */
+    @media (max-width: 900px) {
+      body { display: block; }
+      .mobile-topbar { display: flex; }
+      .sidebar { z-index: 60; width: min(300px, 85vw); transform: translateX(-105%); transition: transform 0.2s ease; box-shadow: 4px 0 24px rgba(0,0,0,0.25); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.active { display: block; }
+      .main { margin-left: 0; padding: 16px; max-width: 100%; }
+      .section { scroll-margin-top: 64px; }
+      .snapshot { padding: 14px; }
+      .snapshot-header { flex-wrap: wrap; gap: 6px; }
+      .diff-view, .diff-view.two-col { grid-template-columns: 1fr; }
+      .diff-col img:hover { transform: none; }
+      .approve-cmd { flex-wrap: wrap; gap: 8px; }
+      .approve-cmd code { overflow-wrap: anywhere; }
+      .analysis-head { flex-wrap: wrap; gap: 4px; }
+      .verdict code, .missing-notice code { overflow-wrap: anywhere; }
+    }
   </style>
 </head>
 <body>
-  <aside class="sidebar">
+  <header class="mobile-topbar">
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <span class="topbar-title">TestivAI <span>Visual Report</span></span>
+  </header>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="brand-row">
       <h1>TestivAI</h1>
       <button class="theme-toggle" id="themeToggle" title="Switch between light and dark theme">🌙 Dark</button>
@@ -301,6 +333,22 @@ export function renderHtml(data: ReportData): string {
         try { localStorage.setItem(KEY, theme); } catch {}
         apply(theme);
       });
+    })();
+
+    // Mobile drawer: collapsed by default; hamburger toggles, backdrop or a
+    // nav tap closes. Inert on desktop (the topbar/backdrop are display:none).
+    (function () {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const toggle = document.getElementById('menuToggle');
+      const set = (open) => {
+        sidebar.classList.toggle('open', open);
+        backdrop.classList.toggle('active', open);
+        toggle.setAttribute('aria-expanded', String(open));
+      };
+      toggle.addEventListener('click', () => set(!sidebar.classList.contains('open')));
+      backdrop.addEventListener('click', () => set(false));
+      sidebar.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', () => set(false)));
     })();
 
     document.querySelectorAll('.diff-col img').forEach(img => {
