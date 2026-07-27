@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.7.0
+
+### Minor Changes
+
+- f94048d: `witness()` is now the canonical capture call — aligning the Playwright adapter with the package family (`@testivai/witness*`) and the other adapters: `import { witness } from '@testivai/witness-playwright'`. `snapshot` and `testivai.witness` remain as fully compatible aliases; nothing breaks.
+
+### Patch Changes
+
+- Updated dependencies [f94048d]
+- Updated dependencies [8de6c13]
+  - @testivai/witness@1.11.0
+
 ## 1.6.4
 
 ### Patch Changes

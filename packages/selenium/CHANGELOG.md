@@ -1,5 +1,13 @@
 # @testivai/witness-selenium
 
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [f94048d]
+- Updated dependencies [8de6c13]
+  - @testivai/witness@1.11.0
+
 ## 0.1.8
 
 ### Patch Changes

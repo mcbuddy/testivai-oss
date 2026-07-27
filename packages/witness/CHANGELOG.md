@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.0
+
+### Minor Changes
+
+- 8de6c13: New `shiftTolerance` pass criterion — the layout-tolerance layer, reimplemented local-first. When every diff region is a **pure element shift** (content unchanged, element just moved) of at most N pixels per axis, the snapshot auto-passes as `autoPassed: "shift"` (auditable in the report and results.json). Kills sub-pixel/rounding layout jitter without masking real changes: content-changed regions, unattributed regions, or shifts beyond the bound keep the snapshot `changed`. Config: `"shiftTolerance": 2` in `.testivai/config.json`. Off by default.
+
+### Patch Changes
+
+- f94048d: `testivai init`'s Playwright scaffold now prints the canonical `witness()` capture example.
+
 ## 1.10.0
 
 ### Minor Changes
