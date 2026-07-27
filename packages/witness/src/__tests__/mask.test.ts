@@ -159,13 +159,15 @@ describe('mask application on synthetic images', () => {
     const baseline = solidRgba(W, H, WHITE);
     const { out } = runDiff(baseline, baseline, [mask(20, 20, 30, 30)]);
 
+    // Hatch pixels carry the distinctive HATCH_RGBA alpha (140); the
+    // washed-context background and heat pixels are fully opaque (255).
     let hatchedInside = 0;
     let paintedOutside = 0;
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const alpha = out[(y * W + x) * 4 + 3];
         const inside = x >= 20 && x < 50 && y >= 20 && y < 50;
-        if (alpha > 0) {
+        if (alpha === 140) {
           if (inside) hatchedInside++;
           else paintedOutside++;
         }

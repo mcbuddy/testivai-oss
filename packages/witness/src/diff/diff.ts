@@ -9,7 +9,7 @@
  * and enriched DiffResult.
  */
 
-import { DiffOptions, DiffResult, PbdRawResult } from './types';
+import { DiffOptions, DiffResult, DiffRegion, PbdRawResult } from './types';
 import { applyIgnoreRegions } from './ignore';
 import { applyMaskRects, hatchMaskRects } from './mask';
 import { normalizeDimensions } from './resize';
@@ -149,10 +149,16 @@ export function diff(
     result.sizeMismatch = sizeMismatch;
   }
 
-  // ── Region detection (before hatching — hatch pixels must not cluster) ──
+  // ── Region detection (before hatching — hatch pixels must not cluster,
+  //    and before the context wash — detection keys on alpha > 0) ─────────
   if (opts.detectRegions && !isIdentical) {
     result.regions = detectRegions(diff8, effectiveWidth, effectiveHeight, opts.regionOptions ?? {});
+    outlineRegions(diff8, effectiveWidth, effectiveHeight, result.regions);
   }
+
+  // ── Context wash: unchanged pixels become a light grayscale of the
+  //    baseline so the heatmap reads in place, not on a void ──────────────
+  washBackground(effectiveBaseline, diff8, effectiveWidth, effectiveHeight);
 
   // ── Hatch masked areas in the diff output (auditable, never silent) ─────
   if (masks.length > 0) {
@@ -160,6 +166,60 @@ export function diff(
   }
 
   return result;
+}
+
+/**
+ * Fill every still-transparent diff pixel with a washed-out grayscale of
+ * the baseline (≈15% strength lifted to near-white). Gives the heatmap
+ * spatial context — you can see WHERE on the page the heat sits — while
+ * keeping enough contrast that yellow→red pixels pop. Runs after region
+ * detection (which keys on alpha > 0) and leaves heat/outline/minimap
+ * pixels untouched.
+ */
+function washBackground(
+  baseline8: Uint8Array | Uint8ClampedArray,
+  diff8: Uint8Array | Uint8ClampedArray,
+  width: number,
+  height: number,
+): void {
+  const len = width * height * 4;
+  for (let i = 0; i < len; i += 4) {
+    if (diff8[i + 3] !== 0) continue; // heat / outline / minimap pixel
+    const luma = 0.299 * baseline8[i] + 0.587 * baseline8[i + 1] + 0.114 * baseline8[i + 2];
+    const v = (216 + luma * 0.15) | 0; // 216..254 — faint but legible
+    diff8[i] = v;
+    diff8[i + 1] = v;
+    diff8[i + 2] = v;
+    diff8[i + 3] = 255;
+  }
+}
+
+/**
+ * Stroke a 2px deep-red rectangle around each detected region so even a
+ * few changed pixels are findable at page zoom.
+ */
+function outlineRegions(
+  diff8: Uint8Array | Uint8ClampedArray,
+  width: number,
+  height: number,
+  regions: DiffRegion[],
+): void {
+  const setPx = (x: number, y: number): void => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const i = (y * width + x) * 4;
+    diff8[i] = 211;     // deep red rgb(211, 47, 47)
+    diff8[i + 1] = 47;
+    diff8[i + 2] = 47;
+    diff8[i + 3] = 255;
+  };
+  for (const r of regions) {
+    const x0 = r.x - 2, y0 = r.y - 2;
+    const x1 = r.x + r.width + 1, y1 = r.y + r.height + 1;
+    for (let s = 0; s < 2; s++) {
+      for (let x = x0 + s; x <= x1 - s; x++) { setPx(x, y0 + s); setPx(x, y1 - s); }
+      for (let y = y0 + s; y <= y1 - s; y++) { setPx(x0 + s, y); setPx(x1 - s, y); }
+    }
+  }
 }
 
 /**
@@ -203,23 +263,10 @@ function pbdDiffCore(
   let hashStart = 0;
   let cumulatedDiff = 0;
 
-  // Quick approx of color theme to figure if "new" pixels should be dark or light
-  let averageBrightness = 0;
-  const brightnessSamples = Math.ceil(Math.sqrt(area) / 128);
-  const b8iStep = (b8l / brightnessSamples) & -4;
-  let sampleIdx = 0;
-  for (let i = 0; i < brightnessSamples; i++) {
-    averageBrightness +=
-      (0.299 * (baseline8[sampleIdx] + candidate8[sampleIdx]) +
-        0.587 * (baseline8[sampleIdx + 1] + candidate8[sampleIdx + 1]) +
-        0.114 * (baseline8[sampleIdx + 2] + candidate8[sampleIdx + 2])) /
-      brightnessSamples /
-      2;
-    sampleIdx += b8iStep;
-  }
-  const isDarkTheme = averageBrightness < 128;
-  const color32Added = isDarkTheme ? COLOR32_ADDED : COLOR32_REMOVED;
-  const color32Removed = isDarkTheme ? COLOR32_REMOVED : COLOR32_ADDED;
+  // Heatmap normalization: deltas run from the configured threshold up to
+  // the YIQ metric's maximum (35215). sqrt spreads perception so subtle
+  // diffs are already visibly yellow instead of hiding near-transparent.
+  const deltaRange = Math.max(1, 35215 - deltaThreshold);
 
   // Minimap tracking
   const miniHeight = Math.ceil(height / MINIMAP_SCALE);
@@ -261,9 +308,19 @@ function pbdDiffCore(
         diffCount++;
         const dyAbs = Math.abs(dy);
         cumulatedDiff += dyAbs;
-        diff32[d32i] =
-          (dy > 0 ? color32Added : color32Removed) +
-          (Math.min(192, dyAbs * 8) << 24);
+        // Heatmap pixel: fully opaque, colored by difference magnitude —
+        // yellow (subtle) → orange → red (strong). Obvious at any zoom,
+        // unlike the old direction-colored pixels with ≤75% alpha.
+        const t = Math.sqrt(Math.min(1, (delta - deltaThreshold) / deltaRange));
+        let hr: number, hg: number, hb: number;
+        if (t < 0.5) {
+          const u = t * 2; // yellow (255,235,59) → orange (255,152,0)
+          hr = 255; hg = (235 - 83 * u) | 0; hb = (59 - 59 * u) | 0;
+        } else {
+          const u = (t - 0.5) * 2; // orange (255,152,0) → red (211,47,47)
+          hr = (255 - 44 * u) | 0; hg = (152 - 105 * u) | 0; hb = (47 * u) | 0;
+        }
+        diff32[d32i] = (255 << 24) | (hb << 16) | (hg << 8) | hr;
 
         if (hash === 0) {
           hashStart = hashIndex;

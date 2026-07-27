@@ -337,3 +337,65 @@ describe('Diff Engine', () => {
     });
   });
 });
+
+describe('heatmap diff rendering', () => {
+  const { diff } = require('../diff/diff');
+
+  const px = (r: number, g: number, b: number) => [r, g, b, 255];
+  const makeBuf = (pixels: number[][]) => new Uint8ClampedArray(pixels.flat());
+
+  it('changed pixels are opaque warm heat colors; unchanged pixels are washed context', () => {
+    // 2x1: pixel 0 identical (mid gray), pixel 1 strongly different
+    const baseline = makeBuf([px(128, 128, 128), px(0, 0, 0)]);
+    const candidate = makeBuf([px(128, 128, 128), px(255, 255, 255)]);
+    const out = new Uint8ClampedArray(2 * 1 * 4);
+
+    const res = diff(baseline, candidate, out, 2, 1, { enableMinimap: false });
+    expect(res.diffCount).toBe(1);
+
+    // unchanged pixel: washed light grayscale, opaque
+    expect(out[3]).toBe(255);
+    expect(out[0]).toBeGreaterThanOrEqual(216);
+    expect(out[0]).toBe(out[1]);
+    expect(out[1]).toBe(out[2]);
+
+    // changed pixel: opaque, warm (red-dominant, blue-suppressed)
+    expect(out[7]).toBe(255);
+    expect(out[4]).toBeGreaterThan(180); // R high across the whole ramp
+    expect(out[4]).toBeGreaterThan(out[6]); // R > B (never blue/green)
+  });
+
+  it('subtle diffs render yellow-ish, strong diffs render red-ish', () => {
+    const baseline = makeBuf([px(120, 120, 120), px(0, 0, 0)]);
+    const candidate = makeBuf([px(135, 135, 135), px(255, 255, 255)]); // small vs max delta
+    const out = new Uint8ClampedArray(2 * 1 * 4);
+    diff(baseline, candidate, out, 2, 1, { enableMinimap: false, threshold: 0.05 });
+
+    const subtleG = out[1]; // green channel high → yellow
+    const strongG = out[5]; // green channel low → red
+    expect(subtleG).toBeGreaterThan(strongG);
+  });
+
+  it('region outlines are drawn when detectRegions is on', () => {
+    const W = 12, H = 12;
+    const baseline = new Uint8ClampedArray(W * H * 4).fill(255);
+    const candidate = new Uint8ClampedArray(baseline);
+    // 2x2 changed block in the middle
+    for (const [x, y] of [[5,5],[6,5],[5,6],[6,6]]) {
+      const i = (y * W + x) * 4;
+      candidate[i] = 0; candidate[i+1] = 0; candidate[i+2] = 0;
+    }
+    const out = new Uint8ClampedArray(W * H * 4);
+    const res = diff(baseline, candidate, out, W, H, {
+      enableMinimap: false,
+      detectRegions: true,
+      regionOptions: { minSize: 1 },
+    });
+    expect(res.regions?.length).toBe(1);
+    // outline pixel 2px outside the block should be the deep-red stroke
+    const r = res.regions![0];
+    const oi = ((r.y - 2) * W + r.x) * 4;
+    expect(out[oi]).toBe(211);
+    expect(out[oi + 1]).toBe(47);
+  });
+});

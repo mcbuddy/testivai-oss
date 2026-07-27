@@ -160,6 +160,8 @@ export function renderHtml(data: ReportData): string {
     .diff-view.one-col { grid-template-columns: 1fr; }
     .diff-col { text-align: center; }
     .diff-col label { display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+    .heat-legend { text-transform: none; letter-spacing: 0; font-size: 10px; margin-left: 6px; }
+    .heat-bar { display: inline-block; width: 44px; height: 7px; border-radius: 4px; vertical-align: middle; margin: 0 3px; background: linear-gradient(90deg, #ffeb3b, #ff9800, #d32f2f); }
     .diff-col img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: zoom-in; transition: transform 0.2s; background: #fff; }
     .diff-col img:hover { transform: scale(1.02); }
 
@@ -362,7 +364,7 @@ function renderSnapshot(snapshot: SnapshotResult): string {
       ${renderAnalysis(snapshot)}
       <div class="${gridClass}">
         ${hasBaseline ? `<div class="diff-col"><label>Baseline</label><img src="${snapshot.baselinePath}" alt="Baseline"></div>` : ''}
-        ${hasDiff ? `<div class="diff-col"><label>Diff</label><img src="${snapshot.diffPath}" alt="Diff"></div>` : ''}
+        ${hasDiff ? `<div class="diff-col"><label>Diff <span class="heat-legend" title="Heatmap: color = difference magnitude">subtle <span class="heat-bar"></span> strong</span></label><img src="${snapshot.diffPath}" alt="Diff heatmap"></div>` : ''}
         ${hasCurrent ? `<div class="diff-col"><label>Current</label><img src="${snapshot.currentPath}" alt="Current"></div>` : ''}
       </div>
       ${snapshot.status === 'changed' || snapshot.status === 'new' ? `
