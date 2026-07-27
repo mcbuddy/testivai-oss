@@ -91,6 +91,16 @@ export interface PassCriteria {
   noiseAutoPass?: boolean;
   /** Upper bound (diff %, 0-100) for noiseAutoPass. Default 1. */
   noiseMaxDiffPercent?: number;
+  /**
+   * Layout tolerance in px: auto-pass a changed snapshot when EVERY diff
+   * region is a pure element shift (classification 'shift' — content
+   * unchanged, element just moved) of at most this many pixels in each
+   * axis. Kills sub-pixel/rounding layout jitter without masking content
+   * changes: any region classified 'change', any unattributed region, or
+   * any shift beyond the tolerance keeps the snapshot 'changed'.
+   * Unset/0 = off.
+   */
+  shiftTolerance?: number;
 }
 
 /**
@@ -219,12 +229,13 @@ export function compareAll(options: CompareOptions): SnapshotResult[] {
  * diff — byte-different but nothing the diff engine flags — which is
  * simply passed). Diff images are kept either way.
  */
-function applyPassCriteria(result: SnapshotResult, criteria: PassCriteria): void {
+export function applyPassCriteria(result: SnapshotResult, criteria: PassCriteria): void {
   const {
     maxDiffPercent = 0,
     maxDiffPixels,
     noiseAutoPass = false,
     noiseMaxDiffPercent = 1,
+    shiftTolerance = 0,
   } = criteria;
 
   // Nothing above the per-pixel threshold: visually identical. Guard on
@@ -247,6 +258,24 @@ function applyPassCriteria(result: SnapshotResult, criteria: PassCriteria): void
   if (noiseAutoPass && result.dom?.noiseHint && result.diffPercent <= noiseMaxDiffPercent) {
     result.status = 'passed';
     result.autoPassed = 'noise';
+    return;
+  }
+
+  // Layout tolerance: every region must be a verified pure shift within
+  // the per-axis bound. Requires attribution (element maps) — regions
+  // without a 'shift' classification are treated as real changes.
+  if (shiftTolerance > 0 && result.regions && result.regions.length > 0) {
+    const allSmallShifts = result.regions.every(
+      (r) =>
+        r.classification === 'shift' &&
+        r.shift !== undefined &&
+        Math.abs(r.shift.dx) <= shiftTolerance &&
+        Math.abs(r.shift.dy) <= shiftTolerance,
+    );
+    if (allSmallShifts) {
+      result.status = 'passed';
+      result.autoPassed = 'shift';
+    }
   }
 }
 

@@ -25,6 +25,13 @@ export interface LocalConfig {
    */
   failOnMissing?: boolean;
   /**
+   * Layout tolerance in px: auto-pass diffs where every region is a pure
+   * element shift (content unchanged) of at most this many pixels per
+   * axis — kills sub-pixel layout jitter. Requires element maps
+   * (captured by default). Unset/0 = off.
+   */
+  shiftTolerance?: number;
+  /**
    * Attribute names whose VALUES the DOM diff ignores (presence still
    * counts) — for per-run URLs in `src`/`srcset`/`href` that would
    * otherwise poison the noise hint with `attributeChanges`. `blob:`

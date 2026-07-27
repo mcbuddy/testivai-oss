@@ -90,6 +90,7 @@ export function generateReport(options: GenerateReportOptions): ReportData {
     maxDiffPixels: localConfig.maxDiffPixels,
     noiseAutoPass: localConfig.noiseAutoPass,
     noiseMaxDiffPercent: localConfig.noiseMaxDiffPercent,
+    shiftTolerance: localConfig.shiftTolerance,
   };
   const compareOptions: CompareOptions = {
     projectRoot,

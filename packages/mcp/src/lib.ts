@@ -37,7 +37,7 @@ export interface SnapshotResult {
   regions?: RegionInfo[];
   /** Whole-page uniform displacement — the injected-banner signature. */
   pageShift?: { dy: number; belowY: number; count: number };
-  autoPassed?: 'threshold' | 'noise';
+  autoPassed?: 'threshold' | 'noise' | 'shift';
   maskWarnings?: string[];
 }
 

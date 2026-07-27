@@ -70,10 +70,12 @@ export interface SnapshotResult {
   /**
    * Present when the snapshot's pixels differed but a pass criterion
    * reported it as passed: 'threshold' (within maxDiffPercent /
-   * maxDiffPixels) or 'noise' (DOM identical + within noiseMaxDiffPercent,
-   * with noiseAutoPass enabled). The diff image is still written.
+   * maxDiffPixels), 'noise' (DOM identical + within noiseMaxDiffPercent,
+   * with noiseAutoPass enabled), or 'shift' (every region is a pure
+   * element shift within shiftTolerance px). The diff image is still
+   * written — auto-passes stay auditable.
    */
-  autoPassed?: 'threshold' | 'noise';
+  autoPassed?: 'threshold' | 'noise' | 'shift';
   /**
    * ISO timestamp of when the compared baseline was last approved/added
    * (from the baseline's metadata.json). Provenance for reviewers: a

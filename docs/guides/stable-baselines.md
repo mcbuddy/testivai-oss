@@ -153,6 +153,7 @@ defaults.
 | `maxDiffPixels` | `number` | unset | Absolute variant: pass when changed-pixel count is at or below this. When both are set, satisfying **either** passes |
 | `noiseAutoPass` | `boolean` | `false` | Auto-pass diffs whose DOM is structurally identical (the noise hint), up to `noiseMaxDiffPercent` |
 | `noiseMaxDiffPercent` | `number` (0–100) | `1` | Upper diff-% bound for `noiseAutoPass`. DOM-identical diffs larger than this still show as changed |
+| `shiftTolerance` | `number` (px) | off | Auto-pass when every diff region is a pure element shift within this many px per axis — kills sub-pixel layout jitter (labeled `autoPassed: "shift"`, auditable in the report) |
 | `diffRegions` | `object` | `{ minSize: 10, mergeDistance: 12 }` | Diff clustering: `minSize` = noise floor in pixels, `mergeDistance` = px gap for merging nearby diff regions |
 
 ### Capture behavior

@@ -384,7 +384,7 @@ function renderStats(snapshot: SnapshotResult): string {
   const parts: string[] = [];
   if (snapshot.status === 'changed' || snapshot.autoPassed) {
     parts.push(
-      `Diff: ${snapshot.diffPercent.toFixed(2)}% (${snapshot.diffCount} pixels)${snapshot.autoPassed ? ` — auto-passed: ${snapshot.autoPassed === 'noise' ? 'DOM unchanged, within noise tolerance' : 'within configured diff tolerance'}` : ''}`,
+      `Diff: ${snapshot.diffPercent.toFixed(2)}% (${snapshot.diffCount} pixels)${snapshot.autoPassed ? ` — auto-passed: ${snapshot.autoPassed === 'noise' ? 'DOM unchanged, within noise tolerance' : snapshot.autoPassed === 'shift' ? 'pure element shifts within layout tolerance' : 'within configured diff tolerance'}` : ''}`,
     );
   }
   if (snapshot.baselineApprovedAt) {
