@@ -17,7 +17,7 @@ Add visual regression testing to your test suite in under 5 minutes — fully lo
 
 ## Path A — Dedicated adapters (recommended)
 
-Two frameworks have first-class adapter packages today: **Playwright** and **WebdriverIO**. They use the framework's native screenshot APIs — no CLI wrapper, no Chrome remote debugging port, no race conditions.
+Most suites have a first-class adapter today: **Playwright**, **WebdriverIO**, **Selenium** (JavaScript, Python, Java), and **Ruby** (Capybara / RSpec). They use the framework's native screenshot APIs — no CLI wrapper, no Chrome remote debugging port, no race conditions.
 
 ### Playwright
 
@@ -145,11 +145,44 @@ Same `.testivai/baselines/` layout, same HTML report, same approval workflow as 
 
 → See the full [WebdriverIO quickstart](./frameworks/webdriverio.md) for service options.
 
+### Ruby (Capybara / RSpec)
+
+```ruby
+# Gemfile
+gem "testivai", group: :test
+```
+
+```ruby
+require "testivai"
+
+RSpec.describe "Homepage", type: :feature, js: true do
+  it "looks right" do
+    visit "/"
+    Testivai.witness(page, "homepage")
+  end
+end
+```
+
+Run your suite exactly as you do today, then compare:
+
+```bash
+bundle exec rspec
+npx testivai report
+```
+
+→ See the full [Ruby quickstart](./frameworks/ruby.md) for options and driver notes.
+
+### Selenium, Python, Java
+
+Native adapters share the same baselines and report — see
+[Selenium](./frameworks/selenium.md), [Python](./frameworks/python.md), and
+[Java](./frameworks/java.md).
+
 ---
 
 ## Path B — Other Frameworks (experimental)
 
-For Cypress, Puppeteer, Selenium, pytest, RSpec, Robot, etc., use the framework-agnostic CLI from `@testivai/witness`. It wraps your test command and captures via Chrome's DevTools Protocol.
+For Cypress, Puppeteer, Robot Framework and similar, use the framework-agnostic CLI from `@testivai/witness`. It wraps your test command and captures via Chrome's DevTools Protocol.
 
 :::warning Experimental
 This sidecar mode is labeled experimental — launch coordination across frameworks is brittle. For Playwright and WebdriverIO, prefer the dedicated adapters above. See [the sidecar caveats](./sidecar-testivai-run.md) for the full picture, and [community adapter contract](./extension-api.md) if you'd like to write a proper adapter for your framework.

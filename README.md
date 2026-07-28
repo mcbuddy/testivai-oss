@@ -69,6 +69,7 @@ Live versions are shown by the badges at the top of this README.
 | [`@testivai/mcp`](./packages/mcp) | MCP server — visual results + diff images for AI coding agents |
 | [`testivai` (PyPI)](./python) | Python adapter for playwright-python + pytest plugin — same baselines & report |
 | [`ai.testiv:testivai`](./java) | Java adapter for playwright-java + JUnit 5 extension (experimental) |
+| [`testivai` (RubyGems)](./ruby) | Ruby adapter for Capybara / RSpec / Cucumber — same baselines & report |
 
 Plus:
 - [`action/`](./action) — GitHub Action for PR-based visual approvals

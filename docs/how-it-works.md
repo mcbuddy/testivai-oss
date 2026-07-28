@@ -62,7 +62,7 @@ When you wrap your test command with `testivai run "..."`, the CLI:
 4. Captures the screenshot and metadata for each call.
 5. Writes the same on-disk layout as the Playwright SDK.
 
-Frameworks supported by the `init` wizard: Cypress, Selenium (JS / Python / Java / .NET), WebdriverIO, Puppeteer, Robot Framework, Cucumber, RSpec/Capybara.
+Frameworks supported by the `init` wizard: Cypress, Puppeteer, Robot Framework, and others without a dedicated adapter. Playwright, WebdriverIO, Selenium (JS / Python / Java) and Ruby (Capybara) have native adapters and do not use this path.
 
 ---
 
