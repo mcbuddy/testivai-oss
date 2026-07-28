@@ -7,6 +7,7 @@ The documentation for `@testivai/witness` and the framework adapters. Everything
 - **[Getting Started](./intro.md)** — install + first capture, 5 minutes
 - **[How It Works](./how-it-works.md)** — high-level architecture
 - **[vs. Playwright's built-in screenshots](./vs-playwright-builtin.md)** — what `toHaveScreenshot()` covers, and when TestivAI is worth the dependency
+- **[MCP server](./mcp.md)** — visual results for AI agents, with a real `explain_snapshot` output
 - **[Maintenance & roadmap](./maintenance.md)** — who builds this, release cadence, and what happens if it stops
 - **[Ruby (Capybara / RSpec)](./frameworks/ruby.md)** — native adapter, no sidecar
 - **[vs. rolling your own (Selenium)](./vs-selenium-tooling.md)** — Selenium ships no visual comparison; what you'd otherwise build yourself

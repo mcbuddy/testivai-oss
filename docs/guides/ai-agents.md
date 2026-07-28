@@ -4,6 +4,10 @@ title: AI agents & code assistants
 
 # Using TestivAI from an AI agent
 
+> Looking for setup, the tool list, and a real `explain_snapshot` payload?
+> See the [MCP server page](../mcp.md). This guide covers the wider workflow.
+
+
 AI agents eyeball the change they just made; TestivAI remembers everything
 they didn't mean to change. This guide wires the two together: your agent
 (Claude Code, Cursor, Copilot Workspace, or anything MCP-capable) runs

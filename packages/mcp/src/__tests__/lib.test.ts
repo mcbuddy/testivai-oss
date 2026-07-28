@@ -68,8 +68,42 @@ describe('@testivai/mcp lib', () => {
       expect(verdict).toContain('2 added, 1 removed');
     });
 
-    it('treats missing DOM data as needing review', () => {
-      expect(verdictFor({ name: 'x', status: 'changed' })).toContain('human review');
+    // Regression: a style-only change (DOM identical, computed styles differ)
+    // used to fall through to "no DOM data", which contradicted the HTML report
+    // and hid the exact signal agents need most.
+    it('labels a style-only change as real, not noise', () => {
+      const verdict = verdictFor({
+        name: 'x',
+        status: 'changed',
+        diffPercent: 1.13,
+        dom: {
+          changed: false,
+          noiseHint: false,
+          summary: null,
+          styleCheck: 'mismatch',
+          styleChanges: { count: 6, elements: ['body > header', 'button.btn'] },
+        },
+      });
+      expect(verdict).toContain('style-only change');
+      expect(verdict).toContain('6 elements restyled');
+      expect(verdict).toContain('not noise');
+      expect(verdict).not.toContain('no DOM data');
+    });
+
+    it('does not claim missing DOM data when the DOM was captured', () => {
+      const verdict = verdictFor({
+        name: 'x',
+        status: 'changed',
+        diffPercent: 0.2,
+        dom: { changed: false, noiseHint: false, summary: null, styleCheck: 'unavailable' },
+      });
+      expect(verdict).not.toContain('no DOM data');
+      expect(verdict).toContain('DOM is identical');
+      expect(verdict).toContain('style check could not run');
+    });
+
+    it('treats genuinely missing DOM data as needing review', () => {
+      expect(verdictFor({ name: 'x', status: 'changed' })).toContain('no DOM data');
     });
 
     it('asks for human approval on new snapshots', () => {

@@ -261,6 +261,7 @@ visual-report/
 - **[vs. Playwright's built-in](./vs-playwright-builtin.md)** — honest comparison with `toHaveScreenshot()`
 - **[vs. rolling your own (Selenium)](./vs-selenium-tooling.md)** — for Selenium suites, where there is no built-in
 - **[Philosophy](./philosophy.md)** — local-first detection, bring-your-own-model AI
+- **[MCP server](./mcp.md)** — hand your agent the evidence; your model does the reasoning
 - **[Maintenance & roadmap](./maintenance.md)** — who builds this, cadence, and what happens if it stops
 - **[Playwright adapter](./frameworks/playwright.md)** / **[WebdriverIO adapter](./frameworks/webdriverio.md)**
 - **[GitHub Action](./github-action.md)** — post results to PRs

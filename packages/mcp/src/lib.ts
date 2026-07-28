@@ -91,6 +91,23 @@ export function verdictFor(snapshot: SnapshotResult): string {
       : '';
     return `changed (${pct}) and the DOM changed${detail} — a real structural change; confirm it is intended before approving`;
   }
+  // Style-only change: the DOM is identical but computed styles differ. This is
+  // a real change, not noise, and the HTML report has always said so — the
+  // agent-facing verdict used to fall through to "no DOM data" here, which both
+  // contradicted the report and hid the signal agents most need.
+  if (snapshot.dom?.styleCheck === 'mismatch') {
+    const n = snapshot.dom.styleChanges?.count ?? 0;
+    const els = snapshot.dom.styleChanges?.elements?.slice(0, 3).join(', ');
+    const detail = els ? ` (${els}${n > 3 ? ', …' : ''})` : '';
+    return `changed (${pct}) — style-only change: ${n} element${n === 1 ? '' : 's'} restyled with identical DOM${detail}; a real change, not noise — confirm it is intended before approving`;
+  }
+  if (snapshot.dom) {
+    const why =
+      snapshot.dom.styleCheck === 'unavailable'
+        ? ' and no element map was captured on both sides, so the style check could not run'
+        : '';
+    return `changed (${pct}) but the DOM is identical${why} — treat as needing human review`;
+  }
   return `changed (${pct}) — no DOM data; treat as needing human review`;
 }
 
