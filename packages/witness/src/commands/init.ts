@@ -65,8 +65,8 @@ const NEXT_STEPS: Record<string, string[]> = {
   'robot-framework':   ['1. Use the Witness keyword in your robot tests', '2. npx testivai run "robot tests/"'],
   'selenium-junit':    ['1. Use TestivAIWitness.witness(driver, "name")', '2. npx testivai run "mvn test"'],
   'selenium-testng':   ['1. Use TestivAIWitness.witness(driver, "name")', '2. npx testivai run "mvn test"'],
-  'rspec-capybara':    ["1. Include TestivaiWitness and call witness('name')", '2. npx testivai run "bundle exec rspec"'],
-  'cucumber-capybara': ['1. Use the "page looks correct" step in features', '2. npx testivai run "bundle exec cucumber"'],
+  'rspec-capybara':    ['1. Add `gem "testivai", group: :test` to your Gemfile', "2. Call Testivai.witness(page, 'name') in a spec", '3. bundle exec rspec  &&  npx testivai report'],
+  'cucumber-capybara': ['1. Add `gem "testivai", group: :test` to your Gemfile', '2. Use the "page looks correct" step in features', '3. bundle exec cucumber  &&  npx testivai report'],
 };
 
 export function isPlaywrightProject(cwd: string): boolean {

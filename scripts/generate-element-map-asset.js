@@ -70,6 +70,8 @@ const TARGETS = [
   path.join(ROOT, 'python/src/testivai/element_map.js'),
   // Java: shipped as a classpath resource, read with getResourceAsStream
   path.join(ROOT, 'java/src/main/resources/ai/testiv/testivai/element-map.js'),
+  // Ruby: shipped inside the gem's lib/ and read relative to __dir__
+  path.join(ROOT, 'ruby/lib/testivai/element_map.js'),
 ];
 
 const check = process.argv.includes('--check');

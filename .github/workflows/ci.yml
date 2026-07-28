@@ -95,6 +95,26 @@ jobs:
           pip install -e . pytest
           pytest tests/ -q
 
+  ruby-adapter:
+    name: Ruby adapter (RSpec)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          working-directory: ruby
+      # The specs execute the generated element-map collector through Node
+      # against a duck-typed DOM, so Node must be present.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install and test
+        working-directory: ruby
+        run: |
+          gem install rspec -v '~> 3.13' --no-document
+          rspec
+
   java-adapter:
     name: Java adapter (JUnit)
     runs-on: ubuntu-latest

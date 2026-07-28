@@ -97,9 +97,10 @@ than failing. Per-call escape hatches exist in every language
 (`skipElementMap` / `skip_element_map` / `setSkipElementMap`), plus a
 `maxElements` cap for very large pages.
 
-**Ruby and other frameworks** (Cypress, Puppeteer, Robot Framework) go through
-the experimental `testivai run` sidecar rather than a native adapter, and do not
-capture the element map yet.
+**Ruby** has its own native adapter with the same capabilities — see the
+[Ruby guide](./frameworks/ruby.md). Cypress, Puppeteer, and Robot Framework
+still go through the experimental `testivai run` sidecar and do not capture the
+element map.
 
 **Maturity, plainly:** `@testivai/witness-selenium` is `0.1.x`, the Python
 package is `0.1.0`, and the Java artifact is `0.1.0-SNAPSHOT` and
