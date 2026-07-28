@@ -43,6 +43,17 @@ export interface WitnessOptions {
    */
   skipDom?: boolean;
   /**
+   * Skip element-map capture. The map powers region→selector attribution,
+   * shift classification, and the computed-style fingerprint; skipping it
+   * leaves the pixel and DOM layers intact.
+   */
+  skipElementMap?: boolean;
+  /**
+   * Cap on elements walked for the map (default 3000). Lower it on very
+   * large pages where the single executeScript round trip is costly.
+   */
+  maxElements?: number;
+  /**
    * CSS selectors for elements to hide (`visibility: hidden`) for the
    * duration of the capture, so dynamic content (timestamps, ads, live
    * widgets) never contributes to the pixel diff. Merged with the global

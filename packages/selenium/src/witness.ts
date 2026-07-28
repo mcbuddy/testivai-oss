@@ -20,7 +20,14 @@
  *     compared; baselines are consistent run-to-run either way)
  */
 
-import { BaselineStore, loadLocalConfig } from '@testivai/witness';
+import {
+  BaselineStore,
+  loadLocalConfig,
+  buildElementMapExpression,
+  DEFAULT_MAX_ELEMENTS,
+} from '@testivai/witness';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { WitnessDriver, WitnessOptions } from './types';
 
 /** id of the style element injected for the duration of a capture */
@@ -195,7 +202,42 @@ export async function witness(
     }
   }
 
-  // 3. Write to .testivai/temp/<name>/
+  // 3. Capture the element map (best-effort — same contract as the DOM).
+  //    This is what powers region→selector attribution, shift
+  //    classification, and the computed-style fingerprint on the compare
+  //    side. The injected function is the SAME one the Playwright adapter
+  //    uses (`@testivai/witness`), so both lanes produce identical maps.
+  //    Selenium's executeScript needs an explicit `return`.
+  let elementMap: unknown;
+  if (!options.skipElementMap && typeof driver.executeScript === 'function') {
+    try {
+      const expr = buildElementMapExpression(
+        options.maxElements ?? DEFAULT_MAX_ELEMENTS,
+        ignoreSelectors,
+      );
+      const result = await driver.executeScript<unknown>(`return ${expr}`);
+      if (Array.isArray(result) && result.length > 0) {
+        elementMap = result;
+      }
+    } catch {
+      // Suppressed by design, exactly like DOM capture: without a map the
+      // report falls back to pixel + DOM layers instead of failing.
+    }
+  }
+
+  // 4. Write to .testivai/temp/<name>/
   const store = new BaselineStore(process.cwd());
   store.writeTemp(name, screenshot, dom);
+  if (elementMap !== undefined) {
+    const tempDir = path.join(process.cwd(), '.testivai', 'temp', name);
+    try {
+      fs.mkdirSync(tempDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(tempDir, 'elements.json'),
+        JSON.stringify(elementMap),
+      );
+    } catch {
+      // A map we cannot persist is not worth failing a capture over.
+    }
+  }
 }

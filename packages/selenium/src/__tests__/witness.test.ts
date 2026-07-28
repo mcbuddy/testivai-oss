@@ -30,6 +30,36 @@ function makeDriver(overrides: Partial<WitnessDriver> & { dom?: string } = {}) {
     if (script.includes('document.fonts')) {
       return true;
     }
+    if (script.includes('collectElementMap')) {
+      // Evaluate the real injected expression against a duck-typed DOM,
+      // so the test proves the adapter ships a runnable script — not just
+      // that it called executeScript.
+      const rect = { x: 0, y: 0, width: 100, height: 40 };
+      const makeEl = (tag: string): Record<string, unknown> => ({
+        tagName: tag.toUpperCase(),
+        classList: { length: 0 },
+        children: [] as unknown[],
+        parentElement: null,
+        getBoundingClientRect: () => rect,
+        matches: () => false,
+      });
+      const body = makeEl('body');
+      const h1 = makeEl('h1');
+      (h1 as { parentElement: unknown }).parentElement = body;
+      (body as { children: unknown[] }).children = [h1];
+      const doc = { body };
+      const win = {
+        devicePixelRatio: 1,
+        scrollX: 0,
+        scrollY: 0,
+        getComputedStyle: () => ({ getPropertyValue: () => 'x' }),
+      };
+      // strip the leading `return ` the adapter adds for Selenium
+      const expr = script.replace(/^return /, '');
+      // eslint-disable-next-line no-new-func
+      const fn = new Function('document', 'window', `return ${expr};`);
+      return fn(doc, win);
+    }
     if (script.includes('cloneNode')) {
       let result = dom;
       for (const sel of (args[0] as string[]) ?? []) {
@@ -190,5 +220,51 @@ describe('witness()', () => {
       takeScreenshot: jest.fn().mockResolvedValue(''),
     });
     await expect(witness(driver, 'empty')).rejects.toThrow(/empty value/);
+  });
+});
+
+describe('element map capture', () => {
+  it('writes elements.json with selector paths and style hashes', async () => {
+    const { driver } = makeDriver();
+    await witness(driver, 'with-map');
+
+    const p = path.join(process.cwd(), '.testivai', 'temp', 'with-map', 'elements.json');
+    expect(fs.existsSync(p)).toBe(true);
+
+    const map = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    expect(Array.isArray(map)).toBe(true);
+    expect(map.length).toBeGreaterThan(0);
+    // the shape the compare side (readElementMap) expects
+    for (const entry of map) {
+      expect(typeof entry.path).toBe('string');
+      expect(typeof entry.x).toBe('number');
+      expect(typeof entry.y).toBe('number');
+      expect(typeof entry.width).toBe('number');
+      expect(typeof entry.height).toBe('number');
+      expect(typeof entry.styleHash).toBe('string');
+    }
+  });
+
+  it('skips the map when skipElementMap is set', async () => {
+    const { driver } = makeDriver();
+    await witness(driver, 'no-map', { skipElementMap: true });
+    const p = path.join(process.cwd(), '.testivai', 'temp', 'no-map', 'elements.json');
+    expect(fs.existsSync(p)).toBe(false);
+  });
+
+  it('still writes screenshot + dom when the map script throws', async () => {
+    const { driver } = makeDriver();
+    const original = driver.executeScript as jest.Mock;
+    (driver as { executeScript: unknown }).executeScript = jest.fn(
+      async (script: string, ...args: unknown[]) => {
+        if (script.includes('collectElementMap')) throw new Error('CSP blocked');
+        return original(script, ...args);
+      },
+    );
+
+    await witness(driver, 'map-fails');
+    const dir = path.join(process.cwd(), '.testivai', 'temp', 'map-fails');
+    expect(fs.existsSync(path.join(dir, 'screenshot.png'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'elements.json'))).toBe(false);
   });
 });

@@ -65,29 +65,32 @@ Verified against the adapter source, not aspirational:
 
 ## What you don't get (yet)
 
-Being precise, because these are advertised elsewhere and **they are Playwright-only
-today**. The Selenium adapters capture the screenshot and the DOM, but not the
-element map (selectors, bounding boxes, computed styles) that these features
-require:
+Being precise, because the answer differs by language.
 
-| Feature | Selenium | Why |
+**JavaScript adapter — full parity.** `@testivai/witness-selenium` captures the
+element map (selectors, bounding boxes, computed-style digests) using the *same
+injected function* as the Playwright adapter, so region→selector attribution, the
+style-only-change verdict, and page-shift detection all work.
+
+**Python and Java — pixel + DOM layers only, for now.** Those adapters capture
+`screenshot.png` and `dom.html` but not `elements.json`, so three features are
+unavailable:
+
+| Feature | Selenium JS | Python / Java |
 |---|---|---|
-| Region → selector attribution | ❌ | Needs the element map; regions are reported as bounding boxes only |
-| Style-only-change verdict | ❌ | `styleCheck` reports `unavailable` without computed-style digests |
-| Page-shift detection / `shiftTolerance` | ❌ | Shift classification compares element boxes across runs |
+| Region → selector attribution | ✅ | ❌ |
+| Style-only-change verdict | ✅ | ❌ (`styleCheck` reports `unavailable`) |
+| Page-shift detection / `shiftTolerance` | ✅ | ❌ |
 
 Nothing degrades or errors — the report simply shows the pixel and DOM layers.
-But if the selector-level *"style-only change on `button.cta`"* verdict is the
-reason you're here, the Playwright adapter is where it lives today.
+The remaining work is mechanical: both adapters already inject JavaScript for DOM
+capture, so they need the same collector script and one more file write.
 
-There's no technical blocker: the same `executeScript` call the adapters already
-use for DOM capture could build an element map. It isn't implemented yet.
-
-**Maturity, plainly:** `@testivai/witness-selenium` is `0.1.10`, the Python
-package is `0.1.0`, and the Java artifact is `0.1.0-SNAPSHOT` and
-[not yet on Maven Central](./frameworks/java.md). The Playwright adapter is
-`1.7.x` and considerably more exercised. Treat the Selenium lane as early — it
-works and is tested, but it hasn't been through as many real suites.
+**Maturity, plainly:** `@testivai/witness-selenium` is `0.1.x`, the Python package
+is `0.1.0`, and the Java artifact is `0.1.0-SNAPSHOT` and
+[not yet on Maven Central](./frameworks/java.md). The Playwright adapter is `1.7.x`
+and considerably more exercised. Treat the Selenium lane as early — it works and is
+tested, but it hasn't been through as many real suites.
 
 ---
 
@@ -105,7 +108,7 @@ works and is tested, but it hasn't been through as many real suites.
 | Per-OS baselines | you build it | you build it | ✅ `{platform}` token |
 | Shared with other frameworks | ❌ | ❌ | ✅ |
 | Machine-readable output | ❌ | ❌ | ✅ `results.json` + MCP |
-| Selector attribution / style verdict | ❌ | ❌ | Playwright only today |
+| Selector attribution / style verdict | ❌ | ❌ | ✅ (JS; Python/Java pending) |
 | Cost | your time | free | free (MIT) |
 
 ---
