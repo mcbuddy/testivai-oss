@@ -97,9 +97,21 @@ jobs:
             puts "installed gem loads the collector (#{Testivai::VERSION})"
           '
 
-      - name: Publish to RubyGems (trusted publishing)
+      # Deliberately NOT rubygems/release-gem: that action runs
+      # `bundle exec rake release`, which needs a Rakefile plus rake, and
+      # creates + pushes its own `v0.1.0` git tag. This repo already tags
+      # `ruby-v*` (npm uses Changesets, the Action uses `v*`), so letting it
+      # tag would add a third, conflicting scheme. Configure the trusted-
+      # publishing credential, then push the gem we already built and
+      # verified above.
+      #
+      # Pinned by SHA (v2.1.0) — the same commit release-gem pins, and the
+      # right hygiene for a workflow that holds publish credentials.
+      - name: Configure RubyGems credentials (trusted publishing)
         if: github.event_name == 'push' || inputs.dry_run == false
-        uses: rubygems/release-gem@v1
-        with:
-          await-release: false
-          working-directory: ruby
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
+
+      - name: Publish to RubyGems
+        if: github.event_name == 'push' || inputs.dry_run == false
+        working-directory: ruby
+        run: gem push testivai-*.gem
