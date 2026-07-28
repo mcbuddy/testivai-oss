@@ -11,10 +11,10 @@
  * Precedence: changed (1) > missing (3) > new (2).
  *
  * Codes 1/2 are enforced when the gate is on (`--fail-on-diff` or config
- * `failOnDiff`). Code 3 is enforced only by the separate opt-in
- * `--fail-on-missing` / config `failOnMissing` — filtered runs (`--grep`)
- * legitimately skip most baselines, so missing must never gate by default.
- * With neither gate the command is report-only and exits 0.
+ * `failOnDiff`). Code 3 has its own gate, `failOnMissing`, which defaults to
+ * TRUE — a baseline that receives no capture is silent coverage loss, so it
+ * fails by default. Filtered runs (`--grep`) legitimately skip baselines:
+ * opt out with `--allow-missing` or config `failOnMissing: false`.
  */
 export interface ExitSummary {
   changed: number;

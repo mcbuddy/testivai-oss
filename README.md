@@ -96,7 +96,7 @@ npx playwright install chromium
 
 ```jsonc
 // 2. (OPTIONAL) Customize tolerances and report settings.
-// Local mode is the default when no TESTIVAI_API_KEY is set — no config needed.
+// Everything runs locally — no config needed.
 // Only create this file if you want to tune threshold, reportDir, etc.
 // File: .testivai/config.json
 {
@@ -255,9 +255,13 @@ A complete, minimal consumer project lives at [`testivai-example`](https://githu
 ```
 packages/
   common/      @testivai/common
-  witness/     @testivai/witness
-  playwright/  @testivai/witness-playwright
+  witness/     @testivai/witness              — CLI, diff engine, baselines, report
+  playwright/  @testivai/witness-playwright   — Playwright reporter + capture
+  webdriverio/ @testivai/witness-webdriverio  — WebdriverIO service + capture
+  selenium/    @testivai/witness-selenium     — Selenium adapter
+  mcp/         @testivai/mcp                  — MCP server for AI agents
 action/        GitHub Action for PR comments
+approve/       GitHub Action for /testivai approve
 examples/      framework-specific minimal examples
 docs/          public documentation (Markdown)
 e2e/           OSS smoke E2E
@@ -268,8 +272,8 @@ e2e/           OSS smoke E2E
 ```bash
 # Prereqs: Node 20+, pnpm 10+
 pnpm install
-pnpm build       # tsc all 3 packages
-pnpm test        # 199 unit tests
+pnpm build       # tsc all 6 packages
+pnpm test        # 476 unit tests
 pnpm e2e         # smoke E2E
 pnpm pack:dry    # validate publish artifacts
 ```

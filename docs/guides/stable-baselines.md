@@ -135,14 +135,15 @@ visual regression. Use `noiseAutoPass` to let these auto-pass up to a
 ## Global config (`.testivai/config.json`)
 
 The `.testivai/config.json` file at your project root is the single source of
-truth for local-mode settings. All fields are optional and fall back to safe
-defaults.
+truth for local-mode settings. Every field is optional and falls back to a safe
+default — and so is the file itself: with no `config.json` at all, the defaults
+below apply unchanged.
 
-### Required field
+### General
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mode` | `"local"` \| `"cloud"` | `"local"` | Operating mode. Set to `"local"` for offline pixel-diff workflows |
+| `mode` | `"local"` | `"local"` | Operating mode. Optional — omit it and the defaults apply unchanged |
 
 ### Diff tolerance
 
@@ -169,13 +170,22 @@ defaults.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `reportDir` | `string` | `"visual-report"` | Directory for the self-contained HTML diff report |
-| `baselinesDir` | `string` | `".testivai/baselines"` | Directory for committed baseline screenshots |
 | `autoOpen` | `boolean` | `true` | Automatically open the HTML report in your browser after a run |
 | `failOnDiff` | `boolean` | `false` | When `true`, exit with a non-zero code if any diffs are detected (useful in CI) |
 | `failOnMissing` | `boolean` | `true` | Exit `3` from `testivai report` when a baseline received no capture this run — silent coverage loss. Set `false` (or pass `--allow-missing`) for filtered runs |
 | `shareUploadCommand` | `string` | — | Storage-agnostic upload hook for `report --share`: shell command with `{file}` placeholder; last stdout line is the shared URL (`aws s3 cp …`, `gsutil`, `rclone`, `curl`) |
 | `volatileAttributes` | `string[]` | `[]` | Attribute names whose *values* the DOM diff ignores (presence still counts) — for per-run URLs in `src`/`srcset` that otherwise poison the noise hint. `blob:` URLs are always normalized |
 | `baselinesDir` | `string` | `.testivai/baselines` | Where baselines live. Supports a `{platform}` token (`darwin`/`linux`/`win32`) for per-OS baselines |
+
+### Standalone mode (`testivai witness <url>`)
+
+These apply only to the no-test-suite crawler; framework adapters ignore them.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `pages` | `string[]` | unset | Explicit page paths to capture, resolved against the start URL (e.g. `["/", "/pricing"]`). When set, link crawling is skipped |
+| `maxPages` | `number` | `10` | Cap on pages discovered when crawling same-origin links from the start page |
+| `viewport` | `{ width, height }` | `1280x800` | Capture viewport |
 
 ### Complete example
 
@@ -205,8 +215,12 @@ defaults.
 }
 ```
 
-This is the same file that `npx testivai init` scaffolds. Delete any field you
-don't need — every key shown above falls back to its default.
+`npx testivai init` scaffolds a smaller version of this file — only the
+defaults (`mode`, `threshold`, `autoOpen`, `failOnDiff`, `failOnMissing`,
+`maxDiffPercent`, `noiseAutoPass`, `noiseMaxDiffPercent`, `stabilize`). The
+example above adds the optional keys (`reportDir`, `ignoreSelectors`, `mask`,
+`diffRegions`) that you opt into by hand. Delete any field you don't need —
+every key falls back to its default.
 
 
 ## Cross-platform baselines

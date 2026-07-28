@@ -5,7 +5,7 @@ title: CI/CD Integration
 
 # CI/CD Integration
 
-Run TestivAI visual tests automatically on every push and pull request — fully local, no account, no API key, no external services. TestivAI auto-detects your CI environment and attaches metadata (provider, PR number, run URL) to each report.
+Run TestivAI visual tests automatically on every push and pull request — fully local, no account, no API key, no external services. There is nothing to configure per provider: the same commands work anywhere Node and a browser run, and everything the pipeline needs is in `results.json` and the report directory.
 
 ---
 
@@ -56,7 +56,33 @@ Baselines live in `.testivai/baselines/` — commit them to git (`git add .testi
 
 ### How the gate works
 
-Baselines are committed to the repository. When a PR changes the rendering, the Playwright test run captures new screenshots into `.testivai/temp/`, and `npx testivai report --fail-on-diff` compares them against the committed baselines. Any snapshot with a pixel diff exits non-zero, failing the CI job — exit `1` for changed snapshots, exit `2` for new-only (add `--allow-new` on first runs). See the [`testivai report` reference](../cli/report.md) for the full exit-code contract and `--json` output.
+Baselines are committed to the repository. When a PR changes the rendering, the Playwright test run captures new screenshots into `.testivai/temp/`, and `npx testivai report --fail-on-diff` compares them against the committed baselines. Any snapshot with a pixel diff exits non-zero, failing the CI job:
+
+| Exit | Meaning | Gate |
+|---|---|---|
+| `0` | Pass | — |
+| `1` | At least one snapshot changed | `--fail-on-diff` / config `failOnDiff` |
+| `2` | New-only — snapshots with no baseline yet | `--fail-on-diff`; add `--allow-new` on first runs |
+| `3` | Missing-only — a committed baseline received **no capture** this run | on by default (`failOnMissing`); disable with `--allow-missing` |
+
+Precedence is changed (`1`) > missing (`3`) > new (`2`). See the [`testivai report` reference](../cli/report.md) for the full contract and `--json` output.
+
+:::caution Exit 3 fires even without `--fail-on-diff`
+The missing-baselines gate is **on by default** — a committed baseline that
+nothing compared against is silent coverage loss (a deleted or renamed test
+stops guarding its page). That means any run which doesn't exercise the whole
+suite — a `--grep`-filtered run, a browser-matrix shard, a path-filtered job —
+will exit `3` and fail CI even though nothing regressed.
+
+For those jobs, pass `--allow-missing`:
+
+```bash
+npx testivai report --fail-on-diff --allow-missing
+```
+
+Or set `"failOnMissing": false` in `.testivai/config.json` to disable it
+repo-wide. Leave it on for the full-suite job — that's where it earns its keep.
+:::
 
 The reviewer downloads the `visual-report` workflow artifact from the failed run, opens `index.html` to inspect the side-by-side diffs, and decides whether the changes are intentional. To accept, re-run the tests locally, approve with `npx testivai approve --all` (or commit the updated baselines directly), and push — the next CI run passes.
 
@@ -104,10 +130,12 @@ jobs:
         run: npx playwright test --project=${{ matrix.browser }}
 
       - name: Visual diff gate
-        run: npx testivai report --fail-on-diff
+        run: npx testivai report --fail-on-diff --allow-missing
 ```
 
 > Snapshot names should include the browser (e.g. `homepage-${browserName}`) so matrix runs don't overwrite each other's baselines.
+
+> `--allow-missing` is required here: each shard captures only its own browser's snapshots, so the other shards' baselines would otherwise trip the exit-`3` coverage gate.
 
 ---
 

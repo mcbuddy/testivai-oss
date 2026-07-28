@@ -35,7 +35,7 @@ Create `.testivai/config.json` at your project root:
 }
 ```
 
-This file is the local-mode marker. Without it, the adapter logs a warning and skips report generation (cloud mode upload is not yet implemented for WDIO).
+This file is required — it is the marker the service looks for. Without it, the adapter logs a warning and skips report generation.
 
 ### 2. Register the service in `wdio.conf.ts`
 
@@ -135,12 +135,10 @@ Class registered as a WDIO service. Implements `onComplete`.
 ## Status
 
 - **Local mode**: stable
-- **Cloud mode** (upload to TestivAI hosted): not yet implemented in this adapter — coming in a later iteration. The Playwright adapter has both lanes today; the WDIO adapter will follow once local is broadly used.
 
 ## Links
 
 - Repo: https://github.com/mcbuddy/testivai-oss
-- Plan: see `docs/OSS_PLAN_V3.md` in `mcbuddy/testivai-monorepo`
 - Issues: https://github.com/mcbuddy/testivai-oss/issues
 
 ## License

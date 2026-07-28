@@ -29,7 +29,7 @@ npx testivai report [options]
 
 ## Exit Codes
 
-Exit codes are a public contract, enforced **only** when the gate is on (`--fail-on-diff` or config `failOnDiff`). Without the gate the command always exits 0 (report-only).
+Exit codes are a public contract. Codes `1` (changed) and `2` (new-only) are enforced only when the diff gate is on (`--fail-on-diff` or config `failOnDiff`) — without it, changes and new snapshots are report-only. Code `3` (missing) has its **own** gate, `failOnMissing`, which defaults to `true`, so a bare `npx testivai report` can still exit 3. Turn it off with config `failOnMissing: false` or per-run `--allow-missing`.
 
 | Code | Meaning |
 |---|---|

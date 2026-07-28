@@ -147,9 +147,9 @@ time.
 6. Mask hatching is drawn onto the diff image (after clustering, so the
    hatch itself never counts as a region).
 
-## results.json additions (schema 2.2.0)
+## results.json additions (current schema: 2.3.0)
 
-Additive over 2.1.0 — existing consumers keep working:
+Every field below is additive — existing consumers keep working:
 
 - `snapshots[].regions[]` — clustered diff bounding boxes (top-left sorted)
 - `snapshots[].masks[]` — every applied mask, resolved to pixels, with

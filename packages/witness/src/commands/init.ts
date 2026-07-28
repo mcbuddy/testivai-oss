@@ -56,17 +56,17 @@ const TEST_DIR_DEFAULTS: Record<string, string> = {
 };
 
 const NEXT_STEPS: Record<string, string[]> = {
-  'cypress':           ['1. npx testivai auth <your-api-key>', "2. Add cy.witness('name') to your tests", '3. npx testivai run "cypress run --browser chrome"'],
-  'selenium-js':       ['1. npx testivai auth <your-api-key>', "2. Use witness(driver, 'name') in your tests", '3. npx testivai run "npx jest tests/"'],
-  'webdriverio':       ['1. npx testivai auth <your-api-key>', "2. Add browser.witness('name') to your tests", '3. npx testivai run "npx wdio run wdio.conf.js"'],
-  'puppeteer':         ['1. npx testivai auth <your-api-key>', "2. Use witness(page, 'name') in your tests", '3. npx testivai run "npx jest tests/"'],
-  'selenium-pytest':   ['1. npx testivai auth <your-api-key>', "2. Use witness(driver, 'name') in your tests", '3. npx testivai run "pytest tests/ -v"'],
-  'selenium-unittest': ['1. npx testivai auth <your-api-key>', "2. Use witness(self.driver, 'name') in tests", '3. npx testivai run "python -m unittest discover tests/"'],
-  'robot-framework':   ['1. npx testivai auth <your-api-key>', '2. Use the Witness keyword in your robot tests', '3. npx testivai run "robot tests/"'],
-  'selenium-junit':    ['1. npx testivai auth <your-api-key>', '2. Use TestivAIWitness.witness(driver, "name")', '3. npx testivai run "mvn test"'],
-  'selenium-testng':   ['1. npx testivai auth <your-api-key>', '2. Use TestivAIWitness.witness(driver, "name")', '3. npx testivai run "mvn test"'],
-  'rspec-capybara':    ['1. npx testivai auth <your-api-key>', "2. Include TestivaiWitness and call witness('name')", '3. npx testivai run "bundle exec rspec"'],
-  'cucumber-capybara': ['1. npx testivai auth <your-api-key>', '2. Use the "page looks correct" step in features', '3. npx testivai run "bundle exec cucumber"'],
+  'cypress':           ["1. Add cy.witness('name') to your tests", '2. npx testivai run "cypress run --browser chrome"'],
+  'selenium-js':       ["1. Use witness(driver, 'name') in your tests", '2. npx testivai run "npx jest tests/"'],
+  'webdriverio':       ["1. Add browser.witness('name') to your tests", '2. npx testivai run "npx wdio run wdio.conf.js"'],
+  'puppeteer':         ["1. Use witness(page, 'name') in your tests", '2. npx testivai run "npx jest tests/"'],
+  'selenium-pytest':   ["1. Use witness(driver, 'name') in your tests", '2. npx testivai run "pytest tests/ -v"'],
+  'selenium-unittest': ["1. Use witness(self.driver, 'name') in tests", '2. npx testivai run "python -m unittest discover tests/"'],
+  'robot-framework':   ['1. Use the Witness keyword in your robot tests', '2. npx testivai run "robot tests/"'],
+  'selenium-junit':    ['1. Use TestivAIWitness.witness(driver, "name")', '2. npx testivai run "mvn test"'],
+  'selenium-testng':   ['1. Use TestivAIWitness.witness(driver, "name")', '2. npx testivai run "mvn test"'],
+  'rspec-capybara':    ["1. Include TestivaiWitness and call witness('name')", '2. npx testivai run "bundle exec rspec"'],
+  'cucumber-capybara': ['1. Use the "page looks correct" step in features', '2. npx testivai run "bundle exec cucumber"'],
 };
 
 export function isPlaywrightProject(cwd: string): boolean {
@@ -194,13 +194,12 @@ export const initCommand = new Command('init')
         detection.instructions.forEach((line) => console.log(line));
         console.log(chalk.cyan('\n=== General Setup ==='));
         console.log(`
-1. Authenticate with your API key:
-   ${chalk.yellow('testivai auth <your-api-key>')}
-
-2. Run your tests:
+1. Run your tests:
    ${chalk.yellow('testivai run "your-test-command"')}
 
-${chalk.gray('For more information, see: https://docs.testiv.ai')}
+2. Review the report at ${chalk.yellow('visual-report/index.html')}
+
+${chalk.gray('For more information, see: https://testiv.ai/docs/')}
         `);
         logger.success('Initialization complete!');
         return;
@@ -220,8 +219,8 @@ ${chalk.gray('For more information, see: https://docs.testiv.ai')}
           name: 'mode',
           message: 'Select mode:',
           choices: [
-            { name: 'Local (free) — visual diffs on your machine, HTML reports', value: 'local' },
-            { name: 'Cloud — AI-powered analysis, team dashboard, CI integration', value: 'cloud' },
+            { name: 'Playwright / local — visual diffs on your machine, HTML report', value: 'local' },
+            { name: 'Other framework (Cypress, Selenium, Puppeteer, …) — generate CLI helper files', value: 'sidecar' },
           ],
         },
       ]);
@@ -261,13 +260,13 @@ ${chalk.gray('For more information, see: https://docs.testiv.ai')}
           '3. Review the HTML report',
           '4. Approve: npx testivai approve --all',
           '',
-          'Docs: https://testiv.ai/docs#local-mode',
+          'Docs: https://testiv.ai/docs/',
         ]);
         console.log();
         return;
       }
 
-      // ── Cloud mode: continue with existing flow ──────────────────────────
+      // ── Sidecar setup: generate framework helper files + config ──────────
 
       const { language } = await inquirer.prompt([
         {
@@ -334,9 +333,8 @@ ${chalk.gray('For more information, see: https://docs.testiv.ai')}
 
       // ── Completion box ─────────────────────────────────────────────────────
       const steps = NEXT_STEPS[frameworkKey as string] ?? [
-        '1. npx testivai auth <your-api-key>',
-        '2. Add witness calls to your tests',
-        '3. npx testivai run "<your-test-command>"',
+        '1. Add witness calls to your tests',
+        '2. npx testivai run "<your-test-command>"',
       ];
 
       console.log();
@@ -345,7 +343,7 @@ ${chalk.gray('For more information, see: https://docs.testiv.ai')}
         '',
         ...steps,
         '',
-        `Docs: https://testiv.ai/docs#${(frameworkKey as string).split('-')[0]}`,
+        'Docs: https://testiv.ai/docs/',
       ]);
       console.log();
 

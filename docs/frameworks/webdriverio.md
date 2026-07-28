@@ -7,7 +7,7 @@ title: WebdriverIO
 
 The `@testivai/witness-webdriverio` adapter is a [WDIO service](https://webdriver.io/docs/customservices/) plus an explicit `testivai.witness(browser, name)` capture call. Same `.testivai/baselines/` layout as the Playwright adapter, same HTML report, same approval workflow.
 
-This page covers **local mode** — no account, no API key, fully standalone. Cloud upload from WDIO is not yet supported (use the Playwright adapter for that path today).
+Everything runs on your machine — no account, no API key, fully standalone.
 
 ---
 
@@ -168,7 +168,7 @@ All options are optional; defaults come from `.testivai/config.json`.
 
 ## Local-only by design
 
-The WDIO adapter is local-only: captures, diffs, and the report are all produced on disk. If a legacy config sets `mode: "cloud"`, the adapter logs a clear warning and exits without generating a report.
+The WDIO adapter is local-only: captures, diffs, and the report are all produced on disk. A legacy config carrying the retired `mode: "cloud"` value logs a warning and skips report generation — set `"mode": "local"` (or delete the field) to fix it.
 
 ---
 

@@ -86,8 +86,11 @@ claude mcp add testivai -- npx -y @testivai/mcp
 The server also ships a prompt, **`review-visual-changes`**, that walks the agent through a full review: summary → `explain_snapshot` per change → diff images when ambiguous → a per-snapshot recommendation (approve / investigate / ignore-as-noise). Your model does the reasoning; the server supplies the evidence — so the quality of the narrative scales with the model you already use, no hosted analysis service required.
 
 The server reads the project from its working directory (`--root <path>` to
-override) and honors `reportDir` from `.testivai/config.json`. By design it
-has **no approve tool** — see [the approval rule](#the-approval-rule) below.
+override) and honors `reportDir` from `.testivai/config.json`. The approve
+tools exist so a human can say "approve it" mid-conversation — but an agent
+must never reach for them on its own initiative. Both tool descriptions say
+so, and the `review-visual-changes` prompt repeats it. See
+[the approval rule](#the-approval-rule) below.
 
 ## Level 3 — Zero-test-suite apps (agent-generated code)
 
@@ -136,16 +139,29 @@ its own regression before anyone else did.
 ## The approval rule
 
 **Agents verify; humans approve.** Approving a baseline rewrites the
-definition of "correct" — an agent that can approve its own changes can
-laundering any mistake into the new baseline. That's why:
+definition of "correct" — an agent that approves its own changes can launder
+any mistake into the new baseline.
 
-- the MCP server ships no approve tool,
-- every verdict ends with the do-not-approve-autonomously instruction,
-- approval paths are human-shaped: `npx testivai approve` locally, or a
-  `/testivai approve` comment on the PR (verified against repo write access).
+`approve_snapshot` and `approve_all` do exist on the MCP server, because a
+human who has looked at the diff and said "yes, approve that" shouldn't have
+to leave the conversation to act on it. What the design rules out is the
+agent deciding on its own. That intent is enforced in the wording the model
+actually reads:
 
-If you automate approvals in CI anyway, you own the consequences — the
-design pushes the other way on purpose.
+- both approve tools describe themselves as "only after a reviewer has
+  confirmed the changes are intended",
+- the `review-visual-changes` prompt ends with an explicit *never call
+  `approve_snapshot`/`approve_all` yourself unless the human has explicitly
+  confirmed* instruction,
+- every `get_visual_results` response ends with the same line —
+  *do not approve autonomously*,
+- the human-shaped paths stay first-class: `npx testivai approve` locally, or
+  a `/testivai approve` comment on the PR (verified against repo write
+  access).
+
+These are guardrails, not a lock. If you wire approvals into an autonomous
+loop or into CI, you own the consequences — the design pushes the other way
+on purpose.
 
 ## Recommended config for agent workflows
 
@@ -175,4 +191,4 @@ design pushes the other way on purpose.
 | Everything reports `changed` ~30%+, `noiseHint: true` | Web fonts raced the capture; re-run (the capture waits up to 10s for fonts). If persistent, ignore the affected region |
 | A page reports text changes you didn't make | Dynamic content (counters, timestamps) — add it to `ignoreSelectors` |
 | `No Chrome/Chromium found` (witness `<url>`) | Install Chrome, or `npx playwright install chromium` and set `TESTIVAI_CHROME_PATH` to the binary |
-| MCP images too heavy for context | Known issue; image downscaling is on the roadmap — use `get_visual_results` text verdicts and open the report for detail |
+| MCP images too heavy for context | `get_diff` already downscales anything wider/taller than 1024 px before returning it (the caption reports the original dimensions). If it's still too much, use `explain_snapshot` / `get_visual_results` for text-only evidence and open the report for pixel detail |

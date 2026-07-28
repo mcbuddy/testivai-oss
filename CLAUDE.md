@@ -110,9 +110,15 @@ The approve action (`approve/action.yml`) is a composite action — no build ste
 
 ```
 .testivai/
-  config.json                          — { mode, threshold, reportDir, autoOpen,
-                                           maxDiffPercent, maxDiffPixels, noiseAutoPass,
-                                           noiseMaxDiffPercent, stabilize, ignoreSelectors }
+  config.json                          — see LocalConfig in
+                                         packages/witness/src/config/local-config.ts
+                                         (single source of truth): mode, threshold,
+                                         reportDir, autoOpen, baselinesDir,
+                                         maxDiffPercent, maxDiffPixels, noiseAutoPass,
+                                         noiseMaxDiffPercent, stabilize, shiftTolerance,
+                                         volatileAttributes, ignoreSelectors, mask,
+                                         diffRegions, failOnDiff, failOnMissing,
+                                         shareUploadCommand
   baselines/
     <snapshot-name>/
       screenshot.png                   — committed reference screenshot
@@ -129,11 +135,14 @@ The approve action (`approve/action.yml`) is a composite action — no build ste
 
 ## results.json schema (public contract, semver-governed)
 
+Version constant: `RESULTS_SCHEMA_VERSION` in `packages/witness/src/report/generator.ts`.
+
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "timestamp": "<ISO>",
-  "summary": { "total": 3, "passed": 0, "changed": 3, "newSnapshots": 0 },
+  "summary": { "total": 3, "passed": 0, "changed": 3, "newSnapshots": 0, "missing": 1 },
+  "missingBaselines": ["pricing"],
   "snapshots": [
     {
       "name": "homepage",
@@ -142,17 +151,32 @@ The approve action (`approve/action.yml`) is a composite action — no build ste
       "baselinePath": "images/homepage/baseline.png",
       "currentPath":  "images/homepage/current.png",
       "diffPath":     "images/homepage/diff.png",
+      "baselineApprovedAt": "<ISO>",  // when the baseline was last approved
       "dom": {
         "changed":   false,
         "noiseHint": true,
-        "summary":   null
+        "summary":   null,
+        "styleCheck":   "mismatch",   // "match" | "mismatch" | "unavailable"
+        "styleChanges": []
       },
-      "autoPassed": "noise"   // optional; "threshold" | "noise" when a pass
-                              // criterion turned a pixel diff into status passed
+      "regions": [                    // pixel clusters attributed to elements
+        {
+          "x": 10, "y": 20, "width": 100, "height": 40,
+          "classification": "shift",  // "shift" | "change"
+          "shift": { "dx": 0, "dy": -1 },
+          "elements": [{ "selector": ".hero > h1", "role": "shifted" }]
+        }
+      ],
+      "pageShift": { "dy": -1, "belowY": 120, "count": 4 },
+      "masks": [], "maskWarnings": [],
+      "autoPassed": "noise"   // optional; "threshold" | "noise" | "shift" when a
+                              // pass criterion turned a pixel diff into status passed
     }
   ]
 }
 ```
+
+Exit-code contract (`packages/witness/src/commands/exit-codes.ts`): 0 pass / 1 changed / 2 new-only (gated by `--fail-on-diff`) / 3 missing-only (`failOnMissing` defaults **true**; escape with config `false` or `--allow-missing`). Precedence: changed > missing > new.
 
 ## Terminology
 

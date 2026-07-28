@@ -24,8 +24,9 @@ Pick the framework you use:
 
 - **[`testivai init`](./cli/init.md)** — set up local mode in your project
 - **[`testivai run`](./cli/run.md)** — experimental sidecar for non-adapter frameworks (see also [sidecar caveats](./sidecar-testivai-run.md))
-- **[`testivai capture`](./cli/capture.md)** — manual single-snapshot capture
+- **[`testivai witness`](./cli/capture.md)** — manual single-snapshot capture
 - **[`testivai report`](./cli/report.md)** — compare + report, `--json`, CI exit codes
+- **[`testivai approve`](./cli/approve.md)** — promote captures to baselines, `--all`, `--undo`
 
 ## Reference
 

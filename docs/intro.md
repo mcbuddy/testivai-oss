@@ -32,7 +32,7 @@ npx playwright install chromium
 
 ### 2. (Optional) Customize settings
 
-Local mode is automatic when no `TESTIVAI_API_KEY` is set — the reporter compares locally and writes an HTML report with zero configuration. **No API key required.**
+The reporter compares locally and writes an HTML report with zero configuration — **no account, no API key, nothing uploaded.**
 
 If you want to tune tolerances or change the report output directory, create `.testivai/config.json` at your project root:
 
@@ -57,8 +57,19 @@ Optional tolerance and capture settings (all have safe defaults):
 | `ignoreSelectors` | `[]` | Elements hidden (`visibility: hidden`) during capture — timestamps, ads, live widgets |
 | `mask` | `[]` | Areas excluded from the pixel diff and hatched in the report — selectors or geometric regions ([details](./comparison.md)) |
 | `diffRegions` | `{minSize: 10, mergeDistance: 12}` | Diff clustering tunables: noise floor + merge gap ([details](./comparison.md)) |
+| `shiftTolerance` | unset | Pass diffs that are pure vertical shifts up to N pixels — content moved, nothing changed |
+| `volatileAttributes` | `[]` | Attributes whose *value* is ignored by the DOM diff (presence still counts) |
+| `baselinesDir` | `.testivai/baselines` | Where baselines live; supports a `{platform}` token for per-OS baselines |
+| `failOnDiff` | `false` | Exit non-zero on changes without passing `--fail-on-diff` |
+| `failOnMissing` | `true` | Exit 3 when a committed baseline receives no capture (silent coverage loss) |
+| `shareUploadCommand` | unset | Command template run by `report --share` to push `share.html` to your own storage |
 
-Auto-passed snapshots keep their diff image and are labeled in the report and in `results.json` (`autoPassed: "threshold" | "noise"`), so tolerance never hides information — it just stops demanding review for changes you've declared acceptable.
+Crawler-only fields, used by `testivai witness <url>`: `pages`, `maxPages` (default 10), `viewport` (default 1280×800).
+
+The full list with types lives in `LocalConfig` — see
+[`packages/witness/src/config/local-config.ts`](https://github.com/mcbuddy/testivai-oss/blob/main/packages/witness/src/config/local-config.ts).
+
+Auto-passed snapshots keep their diff image and are labeled in the report and in `results.json` (`autoPassed: "threshold" | "noise" | "shift"`), so tolerance never hides information — it just stops demanding review for changes you've declared acceptable.
 
 ### 3. Add the reporter
 
@@ -100,6 +111,13 @@ npx playwright test
 
 ```bash
 npm install -D @testivai/witness @testivai/witness-webdriverio
+```
+
+Create `.testivai/config.json` at your project root — the WebdriverIO service
+only writes a report when it finds this file:
+
+```json
+{ "mode": "local" }
 ```
 
 Add the service to `wdio.conf.ts`:

@@ -25,7 +25,11 @@ import { reportExitCode } from './exit-codes';
  *                  Distinct from failures so first runs / added tests aren't
  *                  mistaken for regressions. Pass `--allow-new` to treat new
  *                  snapshots as passing (exit 0).
- * Without the gate, the command always exits 0 (report-only).
+ *   3  missing   — baselines that received no capture this run. Gated
+ *                  independently by `failOnMissing`, which defaults to TRUE;
+ *                  opt out with `--allow-missing` / config `failOnMissing: false`.
+ * Precedence: changed > missing > new. Without `--fail-on-diff`, codes 1/2 are
+ * suppressed (report-only), but code 3 can still fire.
  */
 export const reportCommand = new Command('report')
   .description(

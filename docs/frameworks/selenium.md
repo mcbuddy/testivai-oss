@@ -68,10 +68,16 @@ end (`TESTIVAI_AUTO_REPORT=0` to opt out). Outside pytest, run
 <dependency>
   <groupId>ai.testiv</groupId>
   <artifactId>testivai</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.0-SNAPSHOT</version>
 </dependency>
 <!-- you already have org.seleniumhq.selenium:selenium-java -->
 ```
+
+:::note Not on Maven Central yet
+The Java artifact is not published to Maven Central. Build and install it
+locally first — `cd java && mvn install` — or see the
+[Java adapter page](./java.md). Say the word if you need it published.
+:::
 
 ```java
 import ai.testiv.testivai.SeleniumWitness;
@@ -107,6 +113,7 @@ Python adapter is ~200 lines if you want a template.
 
 ## Working examples
 
-The [demo app](https://github.com/mcbuddy/testivai-demo-app) runs both the
-JS and Python Selenium lanes in CI against the same baselines directory as
-its Playwright lanes.
+The [example repo](https://github.com/mcbuddy/testivai-example) is a
+complete, minimal consumer project — a static page, three `witness()` calls,
+the PR `/testivai approve` flow, and a
+[live report](https://www.budisugianto.com/testivai-example/) published from CI.

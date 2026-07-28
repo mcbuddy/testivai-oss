@@ -44,7 +44,7 @@ export async function witness(page: Page, name: string): Promise<void> {
     });
     
     if (result.hasDiff) {
-      throw new Error(`Visual diff detected for "${name}". View results at: ${result.dashboardUrl || 'https://dashboard.testiv.ai'}`);
+      throw new Error(`Visual diff detected for "${name}". Open visual-report/index.html to review.`);
     }
     
     console.log(`✓ Visual check passed: ${name}`);

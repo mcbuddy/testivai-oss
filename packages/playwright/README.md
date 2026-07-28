@@ -25,7 +25,6 @@ npm install -D @testivai/witness-playwright
      reporter: [
        ['line'],
        ['@testivai/witness-playwright/reporter', {
-         // No API key needed for local mode!
        }]
      ],
    });
@@ -57,25 +56,8 @@ npm install -D @testivai/witness-playwright
 
 ## Configuration
 
-### Local Mode (Default)
-
-No configuration needed! Just run `npx testivai init` and select "Local Mode".
-
-### Cloud Mode
-
-For team dashboards and collaboration:
-
-```typescript
-// playwright.config.ts
-export default defineConfig({
-  reporter: [
-    ['line'],
-    ['@testivai/witness-playwright/reporter', {
-      apiKey: process.env.TESTIVAI_API_KEY,
-    }]
-  ],
-});
-```
+No configuration needed — `npx testivai init` scaffolds `.testivai/config.json`,
+the baselines directory, and the `.gitignore` entries. Everything runs locally.
 
 ## API Reference
 

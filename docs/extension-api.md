@@ -42,7 +42,7 @@ A new adapter — JS, Python, or otherwise — needs to do **exactly two things*
 1. Capture a full-page screenshot and write it to `.testivai/temp/<name>/screenshot.png`.
 2. Optionally capture `document.documentElement.outerHTML` and write it to `.testivai/temp/<name>/dom.html`.
 
-That's the entire contract for capture. After the test run, the user invokes `npx testivai compare` (or the framework adapter triggers it via a lifecycle hook), which:
+That's the entire contract for capture. After the test run, the user invokes `npx testivai report` (or the framework adapter triggers it via a lifecycle hook), which:
 
 - Diffs `temp/<name>/` against `baselines/<name>/`
 - Writes `visual-report/results.json` and `visual-report/index.html`
@@ -55,7 +55,7 @@ That's the entire contract for capture. After the test run, the user invokes `np
   "name": "homepage",
   "createdAt": "2026-05-08T12:34:56.789Z",
   "updatedAt": "2026-05-08T12:34:56.789Z",
-  "approvedBy": "local",     // or a username if produced via a hosted flow
+  "approvedBy": "local",     // optional — set by `testivai approve`
   "width": 1280,             // optional — viewport width at capture
   "height": 800              // optional — viewport height at capture
 }
@@ -67,22 +67,30 @@ That's the entire contract for capture. After the test run, the user invokes `np
 
 ```jsonc
 {
-  "mode": "local",            // "local" (default; "cloud" is a retired legacy value)
+  "mode": "local",            // operating mode
   "threshold": 0.1,           // pixel diff threshold (0–1)
   "reportDir": "visual-report",
   "autoOpen": false,          // open report in a browser after generation
-  "failOnDiff": false,        // exit non-zero from `testivai compare` when diffs exist
-  "baselinesDir": ".testivai/baselines",  // override baseline storage
+  "failOnDiff": false,        // exit non-zero from `testivai report` when diffs exist
+  "failOnMissing": true,      // default true — exit 3 when a baseline got no capture
+  "baselinesDir": ".testivai/baselines",  // override baseline storage ({platform} token supported)
   "maxDiffPercent": 0,        // pass diffs at or below this % (autoPassed: "threshold")
   "maxDiffPixels": 100,       // absolute variant; either criterion passing suffices
   "noiseAutoPass": false,     // auto-pass DOM-identical diffs (autoPassed: "noise")
   "noiseMaxDiffPercent": 1,   // upper bound (diff %) for noiseAutoPass
+  "shiftTolerance": 0,        // auto-pass pure element shifts ≤ N px/axis (autoPassed: "shift")
   "stabilize": true,          // freeze animations, hide caret, await fonts pre-capture
-  "ignoreSelectors": []       // elements hidden (visibility:hidden) during capture
+  "ignoreSelectors": [],      // elements hidden (visibility:hidden) during capture
+  "mask": [],                 // areas excluded from the pixel diff; selectors or regions
+  "volatileAttributes": [],   // attribute names whose VALUES the DOM diff ignores
+  "diffRegions": { "minSize": 10, "mergeDistance": 12 },  // diff clustering tunables
+  "shareUploadCommand": ""    // shell hook for `report --share`; {file} is the share file
 }
 ```
 
-Local mode is the default: with no `config.json` (and no `TESTIVAI_API_KEY` in the environment), tools behave as `mode: "local"`. The file exists to customize thresholds and paths, not to enable the behavior.
+`config.json` is optional. With no file at all, tools run with the defaults above — local operation is simply how the toolchain works, not a mode you switch on. The file exists to customize thresholds and paths.
+
+The full field list, with types and defaults, lives in `LocalConfig` (`packages/witness/src/config/local-config.ts`).
 
 ## `results.json` schema
 
@@ -90,14 +98,16 @@ Written by `generateReport()` to `<reportDir>/results.json`. Consumed by the Git
 
 ```jsonc
 {
-  "version": "1.1.0",         // @testivai/witness version that wrote this
+  "version": "2.3.0",         // results.json SCHEMA version
   "timestamp": "2026-05-08T12:34:56.789Z",
   "summary": {
     "total": 5,
     "passed": 1,
     "changed": 3,
-    "newSnapshots": 1
+    "newSnapshots": 1,
+    "missing": 1             // baselines that received no capture this run
   },
+  "missingBaselines": ["pricing"],   // names behind summary.missing
   "snapshots": [
     {
       "name": "homepage",
@@ -107,7 +117,8 @@ Written by `generateReport()` to `<reportDir>/results.json`. Consumed by the Git
       "totalPixels": 1024000,
       "baselinePath": "images/homepage/baseline.png",
       "currentPath":  "images/homepage/current.png",
-      "diffPath":     "images/homepage/diff.png"
+      "diffPath":     "images/homepage/diff.png",
+      "baselineApprovedAt": "2026-04-02T09:00:00.000Z"
     },
     {
       "name": "checkout-page",
@@ -121,11 +132,17 @@ Written by `generateReport()` to `<reportDir>/results.json`. Consumed by the Git
       "dom": {
         "changed": false,
         "summary": null,
-        "noiseHint": true
+        "noiseHint": true,
+        "styleCheck": "match" // "match" | "mismatch" | "unavailable"
       },
+      "masks": [              // applied masks — the audit trail for excluded areas
+        { "x": 0, "y": 0, "width": 320, "height": 48, "source": "config" }
+      ],
+      "maskWarnings": [],     // mask specs that could not be resolved
       "autoPassed": "noise"   // present only when a pass criterion applied:
-                              // "threshold" (maxDiffPercent/maxDiffPixels) or
-                              // "noise" (noiseAutoPass); status is then "passed"
+                              // "threshold" (maxDiffPercent/maxDiffPixels),
+                              // "noise" (noiseAutoPass), or "shift"
+                              // (shiftTolerance); status is then "passed"
     },
     {
       "name": "nav-redesign",
@@ -141,10 +158,32 @@ Written by `generateReport()` to `<reportDir>/results.json`. Consumed by the Git
         "summary": {
           "added": 2,
           "removed": 0,
-          "attributeChanges": 1
+          "attributeChanges": 1,
+          "textChanges": 3
         },
-        "noiseHint": false
-      }
+        "noiseHint": false,
+        "styleCheck": "mismatch",
+        "styleChanges": {     // present on a "mismatch" styleCheck
+          "count": 2,
+          "elements": ["header > nav", "header > nav > a:nth-child(2)"]
+        }
+      },
+      "regions": [            // changed-pixel clusters, top-left sorted
+        {
+          "x": 10, "y": 20, "width": 100, "height": 40,
+          "diffPixels": 812, "diffPercent": 20.3,
+          "classification": "change",   // "shift" | "change"
+          "elements": [ { "selector": "header > nav", "role": "changed" } ]
+        },
+        {
+          "x": 0, "y": 120, "width": 1280, "height": 640,
+          "diffPixels": 86228, "diffPercent": 10.5,
+          "classification": "shift",
+          "shift": { "dx": 0, "dy": -1 },
+          "elements": [ { "selector": "main", "role": "shifted" } ]
+        }
+      ],
+      "pageShift": { "dy": -1, "belowY": 120, "count": 4 }
     },
     {
       "name": "fresh-baseline",
@@ -162,10 +201,12 @@ Written by `generateReport()` to `<reportDir>/results.json`. Consumed by the Git
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `version` | string | yes | semver of `@testivai/witness` that produced the report |
+| `version` | string | yes | semver of the **results.json schema** (not the writer's package version) |
 | `timestamp` | ISO 8601 string | yes | when the report was generated |
 | `summary.total` | number | yes | == `snapshots.length` |
 | `summary.passed` / `.changed` / `.newSnapshots` | number | yes | partition of `total` |
+| `summary.missing` | number | optional | baselines that received no capture this run; emitted from schema 2.3.0 |
+| `missingBaselines` | string[] | optional | names behind `summary.missing`; emitted from schema 2.3.0 |
 | `snapshots[].name` | string | yes | unique within a report |
 | `snapshots[].status` | enum | yes | `passed` &#124; `changed` &#124; `new` |
 | `snapshots[].diffPercent` | number | yes | 0–100. 0 for `passed` and `new`. |
@@ -178,13 +219,22 @@ Written by `generateReport()` to `<reportDir>/results.json`. Consumed by the Git
 | `snapshots[].dom.changed` | boolean | yes within `dom` | true if structural DOM diff detected |
 | `snapshots[].dom.summary` | object &#124; null | yes within `dom` | null when `changed` is false |
 | `snapshots[].dom.summary.added` / `.removed` / `.attributeChanges` | number | yes within `summary` | structural change counts |
-| `snapshots[].dom.noiseHint` | boolean | yes within `dom` | true when pixel diff exists but DOM unchanged |
+| `snapshots[].dom.summary.textChanges` | number | optional | visible-text token changes |
+| `snapshots[].dom.noiseHint` | boolean | yes within `dom` | true when pixel diff exists but DOM unchanged **and** style digests match |
+| `snapshots[].dom.styleCheck` | enum | optional | `match` &#124; `mismatch` &#124; `unavailable` — computed-style fingerprint verdict; `unavailable` when no element maps were captured |
+| `snapshots[].dom.styleChanges` | object | optional | present on `mismatch`: `{ count, elements[] }` (up to 10 selectors) |
+| `snapshots[].regions` | array | optional | changed-pixel clusters as bounding boxes: `x`, `y`, `width`, `height`, `diffPixels`, `diffPercent`, plus optional `classification` (`shift` &#124; `change`), `shift` (`{ dx, dy }` when classified `shift`), and `elements[]` (`{ selector, role }`, `role` = `shifted` &#124; `changed`, max 3, smallest first). Attribution fields require captured element maps |
+| `snapshots[].pageShift` | object | optional | whole-page uniform displacement: `{ dy, belowY, count }`. Requires element maps on both sides |
+| `snapshots[].masks` | array | optional | masks applied to this comparison, resolved to pixels: `{ x, y, width, height, source }`. Present when non-empty |
+| `snapshots[].maskWarnings` | string[] | optional | mask specs that could not be applied (e.g. a selector with no captured geometry). Present when non-empty |
+| `snapshots[].autoPassed` | enum | optional | `threshold` &#124; `noise` &#124; `shift` — which criterion turned a pixel diff into `passed` |
+| `snapshots[].baselineApprovedAt` | ISO 8601 string | optional | when the compared baseline was last approved/added |
 
 ### Schema versioning
 
 - Adding a new optional field is a **minor** bump (consumers should ignore unknown fields).
 - Removing a field, changing a type, or changing a status value is a **major** bump.
-- The `version` field always reflects the writer's `@testivai/witness` version, not the schema version. Consumers that need cross-version compatibility should branch on the writer's major.
+- The `version` field is the **schema** version (`RESULTS_SCHEMA_VERSION` in `packages/witness/src/report/generator.ts`), not the version of the package that wrote the file. Consumers that need cross-version compatibility should branch on the schema major.
 
 ## Worked example: a hypothetical pytest adapter
 
@@ -211,7 +261,7 @@ def witness(driver, name: str, *, project_root: Path = Path.cwd()):
         pass  # noise hint just won't be available
 ```
 
-The user then runs `npx testivai compare` (or wires it into a pytest hook) and the existing OSS tooling does the rest — diff, report, GitHub Action. No JavaScript code in the adapter; just disk I/O conforming to the layout above.
+The user then runs `npx testivai report` (or wires it into a pytest hook) and the existing OSS tooling does the rest — diff, report, GitHub Action. No JavaScript code in the adapter; just disk I/O conforming to the layout above.
 
 ## Stability promise
 

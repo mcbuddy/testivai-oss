@@ -223,14 +223,13 @@ useful as a smoke check, just not as the source of truth.
 
 ## What gets captured
 
-| Data | Local mode | Cloud mode |
+| Data | Captured | Powers |
 |---|---|---|
-| Full-page PNG screenshot | ✅ | ✅ |
-| Subdirectory layout (`temp/<name>/screenshot.png`) | ✅ | — |
-| Page HTML (structure, powers the DOM diff / noise hint) | ✅ | ✅ |
-| Computed styles | — | ✅ |
-| Bounding boxes / layout JSON | — | ✅ |
-| Performance metrics (Web Vitals) | — | ✅ |
+| Full-page PNG screenshot | ✅ | The pixel diff and heatmap |
+| Page HTML snapshot | ✅ | DOM diff, render-noise hint, text-change detection |
+| Element map (selectors, boxes, computed styles) | ✅ | Region→selector attribution, shift detection, style check |
+
+Everything is written under `.testivai/temp/<name>/` and compared against `.testivai/baselines/<name>/`. Nothing leaves your machine.
 
 The screenshot and a DOM snapshot are captured — the DOM snapshot powers the render-noise hint and text-change detection, and the element map powers region→selector attribution, shift detection, and the style-change check.
 
@@ -244,13 +243,8 @@ The Playwright SDK uses Playwright's native `page.screenshot()`, `page.evaluate(
 
 ---
 
-## Version History
+## Changelog
 
-- **v1.1.3** (Latest) — Fix: local-mode snapshots now write the subdirectory layout expected by `@testivai/witness/report`, so the HTML report is correctly populated.
-- **v1.1.2** — First release from [`testivai-oss`](https://github.com/mcbuddy/testivai-oss); URLs/workspace topology updates only.
-- **v1.1.0** — Local mode (config-driven) added.
-- **v1.0.0** — terminology rename.
-- **v0.3.1** — Fixed dist build.
-- **v0.3.0** — Reporter crash fix, debug logging, unified format with Witness SDK.
-- **v0.2.0** — Structure analysis and styles fingerprinting.
-- **v0.1.13** — Initial public release.
+Per-release notes live in
+[CHANGELOG.md](https://github.com/mcbuddy/testivai-oss/blob/main/packages/playwright/CHANGELOG.md)
+and on the [GitHub releases page](https://github.com/mcbuddy/testivai-oss/releases).

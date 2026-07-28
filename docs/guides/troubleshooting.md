@@ -72,12 +72,17 @@ chrome --remote-debugging-port=9222
 ### Jenkins
 
 #### Environment variables not passed
+No credentials are needed — TestivAI runs entirely on disk. Set the mode and
+run in a single step so the environment survives:
+
 ```groovy
-withCredentials([string(credentialsId: 'testivai-api-key', variable: 'API_KEY')]) {
-  sh 'export TESTIVAI_API_KEY=$API_KEY'
+withEnv(['TESTIVAI_MODE=local']) {
   sh 'testivai run "npm test"'
 }
 ```
+
+Baselines live in `.testivai/baselines/` in the repo, so make sure the
+workspace is a full checkout rather than a shallow copy that excludes them.
 
 ## Performance Issues
 
@@ -102,21 +107,23 @@ Enable debug logging to troubleshoot issues:
 
 ### Playwright SDK
 ```bash
-DEBUG=testivai:* npx playwright test
+TESTIVAI_DEBUG=true npx playwright test
 ```
 
 ### Witness SDK
 ```bash
-DEBUG=testivai:* npm test
+TESTIVAI_DEBUG=true npm test
 # or
 testivai run "npm test" --debug
 ```
 
 ### What debug logs show:
-- API requests and responses
-- Capture progress
-- Network errors
-- Performance metrics
+Lines are prefixed with `[TestivAI]`:
+
+- The resolved configuration (project config, per-call overrides, effective config, local mode)
+- Which capture path was taken — browser full-page capture or scroll-and-stitch — and the page/viewport dimensions behind that choice
+- How many element styles were captured
+- DOM capture failures (which make the noise hint unavailable)
 
 ## Common Error Messages
 
@@ -129,9 +136,9 @@ testivai run "npm test" --debug
 ## Getting Help
 
 1. **Check debug logs** for detailed error information
-2. **Search existing issues** on [GitHub](https://github.com/testivai/testivai-monorepo/issues)
-3. **Join our Discord** for community support
-4. **Email support** at hello@testiv.ai
+2. **Search existing issues** on [GitHub](https://github.com/mcbuddy/testivai-oss/issues)
+3. **Ask in [GitHub Discussions](https://github.com/mcbuddy/testivai-oss/discussions)** for community support
+4. **Email** testivai.app@gmail.com
 
 When reporting issues, please include:
 - SDK version

@@ -21,29 +21,52 @@ npx testivai init [options]
 | `-y, --yes` | Skip prompts and auto-detect framework (non-Playwright projects) |
 | `--json` | Print a machine-readable result to stdout (Playwright projects) |
 
+## Detection Order
+
+`init` checks for Playwright **first**, before any prompt or framework
+detection:
+
+1. **Playwright** — if `@playwright/test` or `playwright` appears in your
+   `package.json` dependencies or devDependencies, the command runs
+   [the local scaffold](#playwright-projects) and exits. No prompts.
+2. **`-y, --yes`** — skips the wizard, auto-detects the framework, and writes
+   `testivai.config.ts` plus per-framework setup instructions.
+3. Otherwise the interactive wizard runs.
+
 ## Interactive Wizard
 
-Without flags, the wizard asks:
+Without flags, in a non-Playwright project, the wizard asks:
 
-1. **Language** — JavaScript/TypeScript, Python, Java, or Ruby
-2. **Framework** — framework choices based on language
-3. **Test directory** — where to place generated example files
+1. **Mode** — choosing **Local** creates `.testivai/config.json` (`mode: "local"`)
+   and `.testivai/baselines/`, adds the `.gitignore` entries, and stops there
+2. **Language** — JavaScript/TypeScript, Python, Java, or Ruby
+3. **Framework** — framework choices based on language
+4. **Test directory** — where to place generated example files
 
 ```
+? Select mode:                 › Local — visual diffs on your machine, HTML reports
 ? Select your language:        › JavaScript / TypeScript
 ? Select your test framework:  › Cypress
 ? Where are your test files?   › cypress/e2e
 ```
 
+Cancelling the wizard (Ctrl-C) prints `Setup cancelled.` and exits 0.
+
 ## Generated Files
 
-After running `init`, the following files are created in your project:
+After the language/framework path of the wizard, the following are created in
+your project:
 
 - A **helper file** (`testivai-witness.js` / `testivai_witness.py` / etc.) — the capture function wrapper
 - An **example test** showing a complete working test with a `witness()` call
-- `testivai.config.ts` — project configuration with your API key placeholder
+- `testivai.config.ts` — project configuration
 
-For **Cypress**, the wizard also detects or creates `cypress.config.js` with the required plugin for remote debugging port injection.
+Existing files are skipped and listed as `⚠ Skipped (exists)` unless `--force`
+is passed.
+
+For **Cypress**, the wizard also creates `cypress.config.js` with the required
+plugin for remote debugging port injection — or, if one already exists, prints
+the `setupNodeEvents` snippet for you to paste in.
 
 ## Playwright Projects
 

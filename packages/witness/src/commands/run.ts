@@ -271,7 +271,6 @@ export const runCommand = new Command('run')
       console.log(`Batch ID: ${batchId}`);
       console.log(`Snapshots: ${snapshots.length}`);
       console.log(`Exit code: ${result.exitCode}`);
-      console.log(`Dashboard: https://dashboard.testiv.ai/projects/${validation.projectId}/batches/${batchId}`);
 
       // Exit with same code as test command
       process.exit(result.exitCode || 0);

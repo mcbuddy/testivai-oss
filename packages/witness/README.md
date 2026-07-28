@@ -12,14 +12,13 @@ The TestivAI Witness SDK allows you to integrate visual regression testing into 
 npm install -D @testivai/witness
 ```
 
-## Quick Start (Local Mode — Free)
+## Quick Start
 
-TestivAI works in **local mode** without any API key or cloud account:
+TestivAI runs entirely on your machine — no account, no server, nothing uploaded:
 
 1. **Initialize your project**
    ```bash
    npx testivai init
-   # Select "Local Mode" when prompted
    ```
 
 2. **Add visual captures to your tests**
@@ -45,17 +44,12 @@ TestivAI works in **local mode** without any API key or cloud account:
    npx testivai approve --all
    ```
 
-## Quick Start (Cloud Mode)
+## Sharing results with your team
 
-For team collaboration and hosted dashboards:
+Everything stays on your machine. To get a diff in front of a teammate:
 
-1. **Get an API key** at [testiv.ai](https://testiv.ai)
-2. **Set your API key**
-   ```bash
-   export TESTIVAI_API_KEY=your-api-key
-   ```
-3. Follow steps 1–3 from local mode above
-4. Results will upload to the cloud dashboard automatically
+- **In a PR** — the [`mcbuddy/testivai-oss` action](https://github.com/mcbuddy/testivai-oss) posts the summary as a PR comment and uploads the report as a build artifact. Approve from the PR with a `/testivai approve` comment.
+- **As a single file** — `npx testivai report --share` writes `visual-report/share.html` with every image inlined, so it works over chat or email with no server. Set `shareUploadCommand` in `.testivai/config.json` to pipe it to your own storage (S3, GCS, or anything with a CLI).
 
 ## Framework Integration
 
@@ -159,7 +153,7 @@ testivai run "npx wdio"
    - Page structure extraction
    - Layout analysis
    - Performance metrics
-5. **Batch Upload**: All captures are batched and uploaded to TestivAI for analysis
+5. **Compare & report**: Captures are diffed against `.testivai/baselines/` and written to `visual-report/` (HTML + `results.json`)
 
 ## Configuration
 
@@ -169,12 +163,6 @@ Create a `testivai.config.ts` file in your project root:
 import type { WitnessConfig } from '@testivai/witness';
 
 const config: WitnessConfig = {
-  // API key (set via TESTIVAI_API_KEY environment variable)
-  // apiKey: 'your-api-key-here',
-  
-  // Project ID from TestivAI dashboard
-  // projectId: 'your-project-id-here',
-  
   // Chrome remote debugging port
   browserPort: 9222,
   
@@ -204,8 +192,9 @@ export default config;
 ### `npx testivai init`
 Initialize TestivAI in your project. Detects your framework and provides setup instructions.
 
-### `npx testivai auth <api-key>`
-Authenticate with your TestivAI API key. Get your key from the [dashboard](https://dashboard.testiv.ai).
+### `npx testivai auth`
+Deprecated. TestivAI runs fully locally — there is no account or API key. The command
+now only prints a notice and exits.
 
 ### `npx testivai run <command>`
 Run your test command with automatic visual capture.
@@ -306,12 +295,12 @@ jobs:
             --disable-dev-shm-usage \
             --headless \
             --disable-gpu &
-            
-      - name: Authenticate
-        run: testivai auth ${{ secrets.TESTIVAI_API_KEY }}
-        
+
       - name: Run visual tests
         run: testivai run "npm test"
+
+      - name: Visual diff gate
+        run: npx testivai report --fail-on-diff
 ```
 
 ### Jenkins
@@ -342,10 +331,8 @@ pipeline {
     
     stage('Visual Tests') {
       steps {
-        withCredentials([string(credentialsId: 'testivai-api-key', variable: 'API_KEY')]) {
-          sh 'testivai auth $API_KEY'
-          sh 'testivai run "npm test"'
-        }
+        sh 'testivai run "npm test"'
+        sh 'npx testivai report --fail-on-diff'
       }
     }
   }
@@ -388,7 +375,7 @@ chrome --remote-debugging-port=9222
 - **Package size**: ~270KB (no browser binaries included)
 - **Memory usage**: ~50MB additional overhead
 - **Capture time**: ~100-500ms per snapshot
-- **Upload time**: Depends on network and snapshot size
+- **Compare time**: ~50-200ms per snapshot (pixel + DOM diff)
 
 ## API Reference
 

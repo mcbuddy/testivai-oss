@@ -81,8 +81,6 @@ export const authCommand = new Command('auth')
         logger.info('Usage:');
         logger.info('  testivai auth <api-key>');
         logger.info('  TESTIVAI_API_KEY=<api-key> testivai auth');
-        logger.info('');
-        logger.info('Get your API key from: https://dashboard.testiv.ai');
         process.exit(1);
       }
 

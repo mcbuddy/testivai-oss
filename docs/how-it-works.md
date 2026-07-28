@@ -44,9 +44,11 @@ What the capture layer writes depends on the framework and on the active mode.
 
 Uses Playwright's native APIs directly:
 
-| Always | Local mode adds | Cloud mode adds |
-|---|---|---|
-| Full-page PNG via `page.screenshot({ fullPage: true })` | Subdirectory layout `temp/<name>/screenshot.png` | Page HTML, computed styles, layout JSON, performance metrics |
+| Captured | Written to |
+|---|---|
+| Full-page PNG via `page.screenshot({ fullPage: true })` | `temp/<name>/screenshot.png` |
+| Page HTML snapshot | `temp/<name>/dom.html` |
+| Element map — selectors, bounding boxes, computed styles | `temp/<name>/elements.json` |
 
 No external Chrome remote-debugging port is needed.
 
@@ -89,7 +91,7 @@ The threshold is configurable:
 }
 ```
 
-`threshold` controls per-pixel color sensitivity. The **pass criteria** decide what happens when pixels do differ: diffs within `maxDiffPercent` / `maxDiffPixels` report as passed, and with `noiseAutoPass` enabled, DOM-identical diffs (the noise hint) within `noiseMaxDiffPercent` pass too. Auto-passed snapshots keep their diff image and carry `autoPassed: "threshold" | "noise"` in `results.json`, so tolerance never hides information.
+`threshold` controls per-pixel color sensitivity. The **pass criteria** decide what happens when pixels do differ: diffs within `maxDiffPercent` / `maxDiffPixels` report as passed, and with `noiseAutoPass` enabled, DOM-identical diffs (the noise hint) within `noiseMaxDiffPercent` pass too. Auto-passed snapshots keep their diff image and carry `autoPassed: "threshold" | "noise" | "shift"` in `results.json`, so tolerance never hides information.
 
 ---
 
@@ -112,7 +114,7 @@ visual-report/
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "timestamp": "2026-04-30T...",
   "summary": { "total": 2, "passed": 0, "changed": 2, "newSnapshots": 0 },
   "snapshots": [
