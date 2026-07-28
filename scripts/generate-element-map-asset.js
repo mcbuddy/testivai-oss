@@ -77,7 +77,14 @@ let drifted = false;
 
 for (const target of TARGETS) {
   const rel = path.relative(ROOT, target);
-  const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : null;
+  // Read-or-null rather than exists-then-read: no window between the check
+  // and the use, and a missing file is exactly the "not generated yet" case.
+  let existing = null;
+  try {
+    existing = fs.readFileSync(target, 'utf-8');
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
 
   if (existing === asset) {
     console.log(`  ok      ${rel}`);
