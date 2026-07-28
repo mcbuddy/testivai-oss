@@ -53,9 +53,12 @@ jobs:
       # a Ruby lane out of step with the other languages against shared
       # baselines — the exact bug the generator exists to prevent. Verify
       # before building, not after.
+      # Build the whole workspace, not just @testivai/witness: the collector
+      # lives in witness, but witness does not compile until @testivai/common
+      # is built. `pnpm build` resolves that order the way CI does.
       - name: Verify the generated element-map asset is current
         run: |
-          pnpm --filter @testivai/witness build
+          pnpm build
           node scripts/generate-element-map-asset.js --check
 
       - name: Run specs
