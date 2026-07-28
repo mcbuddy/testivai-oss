@@ -28,6 +28,10 @@ Pixel-only visual testing drowns you in false positives — a font re-hint or an
 - 🤖 **PR-native workflow** — a GitHub Action posts the diff and approves baselines from a `/testivai approve` comment.
 - 🔓 **No lock-in** — MIT license, baselines live in your git, and `results.json` is a semver-governed public contract.
 
+> **Evaluating this for a team?** [Maintenance & roadmap](docs/maintenance.md)
+> covers who builds it, the release cadence, and what happens to your setup if
+> maintenance ever stops.
+
 > **Already using Playwright's `toHaveScreenshot()`?** It's good, and if a pixel
 > diff answers your question you should keep using it. Here's an honest look at
 > [what TestivAI adds and when it isn't worth the dependency](docs/vs-playwright-builtin.md).

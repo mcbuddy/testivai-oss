@@ -124,15 +124,17 @@ teams that want stricter or looser rasterization tolerance.
 - **Selenium adapters** — ✅ SHIPPED natively in all three SDK languages:
   `@testivai/witness-selenium` (npm), `testivai[selenium]` (Python),
   `SeleniumWitness` (Java). Full-page via CDP on Chromium; Firefox native
-  full-page in Python/Java. C#/Ruby stay on the sidecar / extension API.
+  full-page in Python/Java. C# stays on the sidecar / extension API.
 - **Cypress adapter** — **M** 🤝 planned; adapter interface doc coming so the
   community can own it (same for Puppeteer)
 - **Storybook mode** — decision pending demand (component-story capture loop)
-- **MCP server** — shipped (`@testivai/mcp`); next: image downscaling for
-  model-context friendliness, and an opt-in `run_visual_tests` tool
+- **MCP server** — shipped (`@testivai/mcp`), including image downscaling for
+  model-context friendliness; next: an opt-in `run_visual_tests` tool
+- **Ruby adapter** — ✅ SHIPPED (`testivai` on RubyGems): native Capybara /
+  RSpec / Cucumber capture, no sidecar and no Chrome debug port
 - **`testivai run` sidecar** — remains experimental, now only needed for
-  bindings without a native adapter (C#, Ruby); graduates only if demand
-  shows up in issues
+  bindings without a native adapter (C#) and for Cypress / Puppeteer /
+  Robot Framework; graduates only if demand shows up in issues
 
 ---
 
