@@ -1,0 +1,102 @@
+name: Release Ruby gem
+
+# Publishes the `testivai` gem to RubyGems when a `ruby-v*` tag is pushed,
+# e.g. `ruby-v0.1.0`. The gem versions independently of the npm packages
+# (which Changesets drives) and of the GitHub Action's `v*` tags, so it gets
+# its own tag prefix rather than fighting either scheme.
+#
+# Auth is RubyGems **trusted publishing** (OIDC): the workflow exchanges a
+# short-lived GitHub identity token for a temporary RubyGems credential. No
+# long-lived API key is stored in this repository. The trust relationship is
+# configured once on rubygems.org against this repo + workflow filename.
+
+on:
+  push:
+    tags:
+      - 'ruby-v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and verify only — do not publish'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, verify, publish
+    runs-on: ubuntu-latest
+    environment: rubygems
+    permissions:
+      contents: read
+      id-token: write # required for trusted publishing
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          working-directory: ruby
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      # The gem ships a GENERATED collector. Publishing a stale one would put
+      # a Ruby lane out of step with the other languages against shared
+      # baselines — the exact bug the generator exists to prevent. Verify
+      # before building, not after.
+      - name: Verify the generated element-map asset is current
+        run: |
+          pnpm --filter @testivai/witness build
+          node scripts/generate-element-map-asset.js --check
+
+      - name: Run specs
+        working-directory: ruby
+        run: |
+          gem install rspec -v '~> 3.13' --no-document
+          rspec
+
+      - name: Build gem
+        working-directory: ruby
+        run: gem build testivai.gemspec
+
+      # A gem that builds but omits element_map.js would fail at first capture
+      # rather than at publish time. Check the artifact itself.
+      - name: Verify the packaged gem contains the collector
+        working-directory: ruby
+        run: |
+          gem_file=$(ls testivai-*.gem)
+          echo "inspecting $gem_file"
+          contents=$(tar -xOf "$gem_file" data.tar.gz | tar -tz)
+          echo "$contents"
+          echo "$contents" | grep -qx 'lib/testivai/element_map.js' || {
+            echo "::error::element_map.js is missing from the packaged gem"
+            exit 1
+          }
+
+      - name: Smoke-test the packaged gem
+        working-directory: ruby
+        run: |
+          export GEM_HOME="$RUNNER_TEMP/gemhome"
+          gem install ./testivai-*.gem --no-document
+          GEM_HOME="$GEM_HOME" ruby -e '
+            require "testivai"
+            expr = Testivai::ElementMap.expression(3000, [])
+            abort "collector did not load" unless expr.start_with?("return (function collectElementMap")
+            puts "installed gem loads the collector (#{Testivai::VERSION})"
+          '
+
+      - name: Publish to RubyGems (trusted publishing)
+        if: github.event_name == 'push' || inputs.dry_run == false
+        uses: rubygems/release-gem@v1
+        with:
+          await-release: false
+          working-directory: ruby
