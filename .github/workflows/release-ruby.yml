@@ -9,6 +9,7 @@ name: Release Ruby gem
 # short-lived GitHub identity token for a temporary RubyGems credential. No
 # long-lived API key is stored in this repository. The trust relationship is
 # configured once on rubygems.org against this repo + workflow filename.
+# No GitHub environment is used, so the RubyGems 'Environment' field stays blank.
 
 on:
   push:
@@ -28,7 +29,6 @@ jobs:
   release:
     name: Build, verify, publish
     runs-on: ubuntu-latest
-    environment: rubygems
     permissions:
       contents: read
       id-token: write # required for trusted publishing
