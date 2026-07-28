@@ -1,5 +1,7 @@
 # Selenium
 
+Selenium ships no visual comparison of its own — see [what TestivAI adds over a hand-rolled screenshot diff](../vs-selenium-tooling.md).
+
 Native TestivAI adapters for Selenium WebDriver in **JavaScript, Python, and
 Java** — no sidecar, no Chrome debug port, no wrapper process. The adapter
 calls Selenium's public APIs and shares baselines, tolerances, the HTML

@@ -226,6 +226,7 @@ visual-report/
 
 - **[How It Works](./how-it-works.md)** — local pipeline, capture layers, diff algorithm
 - **[vs. Playwright's built-in](./vs-playwright-builtin.md)** — honest comparison with `toHaveScreenshot()`
+- **[vs. rolling your own (Selenium)](./vs-selenium-tooling.md)** — for Selenium suites, where there is no built-in
 - **[Philosophy](./philosophy.md)** — local-first detection, bring-your-own-model AI
 - **[Playwright adapter](./frameworks/playwright.md)** / **[WebdriverIO adapter](./frameworks/webdriverio.md)**
 - **[GitHub Action](./github-action.md)** — post results to PRs

@@ -7,6 +7,7 @@ The documentation for `@testivai/witness` and the framework adapters. Everything
 - **[Getting Started](./intro.md)** — install + first capture, 5 minutes
 - **[How It Works](./how-it-works.md)** — high-level architecture
 - **[vs. Playwright's built-in screenshots](./vs-playwright-builtin.md)** — what `toHaveScreenshot()` covers, and when TestivAI is worth the dependency
+- **[vs. rolling your own (Selenium)](./vs-selenium-tooling.md)** — Selenium ships no visual comparison; what you'd otherwise build yourself
 - **[Comparison: masks, regions, tolerances](./comparison.md)** — excluding dynamic areas, region-level diffs
 - **[Philosophy](./philosophy.md)** — local-first detection, bring-your-own-model AI
 

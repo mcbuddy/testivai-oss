@@ -4,6 +4,8 @@ title: Python (playwright-python)
 
 # Python adapter — `testivai` on PyPI
 
+New here? [vs. rolling your own](../vs-selenium-tooling.md) covers what this replaces in a Python suite.
+
 Local-first visual regression for **playwright-python and Selenium**,
 sharing the same baselines, tolerances, report, and PR approval flow as the
 JS/TS adapters — one on-disk contract across languages.
