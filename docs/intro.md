@@ -225,6 +225,7 @@ visual-report/
 ## What's Next
 
 - **[How It Works](./how-it-works.md)** — local pipeline, capture layers, diff algorithm
+- **[vs. Playwright's built-in](./vs-playwright-builtin.md)** — honest comparison with `toHaveScreenshot()`
 - **[Philosophy](./philosophy.md)** — local-first detection, bring-your-own-model AI
 - **[Playwright adapter](./frameworks/playwright.md)** / **[WebdriverIO adapter](./frameworks/webdriverio.md)**
 - **[GitHub Action](./github-action.md)** — post results to PRs
