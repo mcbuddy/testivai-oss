@@ -53,6 +53,12 @@ class SeleniumWitnessTest {
     ChromeLike driver = mock(ChromeLike.class, withSettings().strictness(org.mockito.quality.Strictness.LENIENT));
     when(driver.executeScript(contains("document.fonts"))).thenReturn(true);
     when(driver.executeScript(contains("cloneNode"), any())).thenReturn(DOM);
+    when(driver.executeScript(contains("collectElementMap")))
+        .thenReturn(List.of(
+            Map.of("path", "body", "x", 0L, "y", 0L, "width", 100L, "height", 40L,
+                "styleHash", "44959b06"),
+            Map.of("path", "body > p", "x", 0L, "y", 8L, "width", 90L, "height", 16L,
+                "styleHash", "1a2b3c4d")));
     when(driver.executeCdpCommand(eq("Page.captureScreenshot"), any()))
         .thenReturn(Map.of("data", PNG_B64));
     when(driver.getScreenshotAs(OutputType.BYTES)).thenReturn(PNG);
@@ -205,5 +211,61 @@ class SeleniumWitnessTest {
   void emptyNameRejected(@TempDir Path root) {
     ChromeLike driver = chromeDriver();
     assertThrows(IllegalArgumentException.class, () -> SeleniumWitness.witness(driver, " "));
+  }
+
+  @Test
+  void writesElementMapJson(@TempDir Path root) throws Exception {
+    ChromeLike driver = chromeDriver();
+    CaptureOptions opts = new CaptureOptions();
+    opts.projectRoot = root;
+
+    Path temp = SeleniumWitness.witness(driver, "with-map", opts);
+
+    Path map = temp.resolve("elements.json");
+    assertTrue(Files.exists(map), "elements.json should be written");
+    String json = Files.readString(map);
+    assertTrue(json.contains("\"path\""), "entries carry a selector path");
+    assertTrue(json.contains("styleHash"), "entries carry a style hash");
+  }
+
+  @Test
+  void skipElementMapSuppressesTheFile(@TempDir Path root) {
+    ChromeLike driver = chromeDriver();
+    CaptureOptions opts = new CaptureOptions();
+    opts.projectRoot = root;
+    opts.setSkipElementMap(true);
+
+    Path temp = SeleniumWitness.witness(driver, "no-map", opts);
+    assertFalse(Files.exists(temp.resolve("elements.json")));
+  }
+
+  @Test
+  void elementMapFailureNeverBreaksCapture(@TempDir Path root) {
+    ChromeLike driver = chromeDriver();
+    when(driver.executeScript(contains("collectElementMap")))
+        .thenThrow(new RuntimeException("CSP blocked"));
+    CaptureOptions opts = new CaptureOptions();
+    opts.projectRoot = root;
+
+    Path temp = SeleniumWitness.witness(driver, "map-fails", opts);
+
+    assertTrue(Files.exists(temp.resolve("screenshot.png")));
+    assertFalse(Files.exists(temp.resolve("elements.json")));
+  }
+
+  /**
+   * The generated asset must be real, runnable JavaScript that produces the
+   * shape the comparison side expects. Anything else means the generator or
+   * the checked-in resource has drifted.
+   */
+  @Test
+  void generatedCollectorIsValidJavaScript() {
+    String expr = ElementMap.expression(3000, List.of(".live"));
+    assertTrue(expr.startsWith("return (function collectElementMap"),
+        "expression should wrap the canonical collector");
+    assertTrue(expr.endsWith(")(document, window, 3000, [\".live\"]);"),
+        "expression should pass document/window/max/ignoreSelectors");
+    assertFalse(expr.contains("AUTO-GENERATED"),
+        "the banner comment should be stripped before injection");
   }
 }

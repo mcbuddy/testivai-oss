@@ -2,11 +2,11 @@
 
 Selenium ships no visual comparison of its own — see [what TestivAI adds over a hand-rolled screenshot diff](../vs-selenium-tooling.md).
 
-The JavaScript adapter captures the **element map** (selectors, bounding boxes,
-computed-style digests) with the same injected collector as the Playwright
-adapter, so region→selector attribution, the style-only-change verdict, and
-page-shift detection work the same way. The Python and Java adapters capture the
-screenshot and DOM only, for now.
+All three adapters — JavaScript, Python, and Java — capture the **element map**
+(selectors, bounding boxes, computed-style digests) using the same injected
+collector as the Playwright adapter, so region→selector attribution, the
+style-only-change verdict, and page-shift detection work identically in every
+language.
 
 Native TestivAI adapters for Selenium WebDriver in **JavaScript, Python, and
 Java** — no sidecar, no Chrome debug port, no wrapper process. The adapter

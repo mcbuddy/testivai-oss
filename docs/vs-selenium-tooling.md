@@ -63,34 +63,49 @@ Verified against the adapter source, not aspirational:
 
 ---
 
-## What you don't get (yet)
+## Feature parity across languages
 
-Being precise, because the answer differs by language.
+The three Selenium adapters now capture the same three artifacts —
+`screenshot.png`, `dom.html`, and `elements.json` — so the full layered
+analysis works in all of them:
 
-**JavaScript adapter — full parity.** `@testivai/witness-selenium` captures the
-element map (selectors, bounding boxes, computed-style digests) using the *same
-injected function* as the Playwright adapter, so region→selector attribution, the
-style-only-change verdict, and page-shift detection all work.
+| Feature | Selenium JS | Python | Java |
+|---|---|---|---|
+| Pixel diff + heatmap | ✅ | ✅ | ✅ |
+| DOM diff / noise hint / text changes | ✅ | ✅ | ✅ |
+| Region → selector attribution | ✅ | ✅ | ✅ |
+| Style-only-change verdict | ✅ | ✅ | ✅ |
+| Page-shift detection / `shiftTolerance` | ✅ | ✅ | ✅ |
 
-**Python and Java — pixel + DOM layers only, for now.** Those adapters capture
-`screenshot.png` and `dom.html` but not `elements.json`, so three features are
-unavailable:
+That last group depends on the **element map** — selectors, bounding boxes, and
+computed-style digests collected from the live page. All adapters inject the
+*identical* collector function: it is written once in TypeScript, and generated
+into a JavaScript asset that the Python wheel and the Java jar ship. CI
+regenerates it and fails on any difference.
 
-| Feature | Selenium JS | Python / Java |
-|---|---|---|
-| Region → selector attribution | ✅ | ❌ |
-| Style-only-change verdict | ✅ | ❌ (`styleCheck` reports `unavailable`) |
-| Page-shift detection / `shiftTolerance` | ✅ | ❌ |
+This matters more than it might look. Every adapter writes into one shared
+`.testivai/baselines/` directory, so a Python lane and a Java lane can compare
+against the same baseline. If their collectors drifted apart, the same unchanged
+page would produce different maps in different languages and the report would
+show a regression that isn't there. One generated source makes that class of bug
+unrepresentable.
 
-Nothing degrades or errors — the report simply shows the pixel and DOM layers.
-The remaining work is mechanical: both adapters already inject JavaScript for DOM
-capture, so they need the same collector script and one more file write.
+Element-map capture is best-effort, exactly like the DOM snapshot: if a strict
+Content-Security-Policy blocks the injected script, the capture still writes the
+screenshot and DOM, and the report falls back to the pixel and DOM layers rather
+than failing. Per-call escape hatches exist in every language
+(`skipElementMap` / `skip_element_map` / `setSkipElementMap`), plus a
+`maxElements` cap for very large pages.
 
-**Maturity, plainly:** `@testivai/witness-selenium` is `0.1.x`, the Python package
-is `0.1.0`, and the Java artifact is `0.1.0-SNAPSHOT` and
-[not yet on Maven Central](./frameworks/java.md). The Playwright adapter is `1.7.x`
-and considerably more exercised. Treat the Selenium lane as early — it works and is
-tested, but it hasn't been through as many real suites.
+**Ruby and other frameworks** (Cypress, Puppeteer, Robot Framework) go through
+the experimental `testivai run` sidecar rather than a native adapter, and do not
+capture the element map yet.
+
+**Maturity, plainly:** `@testivai/witness-selenium` is `0.1.x`, the Python
+package is `0.1.0`, and the Java artifact is `0.1.0-SNAPSHOT` and
+[not yet on Maven Central](./frameworks/java.md). The Playwright adapter is
+`1.7.x` and considerably more exercised. Treat the Selenium lane as early — it
+works and is tested, but it hasn't been through as many real suites.
 
 ---
 
@@ -108,7 +123,7 @@ tested, but it hasn't been through as many real suites.
 | Per-OS baselines | you build it | you build it | ✅ `{platform}` token |
 | Shared with other frameworks | ❌ | ❌ | ✅ |
 | Machine-readable output | ❌ | ❌ | ✅ `results.json` + MCP |
-| Selector attribution / style verdict | ❌ | ❌ | ✅ (JS; Python/Java pending) |
+| Selector attribution / style verdict | ❌ | ❌ | ✅ (JS, Python, Java) |
 | Cost | your time | free | free (MIT) |
 
 ---

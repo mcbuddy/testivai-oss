@@ -136,6 +136,28 @@ public final class SeleniumWitness {
           // missing dom.html only suppresses the noise hint
         }
       }
+
+      // Element map — best-effort, same contract as the DOM snapshot. The
+      // injected collector is the identical function every other adapter
+      // injects (see ElementMap), so maps stay comparable across languages
+      // sharing one baseline directory.
+      if (!options.skipElementMap && js != null) {
+        try {
+          int max = options.maxElements != null
+              ? options.maxElements
+              : ElementMap.DEFAULT_MAX_ELEMENTS;
+          Object map = js.executeScript(
+              ElementMap.expression(max, new ArrayList<>(selectors)));
+          if (map instanceof List<?> list && !list.isEmpty()) {
+            Files.writeString(
+                tempDir.resolve("elements.json"),
+                ElementMap.toJson(list),
+                StandardCharsets.UTF_8);
+          }
+        } catch (RuntimeException ignored) {
+          // without the map the report keeps the pixel and DOM layers
+        }
+      }
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

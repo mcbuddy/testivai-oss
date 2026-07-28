@@ -40,6 +40,8 @@ class FakeChromeDriver:
             return None
         if "document.fonts" in script:
             return True
+        if "collectElementMap" in script:
+            return _run_collector_in_node(script)
         if "cloneNode" in script:
             dom = self.dom
             for sel in args[0] or []:
@@ -191,3 +193,88 @@ def test_top_level_alias():
     from testivai import witness_selenium
 
     assert witness_selenium is witness
+
+
+def _run_collector_in_node(script: str):
+    """
+    Execute the adapter's real injected expression with Node against a
+    duck-typed DOM. This is the point of the test: it proves the GENERATED
+    asset is runnable JavaScript that returns the shape `elements.json`
+    consumers expect -- not merely that execute_script was called.
+    """
+    import json as _json
+    import shutil
+    import subprocess
+    import textwrap
+
+    node = shutil.which("node")
+    if node is None:  # pragma: no cover - CI always has node
+        pytest.skip("node not available")
+
+    harness = textwrap.dedent(
+        """
+        const rect = { x: 0, y: 0, width: 100, height: 40 };
+        const mk = (tag) => ({
+          tagName: tag.toUpperCase(),
+          classList: { length: 0 },
+          children: [],
+          parentElement: null,
+          getBoundingClientRect: () => rect,
+          matches: () => false,
+        });
+        const body = mk('body');
+        const p = mk('p');
+        p.parentElement = body;
+        body.children = [p];
+        const document = { body };
+        const window = {
+          devicePixelRatio: 1, scrollX: 0, scrollY: 0,
+          getComputedStyle: () => ({ getPropertyValue: () => 'x' }),
+        };
+        const out = (function () { %s })();
+        process.stdout.write(JSON.stringify(out));
+        """
+    ) % script
+
+    proc = subprocess.run(
+        [node, "-e", harness], capture_output=True, text=True, timeout=30
+    )
+    assert proc.returncode == 0, f"collector failed to run: {proc.stderr}"
+    return _json.loads(proc.stdout)
+
+
+def test_element_map_written_with_expected_shape(project):
+    driver = FakeChromeDriver()
+    witness(driver, "with-map")
+
+    path = project / ".testivai" / "temp" / "with-map" / "elements.json"
+    assert path.exists(), "elements.json should be written"
+
+    entries = json.loads(path.read_text())
+    assert isinstance(entries, list) and entries
+    for entry in entries:
+        assert isinstance(entry["path"], str)
+        assert isinstance(entry["x"], (int, float))
+        assert isinstance(entry["y"], (int, float))
+        assert isinstance(entry["width"], (int, float))
+        assert isinstance(entry["height"], (int, float))
+        assert isinstance(entry["styleHash"], str)
+
+
+def test_skip_element_map(project):
+    driver = FakeChromeDriver()
+    witness(driver, "no-map", skip_element_map=True)
+    assert not (project / ".testivai" / "temp" / "no-map" / "elements.json").exists()
+
+
+def test_element_map_failure_never_breaks_capture(project):
+    class Boom(FakeChromeDriver):
+        def execute_script(self, script, *args):
+            if "collectElementMap" in script:
+                raise RuntimeError("CSP blocked")
+            return super().execute_script(script, *args)
+
+    witness(Boom(), "map-fails")
+    temp = project / ".testivai" / "temp" / "map-fails"
+    assert (temp / "screenshot.png").exists()
+    assert not (temp / "elements.json").exists()

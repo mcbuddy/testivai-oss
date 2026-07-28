@@ -10,6 +10,8 @@ public final class CaptureOptions {
   List<String> ignoreSelectors = new ArrayList<>();
   String variant;
   boolean skipDom;
+  boolean skipElementMap;
+  Integer maxElements;
   Path projectRoot;
 
   /** Override capture stabilization (default: config `stabilize`, true). */
@@ -37,6 +39,22 @@ public final class CaptureOptions {
   }
 
   /** Skip the DOM snapshot (disables the noise hint for this snapshot). */
+  /**
+   * Skip element-map capture. The map powers region-to-selector attribution,
+   * shift classification and the computed-style fingerprint; without it the
+   * report falls back to the pixel and DOM layers.
+   */
+  public CaptureOptions setSkipElementMap(boolean skipElementMap) {
+    this.skipElementMap = skipElementMap;
+    return this;
+  }
+
+  /** Cap on elements walked for the map (default 3000). */
+  public CaptureOptions setMaxElements(int maxElements) {
+    this.maxElements = maxElements;
+    return this;
+  }
+
   public CaptureOptions setSkipDom(boolean skipDom) {
     this.skipDom = skipDom;
     return this;

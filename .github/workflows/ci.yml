@@ -57,6 +57,21 @@ jobs:
             exit 1
           fi
 
+      # The element-map collector is injected by every adapter, and its output
+      # is compared across runs — and across LANGUAGES, since all adapters
+      # share one .testivai/baselines/ directory. Python and Java cannot
+      # import the TypeScript source, so they ship a generated copy. If those
+      # copies drift, two languages emit different maps for the same page and
+      # the diff looks like a real regression. This guard makes that
+      # impossible to merge unnoticed.
+      - name: Verify generated element-map assets are up to date
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '20'
+        run: |
+          node scripts/generate-element-map-asset.js --check || {
+            echo "::error::Generated element-map assets are stale. Run \`pnpm build && node scripts/generate-element-map-asset.js\` and commit the result."
+            exit 1
+          }
+
       - name: Run unit tests
         run: pnpm test
 

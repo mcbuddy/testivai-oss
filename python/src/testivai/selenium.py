@@ -30,12 +30,15 @@ The compare/report half stays in @testivai/witness — run `testivai report`
 from __future__ import annotations
 
 import base64
+import json
 import time
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
 from ._capture import (
     STABILIZE_CSS,
+    _DEFAULT_MAX_ELEMENTS,
+    _element_map_expression,
     build_ignore_css,
     load_local_config,
     sanitize_variant,
@@ -78,6 +81,8 @@ def witness(
     stabilize: Optional[bool] = None,
     variant: Optional[str] = None,
     skip_dom: bool = False,
+    skip_element_map: bool = False,
+    max_elements: Optional[int] = None,
     project_root: Optional[Path] = None,
 ) -> Path:
     """
@@ -98,6 +103,11 @@ def witness(
             default True).
         variant: Multi-browser/viewport key, folded into the name as
             `<name>__<variant>` so parallel runs never collide.
+        skip_element_map: Skip the element map. The map powers
+            region->selector attribution, shift classification and the
+            computed-style fingerprint; without it the report falls back to
+            the pixel and DOM layers.
+        max_elements: Cap on elements walked for the map (default 3000).
         skip_dom: Skip the DOM snapshot (disables the noise hint for this
             snapshot; pixel diff still works).
         project_root: Defaults to the current working directory.
@@ -160,6 +170,25 @@ def witness(
             dom = driver.execute_script(_DOM_SNAPSHOT_JS, list(merged_selectors))
             if isinstance(dom, str) and dom:
                 (temp_dir / "dom.html").write_text(dom, encoding="utf-8")
+        except Exception:
+            pass
+
+    # 4. Element map (best-effort, same contract as the DOM snapshot).
+    #    Powers region->selector attribution, shift classification and the
+    #    style fingerprint. The injected collector is the SAME function every
+    #    other adapter injects -- see element_map.js, which is generated from
+    #    the TypeScript source so the languages cannot drift apart.
+    if not skip_element_map:
+        try:
+            expr = _element_map_expression(
+                max_elements if max_elements is not None else _DEFAULT_MAX_ELEMENTS,
+                list(merged_selectors),
+            )
+            element_map = driver.execute_script(expr)
+            if isinstance(element_map, list) and element_map:
+                (temp_dir / "elements.json").write_text(
+                    json.dumps(element_map), encoding="utf-8"
+                )
         except Exception:
             pass
 

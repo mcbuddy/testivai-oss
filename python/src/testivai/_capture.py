@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from importlib import resources
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
@@ -181,3 +182,52 @@ def _wait_for_fonts(page: Any, timeout_seconds: float = 10.0) -> None:
         except Exception:
             return
         time.sleep(0.1)
+
+
+# ── Element-map collector ──────────────────────────────────────────────────
+#
+# `element_map.js` is GENERATED from packages/witness/src/capture/element-map.ts
+# by scripts/generate-element-map-asset.js, and CI fails if it is stale. Every
+# adapter -- TypeScript, Python, Java -- injects that identical function, which
+# matters because all of them write into one shared `.testivai/baselines/`
+# directory: two languages producing subtly different maps for the same page
+# would surface as phantom regressions.
+
+_DEFAULT_MAX_ELEMENTS = 3000
+
+_ELEMENT_MAP_SRC: Optional[str] = None
+
+
+def _load_element_map_source() -> str:
+    """
+    Read the generated collector, cached after the first call.
+
+    The file starts with a "do not edit" banner comment that is useful to a
+    reader but pure weight on the wire, so it is sliced off: every capture
+    ships this string to the browser.
+    """
+    global _ELEMENT_MAP_SRC
+    if _ELEMENT_MAP_SRC is None:
+        raw = resources.files("testivai").joinpath("element_map.js").read_text(
+            encoding="utf-8"
+        )
+        start = raw.find("function collectElementMap")
+        if start == -1:
+            raise RuntimeError(
+                "element_map.js is malformed: collectElementMap not found. "
+                "Regenerate with scripts/generate-element-map-asset.js"
+            )
+        _ELEMENT_MAP_SRC = raw[start:].strip()
+    return _ELEMENT_MAP_SRC
+
+
+def _element_map_expression(max_elements: int, ignore_selectors: Sequence[str]) -> str:
+    """
+    Wrap the collector exactly as `buildElementMapExpression` does on the
+    TypeScript side. Selenium/WebDriver needs the explicit `return`.
+    """
+    return "return ({0})(document, window, {1}, {2});".format(
+        _load_element_map_source(),
+        int(max_elements),
+        json.dumps(list(ignore_selectors)),
+    )

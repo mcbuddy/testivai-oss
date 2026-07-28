@@ -34,3 +34,6 @@ testivai = "testivai.pytest_plugin"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/testivai"]
+# element_map.js is generated (scripts/generate-element-map-asset.js) and must
+# ship in the wheel — the Selenium adapter reads it at capture time.
+artifacts = ["src/testivai/element_map.js"]
