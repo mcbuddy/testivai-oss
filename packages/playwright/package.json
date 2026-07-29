@@ -1,7 +1,7 @@
 {
   "name": "@testivai/witness-playwright",
   "version": "1.7.1",
-  "description": "Playwright sensor for Testivai Visual Regression Test system",
+  "description": "Playwright adapter for TestivAI Witness \u2014 local-first visual regression with pixel + DOM comparison",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -16,8 +16,12 @@
   "keywords": [
     "playwright",
     "visual-regression",
-    "testing",
-    "testivai"
+    "visual-testing",
+    "screenshot-testing",
+    "regression-testing",
+    "testivai",
+    "playwright-reporter",
+    "test-automation"
   ],
   "author": "TestivAI",
   "license": "MIT",

@@ -1,7 +1,7 @@
 {
   "name": "@testivai/witness",
   "version": "1.11.1",
-  "description": "Framework-agnostic visual regression testing CLI for TestivAI",
+  "description": "Local-first visual regression testing: CLI, diff engine, baselines and self-contained HTML report. No account, nothing uploaded.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -63,12 +63,15 @@
   "keywords": [
     "testivai",
     "visual-regression",
-    "testing",
-    "browser",
+    "visual-testing",
+    "screenshot-testing",
+    "regression-testing",
+    "test-automation",
+    "cli",
     "framework-agnostic",
-    "cypress",
     "selenium",
     "webdriverio",
+    "cypress",
     "puppeteer"
   ],
   "author": "TestivAI",
