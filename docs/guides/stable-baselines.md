@@ -223,6 +223,59 @@ example above adds the optional keys (`reportDir`, `ignoreSelectors`, `mask`,
 every key falls back to its default.
 
 
+## Repository size — what baselines actually cost
+
+Baselines are PNGs committed to your repository, so it's fair to ask what that
+does to clone times. Measured numbers rather than reassurance:
+
+- A full-page screenshot of a straightforward page is around **175 KB**.
+- Re-approving one stores a **second full copy**. Two different versions of the
+  same screenshot measured 355,259 bytes raw and 342,845 bytes packed — git's
+  delta compression saved **3.5%**. PNG is already deflate-compressed, so there
+  is almost nothing left for git to squeeze.
+- Identical images cost nothing extra. Git is content-addressed, so two snapshot
+  names capturing the same pixels share one object.
+
+The arithmetic that follows: a 50-snapshot suite is roughly **8.5 MB** on the
+first commit, and every round of approvals adds about another 8.5 MB to history
+permanently. That's fine for years on a normal project. It becomes a problem
+when approvals are frequent *and* the suite is large.
+
+### Keeping it small (do these before reaching for LFS)
+
+1. **Approve deliberately.** Most growth comes from re-approving everything when
+   only a few snapshots genuinely changed. `npx testivai approve <name>` beats
+   `--all` as a habit.
+2. **Cut the churn at the source.** `ignoreSelectors` and `mask` on timestamps,
+   carousels and live widgets stop snapshots changing for reasons nobody cares
+   about — every avoided approval is a copy you never store.
+3. **Capture what you're actually testing.** A component or above-the-fold
+   capture is a fraction of a full-page shot of a long marketing page.
+4. **Shallow-clone in CI.** `fetch-depth: 1` (the default for
+   `actions/checkout`) means CI never pays for history at all.
+
+### Should you use Git LFS?
+
+**Usually no**, and this is a genuine recommendation rather than a hedge:
+
+- On GitHub, LFS has storage and bandwidth quotas that **cost money** past the
+  free tier, and visual baselines are exactly the kind of asset that burns
+  bandwidth on every CI run.
+- **It breaks the fork workflow.** Forks don't inherit LFS budget, so
+  contributors to a public repository may be unable to fetch your baselines —
+  which defeats the point of committing them.
+- Everyone, including CI, needs `git-lfs` installed and `lfs: true` on checkout.
+  It's one more thing to go wrong in someone's first five minutes.
+
+LFS earns its keep when the repository is **private**, the suite is **large**
+(hundreds of snapshots), and approvals are **frequent** — that combination is
+where plain git genuinely strains. Below it, the four steps above are cheaper
+and have no failure modes.
+
+If history has already grown past comfort, the fix is a one-off history rewrite
+(`git filter-repo`) rather than migrating to LFS, which doesn't shrink anything
+already committed.
+
 ## Cross-platform baselines
 
 Font rasterization differs between macOS, Linux, and Windows — a baseline captured on a Mac laptop will flag on a Linux CI runner forever. Two good setups:

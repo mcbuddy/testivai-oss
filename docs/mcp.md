@@ -129,6 +129,34 @@ of a brand-colour token. A model can now tell you *"you changed the brand token;
 it hit the header, the primary buttons and the card prices — intended?"* rather
 than *"something moved."*
 
+## What the model adds (and what it doesn't)
+
+Worth being precise, because this is where visual testing tools usually
+overclaim.
+
+**The detection is not AI.** Everything in the payload above — the diff regions,
+the selector attribution, `dom.changed`, `styleCheck: "mismatch"`, the list of
+restyled elements — is produced by deterministic comparison. Same input, same
+output, every run, no tokens spent, no network call. If you never connect a model
+at all, you still get every one of those signals in `results.json` and the HTML
+report.
+
+**The model adds interpretation**, which is a genuinely different job:
+
+| | |
+|---|---|
+| **Intent** | The tool says *six elements restyled, DOM identical, here are the selectors*. A model that can see your diff says *you changed the brand token; it reached the header, the primary buttons and every card price*. It connects the change to the edit you just made. |
+| **Triage** | Thirty changed snapshots is a reading task. A model can group them — *these twenty-eight are the same token change, these two are something else* — and put the two in front of you first. |
+| **Explanation** | Turning the evidence into a sentence a reviewer understands, in a PR comment or in your editor. |
+| **Self-correction** | An agent that just edited the UI can check whether it changed anything it didn't intend, and fix it before you ever see it. |
+
+**What the model does not do is decide whether something changed.** That's
+already settled before it's involved. This matters for trust: a hallucinating
+model can produce a bad *explanation*, but it cannot invent a regression or hide
+one, because it isn't in the detection path.
+
+It also cannot approve. See [the approval rule](#the-approval-rule).
+
 ## The approval rule
 
 `approve_snapshot` and `approve_all` exist so that a human can say "approve it"
