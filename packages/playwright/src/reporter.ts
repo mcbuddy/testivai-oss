@@ -134,6 +134,32 @@ export class TestivAIPlaywrightReporter implements Reporter {
       //    slice) so we say what to do next instead of producing a misleading
       //    report and exit code.
       if (this.captureOnly) {
+        // Drop a manifest naming this shard, so the merge step can prove every
+        // shard reported. Written HERE rather than at onBegin on purpose: a
+        // shard killed mid-run (OOM, runner loss) never reaches onEnd and so
+        // leaves no manifest, which is precisely the case worth catching.
+        // Without this a crashed shard silently reduces coverage whenever
+        // failOnMissing is off.
+        if (this.shard) {
+          try {
+            const tempRoot = path.join(process.cwd(), '.testivai', 'temp');
+            fs.ensureDirSync(tempRoot);
+            const captures = fs
+              .readdirSync(tempRoot, { withFileTypes: true })
+              .filter((e) => e.isDirectory())
+              .map((e) => e.name);
+            fs.writeJsonSync(path.join(tempRoot, 'testivai-shard.json'), {
+              shard: { current: this.shard.current, total: this.shard.total },
+              captures,
+              status: result.status,
+              timestamp: new Date().toISOString(),
+            });
+          } catch {
+            // A manifest we cannot write must not fail the test run; the merge
+            // step degrades to "no completeness check" and says so.
+          }
+        }
+
         const where = this.shard ? `shard ${this.shard.current}/${this.shard.total}` : 'capture-only mode';
         console.log(`\n  TestivAI: ${where} — captured to .testivai/temp/, comparison skipped.`);
         console.log('  Collect every shard\'s .testivai/temp/, then compare once:');

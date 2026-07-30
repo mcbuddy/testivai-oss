@@ -171,7 +171,8 @@ jobs:
           pattern: captures-*
           path: collected/
 
-      # One comparison over the full union — the gate belongs here.
+      # merge-captures verifies every shard reported before merging, then one
+      # comparison runs over the full union — the gate belongs here.
       - run: npx testivai merge-captures collected/
       - run: npx testivai report --fail-on-diff
 
@@ -196,6 +197,56 @@ Three consequences worth knowing:
 
 To force a per-shard report anyway, pass `captureOnly: false` to the reporter and
 expect exit `3` unless you also pass `--allow-missing`.
+
+### A lost shard must not pass quietly
+
+If a shard crashes, is cancelled, or its runner disappears, it uploads nothing —
+and a merge that simply used whatever arrived would compare **part** of the
+suite. Usually the missing-baseline gate catches that, but any project running
+`failOnMissing: false` would get a silent pass on reduced coverage.
+
+So each shard writes a small `testivai-shard.json` manifest alongside its
+captures, naming which shard it is and how many there are. It is written at the
+*end* of the run, so a shard killed mid-flight leaves none — exactly the case
+worth catching. `merge-captures` reads them and refuses to proceed if any shard
+is unaccounted for:
+
+```text
+✗ expected 8 shard(s), received 6 (missing: 4, 7)
+  A shard that crashed or was cancelled reports no manifest.
+  Comparing now would check only part of the suite.
+```
+
+The total is taken from the manifests, so nothing extra is needed in the common
+case. `--expect <n>` asserts a specific count if you'd rather state it
+explicitly, and `--allow-incomplete` downgrades the failure to a warning when a
+partial comparison is genuinely what you want.
+
+A shard that ran **zero tests** still writes a manifest, so it counts as having
+reported — completeness can't be inferred from file counts alone.
+
+### Sharding on other CI providers
+
+Nothing above is GitHub-specific in shape. The flow is four steps that any
+provider can express:
+
+1. **Run tests per node**, capture-only (set `TESTIVAI_CAPTURE_ONLY=1` where the
+   runner doesn't pass `--shard`, so the reporter can't auto-detect it)
+2. **Publish `.testivai/temp/` per node** under a predictable name —
+   `captures-1`, `captures-2`, …
+3. **Collect them into one directory** on a single node
+4. **`merge-captures` then `report`** — completeness check, then one comparison
+
+| Provider | Publish / collect |
+|---|---|
+| GitLab CI | `artifacts:paths` on a parallel job, then `dependencies:` |
+| Jenkins | `stash` per node, `unstash` in the downstream stage |
+| CircleCI | `persist_to_workspace` / `attach_workspace` |
+| Buildkite | `artifact_paths`, then `buildkite-agent artifact download` |
+
+Because the manifest travels inside each node's artifact, the completeness
+guarantee works the same everywhere — it doesn't depend on any provider's
+job-dependency semantics.
 
 ## Advanced: Matrix Testing
 
