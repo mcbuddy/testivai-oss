@@ -28,6 +28,8 @@ async function run(): Promise<void> {
     const token = core.getInput('github-token', { required: true });
     const reportDir = core.getInput('report-dir', { required: true });
     const failOnDiff = core.getBooleanInput('fail-on-diff');
+    // Optional input: workflows pinned to an older action.yml won't have it.
+    const failOnMissing = (core.getInput('fail-on-missing') || 'false').toLowerCase() === 'true';
     const uploadArtifact = core.getBooleanInput('upload-artifact');
     const artifactRetentionDays = parseInt(core.getInput('artifact-retention-days'), 10);
     const artifactName = core.getInput('artifact-name') || 'testivai-visual-report';
@@ -144,28 +146,65 @@ async function run(): Promise<void> {
       core.info('Not a PR event, skipping comment');
     }
 
-    // Post commit status
-    const status = determineStatus(results, { failOnDiff });
+    const status = determineStatus(results, { failOnDiff, failOnMissing });
     const sha = context.payload.pull_request?.head.sha || context.sha;
 
-    await octokit.rest.repos.createCommitStatus({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      sha,
-      state: status.state,
-      context: statusContext,
-      description: status.description,
-    });
+    // A check run carries `neutral`, which a commit status cannot express — so
+    // a run that needs review stops reporting green. GitHub treats neutral as
+    // satisfying a required check, so this is visible without blocking.
+    //
+    // Needs `checks: write`. Existing workflows won't have it, so a failure
+    // here must never break the job: we warn, and the commit status below still
+    // carries the result.
+    let checkRunPosted = false;
+    try {
+      await octokit.rest.checks.create({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        name: statusContext,
+        head_sha: sha,
+        status: 'completed',
+        conclusion: status.conclusion,
+        output: { title: status.title, summary: status.summary },
+      });
+      checkRunPosted = true;
+      core.info(`Check run: ${status.conclusion} - ${status.title}`);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      core.warning(
+        `Could not create a check run (${reason}). Add \`checks: write\` to the workflow's ` +
+          'permissions for a non-blocking "neutral" result; falling back to the commit status.',
+      );
+    }
 
-    core.info(`Set commit status: ${status.state} - ${status.description}`);
+    // Commit status stays for now: it is what existing branch-protection rules
+    // reference, and it works without `checks: write`. It has no `neutral`, so
+    // a review-needed run maps to `success` here — the check run is the honest
+    // signal when both are present.
+    try {
+      await octokit.rest.repos.createCommitStatus({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        sha,
+        state: status.state,
+        context: statusContext,
+        description: status.description,
+      });
+      core.info(`Commit status: ${status.state} - ${status.description}`);
+    } catch (err) {
+      if (!checkRunPosted) throw err;
+      core.warning(`Could not set the commit status: ${err instanceof Error ? err.message : String(err)}`);
+    }
 
-    // Fail workflow if needed
-    if (status.state === 'failure') {
-      core.setFailed(`Visual regression detected: ${status.description}`);
-    } else if (results.summary.changed > 0 || results.summary.newSnapshots > 0) {
-      core.warning(`Visual changes found: ${results.summary.changed} changed, ${results.summary.newSnapshots} new`);
+    // Only a genuine failure conclusion fails the job. Everything else is
+    // reported and left to the reviewer — the point of this action is to be
+    // informative, not a gate.
+    if (status.conclusion === 'failure') {
+      core.setFailed(status.description);
+    } else if (status.conclusion === 'neutral') {
+      core.warning(`${status.title} — not blocking; see the report artifact.`);
     } else {
-      core.info('All visual snapshots passed!');
+      core.info(status.title);
     }
 
   } catch (error) {

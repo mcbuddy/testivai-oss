@@ -115475,40 +115475,69 @@ function resolveStatusContext(input) {
 }
 function determineStatus(results, config) {
   const { summary: summary2 } = results;
-  if (summary2.total === 0) {
+  const missing = summary2.missing ?? results.missingBaselines?.length ?? 0;
+  const changed = summary2.changed;
+  const added = summary2.newSnapshots;
+  if (summary2.total === 0 && missing === 0) {
     return {
       state: "success",
-      description: "No visual snapshots captured"
+      conclusion: "success",
+      description: "No visual snapshots captured",
+      title: "No visual snapshots captured",
+      summary: "No captures were found for this run. If that is unexpected, check that the tests ran and that `.testivai/temp/` was produced."
     };
   }
-  if (summary2.changed === 0 && summary2.newSnapshots === 0) {
-    return {
-      state: "success",
-      description: `All ${summary2.passed} snapshots passed`
-    };
-  }
-  if (summary2.changed > 0) {
-    if (config.failOnDiff) {
+  if (missing > 0) {
+    const names = (results.missingBaselines ?? []).slice(0, 10);
+    const list = names.length > 0 ? `
+
+${names.map((n) => `- \`${n}\``).join("\n")}` : "";
+    const detail = `${missing} committed baseline${missing === 1 ? "" : "s"} received no capture this run. A deleted or renamed test stops guarding its page without anything failing.` + list;
+    if (config.failOnMissing) {
       return {
         state: "failure",
-        description: `${summary2.changed} snapshot${summary2.changed === 1 ? "" : "s"} changed`
-      };
-    } else {
-      return {
-        state: "success",
-        description: `${summary2.changed} changed, ${summary2.newSnapshots} new (non-blocking)`
+        conclusion: "failure",
+        description: `${missing} baseline${missing === 1 ? "" : "s"} not covered`,
+        title: `${missing} baseline${missing === 1 ? "" : "s"} received no capture`,
+        summary: detail
       };
     }
-  }
-  if (summary2.newSnapshots > 0) {
     return {
       state: "success",
-      description: `${summary2.newSnapshots} new snapshot${summary2.newSnapshots === 1 ? "" : "s"} (needs approval)`
+      conclusion: "neutral",
+      description: `${missing} baseline${missing === 1 ? "" : "s"} not covered \u2014 review`,
+      title: `${missing} baseline${missing === 1 ? "" : "s"} received no capture`,
+      summary: detail
+    };
+  }
+  if (changed === 0 && added === 0) {
+    return {
+      state: "success",
+      conclusion: "success",
+      description: `All ${summary2.passed} snapshots passed`,
+      title: `All ${summary2.passed} snapshots passed`,
+      summary: "No visual changes detected."
+    };
+  }
+  const parts = [];
+  if (changed > 0) parts.push(`${changed} changed`);
+  if (added > 0) parts.push(`${added} new`);
+  const label = parts.join(", ");
+  if (changed > 0 && config.failOnDiff) {
+    return {
+      state: "failure",
+      conclusion: "failure",
+      description: `${changed} snapshot${changed === 1 ? "" : "s"} changed`,
+      title: `${label} \u2014 visual regression`,
+      summary: `${label}. Review the diffs in the report artifact, then approve intentional changes with \`/testivai approve\` on this pull request.`
     };
   }
   return {
     state: "success",
-    description: "Visual regression check complete"
+    conclusion: "neutral",
+    description: `${label} \u2014 review`,
+    title: `${label} \u2014 needs review`,
+    summary: `${label}. This does not block the merge. Review the diffs in the report artifact, then approve intentional changes with \`/testivai approve\` on this pull request.`
   };
 }
 
@@ -115641,6 +115670,7 @@ async function run() {
     const token = getInput("github-token", { required: true });
     const reportDir = getInput("report-dir", { required: true });
     const failOnDiff = getBooleanInput("fail-on-diff");
+    const failOnMissing = (getInput("fail-on-missing") || "false").toLowerCase() === "true";
     const uploadArtifact2 = getBooleanInput("upload-artifact");
     const artifactRetentionDays = parseInt(getInput("artifact-retention-days"), 10);
     const artifactName = getInput("artifact-name") || "testivai-visual-report";
@@ -115725,23 +115755,47 @@ async function run() {
     } else {
       info("Not a PR event, skipping comment");
     }
-    const status = determineStatus(results, { failOnDiff });
+    const status = determineStatus(results, { failOnDiff, failOnMissing });
     const sha = context6.payload.pull_request?.head.sha || context6.sha;
-    await octokit.rest.repos.createCommitStatus({
-      owner: context6.repo.owner,
-      repo: context6.repo.repo,
-      sha,
-      state: status.state,
-      context: statusContext,
-      description: status.description
-    });
-    info(`Set commit status: ${status.state} - ${status.description}`);
-    if (status.state === "failure") {
-      setFailed(`Visual regression detected: ${status.description}`);
-    } else if (results.summary.changed > 0 || results.summary.newSnapshots > 0) {
-      warning(`Visual changes found: ${results.summary.changed} changed, ${results.summary.newSnapshots} new`);
+    let checkRunPosted = false;
+    try {
+      await octokit.rest.checks.create({
+        owner: context6.repo.owner,
+        repo: context6.repo.repo,
+        name: statusContext,
+        head_sha: sha,
+        status: "completed",
+        conclusion: status.conclusion,
+        output: { title: status.title, summary: status.summary }
+      });
+      checkRunPosted = true;
+      info(`Check run: ${status.conclusion} - ${status.title}`);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      warning(
+        `Could not create a check run (${reason}). Add \`checks: write\` to the workflow's permissions for a non-blocking "neutral" result; falling back to the commit status.`
+      );
+    }
+    try {
+      await octokit.rest.repos.createCommitStatus({
+        owner: context6.repo.owner,
+        repo: context6.repo.repo,
+        sha,
+        state: status.state,
+        context: statusContext,
+        description: status.description
+      });
+      info(`Commit status: ${status.state} - ${status.description}`);
+    } catch (err) {
+      if (!checkRunPosted) throw err;
+      warning(`Could not set the commit status: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    if (status.conclusion === "failure") {
+      setFailed(status.description);
+    } else if (status.conclusion === "neutral") {
+      warning(`${status.title} \u2014 not blocking; see the report artifact.`);
     } else {
-      info("All visual snapshots passed!");
+      info(status.title);
     }
   } catch (error2) {
     if (error2 instanceof Error) {

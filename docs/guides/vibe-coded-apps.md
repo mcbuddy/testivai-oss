@@ -65,6 +65,7 @@ permissions:
   contents: write
   pull-requests: write
   statuses: write
+  checks: write
 
 jobs:
   visual:

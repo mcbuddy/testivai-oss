@@ -62,8 +62,11 @@ describe('determineStatus', () => {
     };
 
     const status = determineStatus(results, { failOnDiff: false });
+    // The commit status has no `neutral`, so it stays green — but the check run
+    // now says `neutral`, which is what a reviewer actually sees.
     expect(status.state).toBe('success');
-    expect(status.description).toContain('non-blocking');
+    expect(status.conclusion).toBe('neutral');
+    expect(status.description).toContain('review');
   });
 
   it('returns success for new snapshots only', () => {
@@ -88,5 +91,78 @@ describe('determineStatus', () => {
     const status = determineStatus(results, { failOnDiff: false });
     expect(status.state).toBe('success');
     expect(status.description).toContain('No visual snapshots');
+  });
+
+  describe('check-run conclusions', () => {
+    const results = (over: Partial<ResultsData['summary']> & { missingBaselines?: string[] }): ResultsData => {
+      const { missingBaselines, ...summary } = over;
+      return {
+        timestamp: Date.now(),
+        summary: { total: 4, passed: 4, changed: 0, newSnapshots: 0, ...summary },
+        snapshots: [],
+        ...(missingBaselines ? { missingBaselines } : {}),
+      } as ResultsData;
+    };
+
+    it('is success only when nothing needs a human', () => {
+      const s = determineStatus(results({}), { failOnDiff: false });
+      expect(s.conclusion).toBe('success');
+      expect(s.state).toBe('success');
+    });
+
+    it('is neutral for changes when not gating — not a green tick', () => {
+      const s = determineStatus(results({ passed: 1, changed: 3 }), { failOnDiff: false });
+      expect(s.conclusion).toBe('neutral');
+      expect(s.title).toContain('needs review');
+      expect(s.summary).toContain('does not block');
+    });
+
+    it('is neutral for new snapshots awaiting a baseline', () => {
+      const s = determineStatus(results({ passed: 2, newSnapshots: 2 }), { failOnDiff: false });
+      expect(s.conclusion).toBe('neutral');
+    });
+
+    it('is failure for changes when the team opted in', () => {
+      const s = determineStatus(results({ passed: 1, changed: 3 }), { failOnDiff: true });
+      expect(s.conclusion).toBe('failure');
+      expect(s.state).toBe('failure');
+    });
+
+    describe('missing baselines', () => {
+      const missing = results({
+        total: 2,
+        passed: 2,
+        missing: 2,
+        missingBaselines: ['checkout', 'pricing'],
+      } as never);
+
+      it('surfaces them at all — they used to be invisible', () => {
+        const s = determineStatus(missing, { failOnDiff: false });
+        expect(s.title).toContain('received no capture');
+        expect(s.summary).toContain('checkout');
+        expect(s.summary).toContain('pricing');
+      });
+
+      it('is neutral by default', () => {
+        expect(determineStatus(missing, { failOnDiff: false }).conclusion).toBe('neutral');
+      });
+
+      it('fails when fail-on-missing is set', () => {
+        const s = determineStatus(missing, { failOnDiff: false, failOnMissing: true });
+        expect(s.conclusion).toBe('failure');
+        expect(s.state).toBe('failure');
+      });
+
+      it('takes precedence over changes — lost coverage is the harder miss', () => {
+        const both = results({
+          total: 3,
+          passed: 1,
+          changed: 2,
+          missing: 1,
+          missingBaselines: ['gone'],
+        } as never);
+        expect(determineStatus(both, { failOnDiff: false }).title).toContain('received no capture');
+      });
+    });
   });
 });

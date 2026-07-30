@@ -19,6 +19,13 @@ inputs:
     description: 'Fail the workflow if visual changes are detected'
     required: false
     default: 'false'
+  fail-on-missing:
+    description: >-
+      Fail the workflow when a committed baseline received no capture this run
+      (silent coverage loss). Unlike fail-on-diff this is not about intentional
+      changes, so it is the safer thing to enforce.
+    required: false
+    default: 'false'
   upload-artifact:
     description: 'Upload the visual report as a workflow artifact'
     required: false
