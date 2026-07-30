@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.13
+
+### Patch Changes
+
+- ffc2171: Docs and CLI output now match what the tool actually does. `testivai init` no longer offers a "Cloud" mode or tells you to run `testivai auth <api-key>`; the second wizard choice is what it always really was — helper-file generation for non-Playwright frameworks. Removed the last `dashboard.testiv.ai` URLs from CLI output and error messages. Corrected the documented exit-code contract (code 3 fires by default), the `results.json` schema version and field list, several nonexistent CLI flags, and the WebdriverIO quickstart, which silently produced no report without `.testivai/config.json`.
+- c9b01a6: Refreshes npm descriptions and keywords. `@testivai/witness-playwright` still described itself as a "Playwright sensor for Testivai Visual Regression Test system" — pre-rename terminology with the brand misspelled, on the most-viewed package page. Descriptions now match the local-first positioning and keywords cover the terms people actually search.
+- Updated dependencies [ffc2171]
+- Updated dependencies [90109b5]
+- Updated dependencies [2a37518]
+- Updated dependencies [750562e]
+- Updated dependencies [1efe97f]
+- Updated dependencies [c9b01a6]
+- Updated dependencies [003765d]
+- Updated dependencies [cba53b5]
+- Updated dependencies [0eb2adb]
+- Updated dependencies [9aa0f14]
+- Updated dependencies [8997ccd]
+  - @testivai/witness@1.12.0
+
 ## 0.2.12
 
 ### Patch Changes

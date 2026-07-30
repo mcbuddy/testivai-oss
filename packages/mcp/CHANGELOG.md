@@ -1,5 +1,23 @@
 # @testivai/mcp
 
+## 0.5.6
+
+### Patch Changes
+
+- 1efe97f: Fixes the agent-facing verdict for style-only changes. When the DOM was identical but computed styles differed, `explain_snapshot` and `get_visual_results` reported "no DOM data; treat as needing human review" — contradicting the HTML report, which correctly calls it a style-only change, and hiding the signal agents most need. Verdicts now say "style-only change: N elements restyled with identical DOM" with the affected selectors, and a captured-but-unremarkable DOM no longer claims to be missing. Adds a dedicated MCP documentation page.
+- Updated dependencies [ffc2171]
+- Updated dependencies [90109b5]
+- Updated dependencies [2a37518]
+- Updated dependencies [750562e]
+- Updated dependencies [1efe97f]
+- Updated dependencies [c9b01a6]
+- Updated dependencies [003765d]
+- Updated dependencies [cba53b5]
+- Updated dependencies [0eb2adb]
+- Updated dependencies [9aa0f14]
+- Updated dependencies [8997ccd]
+  - @testivai/witness@1.12.0
+
 ## 0.5.5
 
 ### Patch Changes

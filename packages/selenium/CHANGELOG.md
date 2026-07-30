@@ -1,5 +1,26 @@
 # @testivai/witness-selenium
 
+## 0.2.0
+
+### Minor Changes
+
+- 0eb2adb: The Selenium (JavaScript) adapter now captures the element map, so region→selector attribution, the style-only-change verdict, and page-shift detection work there exactly as they do for Playwright. The page-side collector moved into `@testivai/witness` and is exported as `collectElementMap` / `buildElementMapExpression`, so every adapter injects the identical function rather than a copy. New per-call options: `skipElementMap` and `maxElements`. Capture is best-effort — if the script is blocked, the report falls back to the pixel and DOM layers instead of failing.
+
+### Patch Changes
+
+- Updated dependencies [ffc2171]
+- Updated dependencies [90109b5]
+- Updated dependencies [2a37518]
+- Updated dependencies [750562e]
+- Updated dependencies [1efe97f]
+- Updated dependencies [c9b01a6]
+- Updated dependencies [003765d]
+- Updated dependencies [cba53b5]
+- Updated dependencies [0eb2adb]
+- Updated dependencies [9aa0f14]
+- Updated dependencies [8997ccd]
+  - @testivai/witness@1.12.0
+
 ## 0.1.10
 
 ### Patch Changes

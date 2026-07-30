@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.8.0
+
+### Minor Changes
+
+- 9aa0f14: Sharded runs now prove every shard reported before comparing. Each shard writes a `testivai-shard.json` manifest alongside its captures at end of run, and `merge-captures` refuses to proceed when one is unaccounted for — naming the missing shard indices. A shard that crashes or is cancelled leaves no manifest, which previously meant the merge compared partial coverage and passed silently whenever `failOnMissing` was off. The shard total is read from the manifests, with `--expect <n>` to assert it explicitly and `--allow-incomplete` to proceed anyway.
+- 8997ccd: Sharded Playwright runs now work correctly. A shard only executes a slice of the suite, so comparing inside it reported every baseline owned by another shard as missing coverage — measured on a real 8-shard run, every shard exited 3 with roughly 90% of the suite listed as missing, and produced 8 partial reports with no combined view. The reporter now detects a sharded run (`--shard=i/N`) and switches to capture-only: captures are written, comparison and report generation are skipped. The new `testivai merge-captures <dirs...>` command unions the shards' captures so a single `testivai report` compares the whole suite at once — one exit code, one report, and missing-baseline detection that is correct by construction. Opt in or out explicitly with the `captureOnly` reporter option or `TESTIVAI_CAPTURE_ONLY`.
+
+### Patch Changes
+
+- ffc2171: Docs and CLI output now match what the tool actually does. `testivai init` no longer offers a "Cloud" mode or tells you to run `testivai auth <api-key>`; the second wizard choice is what it always really was — helper-file generation for non-Playwright frameworks. Removed the last `dashboard.testiv.ai` URLs from CLI output and error messages. Corrected the documented exit-code contract (code 3 fires by default), the `results.json` schema version and field list, several nonexistent CLI flags, and the WebdriverIO quickstart, which silently produced no report without `.testivai/config.json`.
+- c9b01a6: Refreshes npm descriptions and keywords. `@testivai/witness-playwright` still described itself as a "Playwright sensor for Testivai Visual Regression Test system" — pre-rename terminology with the brand misspelled, on the most-viewed package page. Descriptions now match the local-first positioning and keywords cover the terms people actually search.
+- dd8cf22: The Playwright reporter no longer implies a passing check when it isn't one. A reporter cannot set the process exit code, so a run could print `Changed: 3` and still exit `0` — reading like a visual check that passed. When snapshots changed, are new, or have missing baselines, the summary now states plainly that the build was not failed and names the command that gates it. Missing baselines are also counted in the summary line.
+- 0eb2adb: The Selenium (JavaScript) adapter now captures the element map, so region→selector attribution, the style-only-change verdict, and page-shift detection work there exactly as they do for Playwright. The page-side collector moved into `@testivai/witness` and is exported as `collectElementMap` / `buildElementMapExpression`, so every adapter injects the identical function rather than a copy. New per-call options: `skipElementMap` and `maxElements`. Capture is best-effort — if the script is blocked, the report falls back to the pixel and DOM layers instead of failing.
+- Updated dependencies [ffc2171]
+- Updated dependencies [90109b5]
+- Updated dependencies [2a37518]
+- Updated dependencies [750562e]
+- Updated dependencies [1efe97f]
+- Updated dependencies [c9b01a6]
+- Updated dependencies [003765d]
+- Updated dependencies [cba53b5]
+- Updated dependencies [0eb2adb]
+- Updated dependencies [9aa0f14]
+- Updated dependencies [8997ccd]
+  - @testivai/witness@1.12.0
+  - @testivai/common@0.2.3
+
 ## 1.7.1
 
 ### Patch Changes
