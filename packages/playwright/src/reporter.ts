@@ -13,6 +13,21 @@ interface TestivaiReporterOptions {
   apiKey?: string;
   compression?: CompressionOptions;
   debug?: boolean;
+  /**
+   * Capture only — write `.testivai/temp/` and skip comparison and report
+   * generation entirely.
+   *
+   * This is what a sharded run needs. Each shard only executes a slice of the
+   * suite, so comparing inside a shard reports every baseline the *other*
+   * shards own as missing coverage: measured on an 8-shard run, every shard
+   * exited 3 with ~90% of the suite listed as missing. Capture in the shards,
+   * merge the captures, compare once.
+   *
+   * Left unset this auto-enables when Playwright reports a sharded run
+   * (`--shard=i/N` with N > 1). Set it explicitly to `false` to force
+   * per-shard reports anyway.
+   */
+  captureOnly?: boolean;
 }
 
 export class TestivAIPlaywrightReporter implements Reporter {
@@ -24,6 +39,8 @@ export class TestivAIPlaywrightReporter implements Reporter {
   private tempDir = path.join(process.cwd(), '.testivai', 'temp');
   private compressionHelper: CompressionHelper;
   private localMode = false;
+  private captureOnly = false;
+  private shard: { current: number; total: number } | null = null;
 
   constructor(options: TestivaiReporterOptions = {}) {
     this.options = {
@@ -31,13 +48,31 @@ export class TestivAIPlaywrightReporter implements Reporter {
       apiKey: options.apiKey || process.env.TESTIVAI_API_KEY,
       compression: options.compression || {},
       debug: options.debug || process.env.TESTIVAI_DEBUG === 'true',
+      captureOnly: options.captureOnly,
     };
     
     // Initialize compression helper
     this.compressionHelper = new CompressionHelper(this.options.compression);
   }
 
+  /**
+   * Capture-only resolution, most explicit wins:
+   *   1. the reporter option (including an explicit `false` to opt out)
+   *   2. TESTIVAI_CAPTURE_ONLY — for CI that can't edit playwright.config
+   *   3. auto: Playwright says this is shard i/N with N > 1
+   */
+  private resolveCaptureOnly(config: FullConfig): boolean {
+    if (typeof this.options.captureOnly === 'boolean') return this.options.captureOnly;
+
+    const env = process.env.TESTIVAI_CAPTURE_ONLY;
+    if (env !== undefined && env !== '') return env !== '0' && env.toLowerCase() !== 'false';
+
+    return !!(this.shard && this.shard.total > 1);
+  }
+
   async onBegin(config: FullConfig, suite: Suite): Promise<void> {
+    this.shard = config.shard ?? null;
+    this.captureOnly = this.resolveCaptureOnly(config);
     // Resolve mode. Local-first is the default: with no API key we capture
     // and report locally rather than disabling the reporter. Cloud mode
     // activates only when a key is present (or config/env force it).
@@ -94,6 +129,18 @@ export class TestivAIPlaywrightReporter implements Reporter {
   async onEnd(result: FullResult): Promise<void> {
     // Wrap entire reporter logic in try-catch to prevent crashes
     try {
+      // ── Capture-only: leave the captures on disk and stop ─────────────────
+      //    Comparing here would be wrong for a shard (it can only see its own
+      //    slice) so we say what to do next instead of producing a misleading
+      //    report and exit code.
+      if (this.captureOnly) {
+        const where = this.shard ? `shard ${this.shard.current}/${this.shard.total}` : 'capture-only mode';
+        console.log(`\n  TestivAI: ${where} — captured to .testivai/temp/, comparison skipped.`);
+        console.log('  Collect every shard\'s .testivai/temp/, then compare once:');
+        console.log('    npx testivai merge-captures <dirs...> && npx testivai report --fail-on-diff');
+        return;
+      }
+
       // ── Local mode: generate HTML report instead of uploading ─────────────────
       if (this.localMode) {
         if (this.options.debug) {

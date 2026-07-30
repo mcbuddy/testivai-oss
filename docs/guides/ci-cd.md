@@ -74,7 +74,10 @@ stops guarding its page). That means any run which doesn't exercise the whole
 suite — a `--grep`-filtered run, a browser-matrix shard, a path-filtered job —
 will exit `3` and fail CI even though nothing regressed.
 
-For those jobs, pass `--allow-missing`:
+**Sharded Playwright runs no longer need this** — see
+[Sharded runs](#sharded-runs) above; the reporter captures without comparing and
+you gate once, centrally. `--allow-missing` remains the answer for a genuinely
+partial run such as a `--grep`-filtered job:
 
 ```bash
 npx testivai report --fail-on-diff --allow-missing
@@ -95,6 +98,83 @@ The reviewer downloads the `visual-report` workflow artifact from the failed run
 Font rasterization differs between macOS, Windows, and Linux, so a baseline captured on your laptop will report diffs on a Linux CI runner every time. If CI is where comparisons happen, adopt CI's own captures as baselines: the [GitHub Action](/github-action) bundles every changed capture into the artifact as `visual-report/pending-baselines/`, and a `/testivai approve` PR comment commits them back to the branch.
 
 ---
+
+## Sharded runs
+
+Playwright shards (`--shard=i/N`) need one thing understood: **a shard must not
+compare.** It only ran a slice of the suite, so from its point of view every
+baseline owned by another shard received no capture. Measured on a real 8-shard
+run, comparing per shard exited `3` on **every machine**, each reporting roughly
+90% of the suite as missing, and produced 8 partial reports with no combined view.
+
+The reporter handles this for you. When Playwright reports a sharded run it
+switches to **capture-only**: captures land in `.testivai/temp/`, and comparison
+and report generation are skipped with a note saying what to do next. Nothing to
+configure.
+
+Collect the captures, union them, and compare once:
+
+```yaml title=".github/workflows/visual-sharded.yml"
+jobs:
+  shard:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+
+      # Capture-only: no comparison and no gate inside the shard.
+      - run: npx playwright test --shard=${{ matrix.shard }}/8
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: captures-${{ matrix.shard }}
+          path: .testivai/temp/
+          if-no-files-found: ignore
+
+  visual:
+    needs: shard
+    steps:
+      - uses: actions/checkout@v4          # baselines come from the repo
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: captures-*
+          path: collected/
+
+      # One comparison over the full union — the gate belongs here.
+      - run: npx testivai merge-captures collected/
+      - run: npx testivai report --fail-on-diff
+
+      - uses: mcbuddy/testivai-oss@v1
+        if: always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+One exit code, one report, one PR comment. Missing-baseline detection is correct
+**by construction** here, because it only ever runs against the complete set —
+so you keep the gate rather than disabling it with `--allow-missing`.
+
+Three consequences worth knowing:
+
+- **Shards don't need baselines.** They never compare, so a shard can skip
+  fetching them.
+- **Comparison happens on one machine.** If shards land on different runner
+  images, per-shard font rendering differences can produce phantom diffs against
+  a single baseline set. Comparing centrally removes that variable.
+- **Shards get faster** — no diffing, no report generation.
+
+To force a per-shard report anyway, pass `captureOnly: false` to the reporter and
+expect exit `3` unless you also pass `--allow-missing`.
 
 ## Advanced: Matrix Testing
 
