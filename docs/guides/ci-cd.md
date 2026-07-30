@@ -39,7 +39,12 @@ jobs:
 
       - run: npm run build
 
+      # Capture only: the reporter writes .testivai/temp/ and skips comparing.
+      # In CI the gate below is what decides pass/fail, so comparing twice
+      # only produces a second, non-authoritative summary.
       - run: npm test
+        env:
+          TESTIVAI_CAPTURE_ONLY: '1'
 
       - name: Visual diff gate
         run: npx testivai report --fail-on-diff
@@ -53,6 +58,22 @@ jobs:
 ```
 
 Baselines live in `.testivai/baselines/` — commit them to git (`git add .testivai/baselines/`).
+
+:::tip Why `TESTIVAI_CAPTURE_ONLY` in CI
+A reporter cannot set the process exit code — Playwright owns it, and it
+reflects test results, not visual results. So `npx playwright test` can print
+`Changed: 3` and still exit `0`. **`npx testivai report` is what gates the
+build**, and it does its own comparison.
+
+Setting `TESTIVAI_CAPTURE_ONLY` in CI makes that explicit: the test run
+captures, the gate step compares, and there is exactly one authoritative
+verdict. Leave it unset locally, where the report appearing straight after
+`npx playwright test` is the point.
+
+It's optional — without it the run simply compares twice and prints a summary
+that doesn't decide anything. The reporter says so out loud when snapshots
+changed.
+:::
 
 ### How the gate works
 

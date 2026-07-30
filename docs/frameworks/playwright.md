@@ -91,6 +91,18 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `debug` | `boolean` | `false` | Enable verbose logging. Can also be set via `TESTIVAI_DEBUG=true` |
+| `captureOnly` | `boolean` | auto | Capture without comparing or writing a report. Auto-enables for sharded runs (`--shard=i/N`, N > 1), where comparing inside a shard is wrong. Also settable via `TESTIVAI_CAPTURE_ONLY=1`; set `false` to force per-shard reports. |
+
+:::note The reporter cannot fail your build
+Playwright owns the exit code and it reflects test results, not visual ones — so
+`npx playwright test` can print `Changed: 3` and still exit `0`. The report is
+for looking at; **`npx testivai report --fail-on-diff` is what gates CI.** The
+reporter prints a warning saying exactly this whenever something changed.
+
+In CI, `captureOnly` (or `TESTIVAI_CAPTURE_ONLY=1`) is the tidy setup: capture in
+the test run, compare once in the gate step. See the
+[CI/CD guide](../guides/ci-cd.md).
+:::
 
 ---
 

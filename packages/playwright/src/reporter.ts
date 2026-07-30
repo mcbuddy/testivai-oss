@@ -165,11 +165,21 @@ export class TestivAIPlaywrightReporter implements Reporter {
 
         // Print summary
         const { summary } = reportData;
+        const missing = reportData.missingBaselines?.length ?? 0;
         console.log(`\n  ═══ TestivAI Visual Report ═══`);
         console.log(`  Total: ${summary.total}  |  Passed: ${summary.passed}  |  Changed: ${summary.changed}  |  New: ${summary.newSnapshots}`);
+        if (missing > 0) {
+          console.log(`  Missing baselines (no capture this run): ${missing}`);
+        }
 
-        if (summary.changed > 0 || summary.newSnapshots > 0) {
-          console.log(`\n  To approve: npx testivai approve --all`);
+        // A reporter cannot change the process exit code — Playwright owns it,
+        // and it reflects test results, not visual results. Saying nothing here
+        // meant a run could print "Changed: 3" and still exit 0, which reads
+        // like a check that passed. State it plainly and name the gate.
+        if (summary.changed > 0 || summary.newSnapshots > 0 || missing > 0) {
+          console.log(`\n  ⚠  This did NOT fail the build — a reporter cannot set the exit code.`);
+          console.log(`     Gate it in CI:  npx testivai report --fail-on-diff`);
+          console.log(`     To approve:     npx testivai approve --all`);
         }
 
         if (this.options.debug) {
