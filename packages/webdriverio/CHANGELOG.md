@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.14
+
+### Patch Changes
+
+- Updated dependencies [f80f6c6]
+- Updated dependencies [09eafd4]
+- Updated dependencies [6fdc1db]
+  - @testivai/witness@1.13.0
+
 ## 0.2.13
 
 ### Patch Changes

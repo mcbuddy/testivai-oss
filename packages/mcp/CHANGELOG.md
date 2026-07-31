@@ -1,5 +1,15 @@
 # @testivai/mcp
 
+## 0.5.7
+
+### Patch Changes
+
+- 01232e8: When no report exists, the MCP server now explains why instead of always saying "run the visual tests first" — which is wrong on a sharded CI node, where the tests did run but a shard captures without comparing. It distinguishes a capture-only shard (naming which), captures that were never compared, and a project where nothing ran at all.
+- Updated dependencies [f80f6c6]
+- Updated dependencies [09eafd4]
+- Updated dependencies [6fdc1db]
+  - @testivai/witness@1.13.0
+
 ## 0.5.6
 
 ### Patch Changes

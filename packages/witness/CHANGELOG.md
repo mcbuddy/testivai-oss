@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.13.0
+
+### Minor Changes
+
+- f80f6c6: Sharded and parallel runs now work the same way in every language, not just Playwright. `TESTIVAI_SHARD=i/N` and `TESTIVAI_CAPTURE_ONLY=1` are honoured by the Playwright, Selenium, Python, Java and Ruby adapters, so a Selenium or pytest suite joins the same capture → merge → compare-once flow with the same completeness guarantee. Playwright still auto-detects `--shard`, now as a convenience on top of the shared contract rather than a separate mechanism.
+
+  Also fixes a real bug in the pytest plugin: `pytest_sessionfinish` fires in every xdist worker, so `pytest -n 8` launched eight concurrent comparisons racing on the same `visual-report/`. Only the controller reports now.
+
+- 09eafd4: Captures now wait for the page to stop changing, in every language. On top of the existing animation/caret/font stabilization, `stabilize` waits for `document.readyState === 'complete'`, for every image to finish, and for 150ms without DOM mutations — bounded at 5 seconds, so a page that never settles is captured rather than hanging the suite. The probe is generated from one TypeScript source and shipped to the Python, Java and Ruby adapters, so all five poll the identical predicate. Deliberately not network idle, which Playwright's own docs mark DISCOURAGED for testing and which is the wrong signal for a screenshot.
+
+### Patch Changes
+
+- 6fdc1db: Adds a verified per-framework recipe for splitting a suite across CI nodes: Playwright's built-in `--shard`, Jest's `--shard`, pytest-split's `--splits/--group`, and deterministic file/class splitters for Maven Surefire and RSpec, which have no shard flag. Also documents that splitting the tests is the runner's job and TestivAI's `TESTIVAI_SHARD` only needs to agree on the index — plus a one-liner to prove the split covers every file.
+
 ## 1.12.0
 
 ### Minor Changes
