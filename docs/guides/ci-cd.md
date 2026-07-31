@@ -268,6 +268,69 @@ from one that finished. A bare Selenium script or RSpec suite has no such hook,
 so its manifest records participation rather than completion — `merge-captures`
 only reports incompleteness when at least one shard proves it is trackable.
 
+### Splitting the suite in each framework
+
+`TESTIVAI_SHARD` tells TestivAI which shard this is. **Splitting the tests is
+your test runner's job** — the two are separate, and they must agree on the same
+index. Verified recipes per lane:
+
+**Playwright** — sharding is built in, and the adapter also auto-detects it, so
+`TESTIVAI_SHARD` is optional here:
+
+```bash
+npx playwright test --shard=3/8
+```
+
+**Selenium (JavaScript) with Jest** — Jest 28+ has `--shard`, 1-based like
+Playwright:
+
+```bash
+TESTIVAI_SHARD=3/8 npx jest --shard=3/8
+```
+
+**Python (pytest)** — use [`pytest-split`](https://pypi.org/project/pytest-split/)
+(`--group` is 1-based). Run `pytest --store-durations` once and commit
+`.test_durations` so the split is balanced by runtime rather than file count:
+
+```bash
+TESTIVAI_SHARD=3/8 pytest --splits 8 --group 3
+```
+
+**Java (JUnit + Maven)** — Surefire has no shard flag, so split the class list
+deterministically and pass it to `-Dtest`:
+
+```bash
+TOTAL=8; INDEX=3
+CLASSES=$(find src/test/java -name '*Test.java' | sort \
+  | awk "NR % $TOTAL == $INDEX % $TOTAL" \
+  | sed 's|.*/||; s|\.java$||' | paste -sd, -)
+TESTIVAI_SHARD=$INDEX/$TOTAL mvn test -Dtest="$CLASSES"
+```
+
+**Ruby (RSpec)** — same idea; RSpec takes a file list:
+
+```bash
+TOTAL=8; INDEX=3
+FILES=$(find spec -name '*_spec.rb' | sort | awk "NR % $TOTAL == $INDEX % $TOTAL")
+TESTIVAI_SHARD=$INDEX/$TOTAL bundle exec rspec $FILES
+```
+
+The `awk` line assigns every file to exactly one node with no gaps or overlaps —
+`sort` is what makes it deterministic across machines, so don't drop it. It
+splits by file count, not runtime; for balance, order the list by duration or use
+a plugin that does (pytest-split above, or Knapsack for RSpec).
+
+:::tip Check the split before trusting it
+`merge-captures` will tell you if a shard never reported, but it cannot know a
+file was assigned to *no* node. Confirm your splitter covers everything:
+
+```bash
+for i in $(seq 1 8); do
+  find spec -name '*_spec.rb' | sort | awk "NR % 8 == $i % 8"
+done | sort -u | wc -l    # must equal the total file count
+```
+:::
+
 ### Sharding on other CI providers
 
 Nothing above is GitHub-specific in shape. The flow is four steps that any
