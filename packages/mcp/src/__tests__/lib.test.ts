@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { PNG } from 'pngjs';
-import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng } from '../lib';
+import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng, describeMissingResults } from '../lib';
 
 describe('@testivai/mcp lib', () => {
   let root: string;
@@ -357,5 +357,59 @@ describe('@testivai/mcp explainSnapshot', () => {
     writeResults([{ name: 'fresh', status: 'new', diffPercent: 0 }]);
     const e = explainSnapshot(root, 'fresh');
     expect(e.guidance.join(' ')).toMatch(/first capture, not a regression/i);
+  });
+
+  describe('describeMissingResults', () => {
+    let root: string;
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-missing-'));
+    });
+    afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+    const capture = (name: string) => {
+      const d = path.join(root, '.testivai', 'temp', name);
+      fs.mkdirSync(d, { recursive: true });
+      fs.writeFileSync(path.join(d, 'screenshot.png'), 'png');
+    };
+
+    it('says to run the tests when nothing was captured', () => {
+      const msg = describeMissingResults(root);
+      expect(msg).toContain('Run the visual tests first');
+    });
+
+    // The message that used to be wrong: on a shard the tests DID run.
+    it('explains a capture-only shard instead of blaming the test run', () => {
+      capture('home');
+      fs.writeFileSync(
+        path.join(root, '.testivai', 'temp', 'testivai-shard.json'),
+        JSON.stringify({ shard: { current: 3, total: 8 } }),
+      );
+
+      const msg = describeMissingResults(root);
+
+      expect(msg).toContain('capture-only shard 3/8');
+      expect(msg).toContain('merge-captures');
+      expect(msg).not.toContain('Run the visual tests first');
+    });
+
+    it('points at report when captures exist but nothing compared them', () => {
+      capture('home');
+      capture('checkout');
+
+      const msg = describeMissingResults(root);
+
+      expect(msg).toContain('2 capture(s)');
+      expect(msg).toContain('testivai report');
+      expect(msg).not.toContain('Run the visual tests first');
+    });
+
+    it('ignores a malformed manifest rather than crashing', () => {
+      capture('home');
+      fs.writeFileSync(path.join(root, '.testivai', 'temp', 'testivai-shard.json'), 'not json');
+
+      expect(() => describeMissingResults(root)).not.toThrow();
+      expect(describeMissingResults(root)).toContain('capture(s)');
+    });
   });
 });

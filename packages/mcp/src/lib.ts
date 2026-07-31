@@ -112,6 +112,59 @@ export function verdictFor(snapshot: SnapshotResult): string {
 }
 
 /** Resolve a report-relative image path safely inside the report dir. */
+/**
+ * Explain why there is no `results.json`, using what IS on disk.
+ *
+ * "Run the visual tests first" is wrong and confusing on a sharded CI node:
+ * the tests did run, but a shard captures without comparing, and the report is
+ * produced by the job that merges every shard. Distinguishing those cases saves
+ * an agent (or a human) from chasing a run that isn't broken.
+ */
+export function describeMissingResults(root: string): string {
+  const paths = resolvePaths(root);
+  const tempDir = path.join(paths.root, '.testivai', 'temp');
+  const where = `${path.relative(paths.root, paths.reportDir) || paths.reportDir}/results.json`;
+
+  let entries: fs.Dirent[] = [];
+  try {
+    entries = fs.readdirSync(tempDir, { withFileTypes: true });
+  } catch {
+    return (
+      `No results found at ${where}, and no captures exist in .testivai/temp/. ` +
+      'Run the visual tests first (e.g. npx playwright test).'
+    );
+  }
+
+  const captures = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+
+  // A shard manifest is proof this machine deliberately captured without comparing.
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(tempDir, 'testivai-shard.json'), 'utf8'));
+    const cur = raw?.shard?.current;
+    const tot = raw?.shard?.total;
+    if (typeof cur === 'number' && typeof tot === 'number') {
+      return (
+        `No results found at ${where} because this is capture-only shard ${cur}/${tot}. ` +
+        `${captures.length} capture(s) are in .testivai/temp/, but no comparison ran here — ` +
+        'a shard sees only its slice of the suite. The report is produced by the job that ' +
+        'merges every shard: `testivai merge-captures <dirs...> && testivai report`.'
+      );
+    }
+  } catch {
+    // no manifest, or unreadable — fall through
+  }
+
+  if (captures.length > 0) {
+    return (
+      `No results found at ${where}, but ${captures.length} capture(s) exist in ` +
+      '.testivai/temp/. The captures were never compared — run `npx testivai report` ' +
+      '(this is also what capture-only mode expects, e.g. TESTIVAI_CAPTURE_ONLY=1).'
+    );
+  }
+
+  return `No results found at ${where}. Run the visual tests first (e.g. npx playwright test).`;
+}
+
 export function resolveImage(paths: ProjectPaths, relativePath: string): string | null {
   const abs = path.resolve(paths.reportDir, relativePath);
   if (!abs.startsWith(path.resolve(paths.reportDir) + path.sep)) return null; // no traversal

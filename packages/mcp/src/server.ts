@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { z, type ZodRawShape } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng, approveSnapshot, approveAll, explainSnapshot } from './lib';
+import { resolvePaths, readResults, verdictFor, resolveImage, listBaselines, downscalePng, approveSnapshot, approveAll, explainSnapshot, describeMissingResults } from './lib';
 
 const packageJson = require('../package.json');
 
@@ -32,7 +32,7 @@ server.registerTool(
         content: [
           {
             type: 'text',
-            text: `No results found at ${paths.reportDir}/results.json. Run the visual tests first (e.g. npx playwright test).`,
+            text: describeMissingResults(projectRoot),
           },
         ],
       };
@@ -110,7 +110,7 @@ server.registerTool(
   async () => {
     const results = readResults(resolvePaths(projectRoot));
     if (!results) {
-      return { content: [{ type: 'text', text: 'No results found. Run the visual tests first (e.g. npx playwright test).' }] };
+      return { content: [{ type: 'text', text: describeMissingResults(projectRoot) }] };
     }
     return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
   }

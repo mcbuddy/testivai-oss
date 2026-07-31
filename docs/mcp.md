@@ -37,6 +37,17 @@ The server reads the project from its working directory (`--root <path>` to
 override) and honours `reportDir` from `.testivai/config.json`. It runs locally
 and makes no network calls.
 
+When there is no report yet it says *why*, rather than assuming the tests never
+ran — on a sharded CI node the tests did run, and the comparison happens
+elsewhere:
+
+```text
+No results found at visual-report/results.json because this is capture-only
+shard 3/8. 1 capture(s) are in .testivai/temp/, but no comparison ran here — a
+shard sees only its slice of the suite. The report is produced by the job that
+merges every shard.
+```
+
 ## Tools
 
 | Tool | Returns |
