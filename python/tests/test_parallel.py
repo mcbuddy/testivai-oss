@@ -136,3 +136,57 @@ def test_worker_writes_no_manifest(project, monkeypatch):
     plugin.pytest_sessionfinish(FakeSession(worker=True), 0)
 
     assert not (Path(project) / ".testivai" / "temp" / "testivai-shard.json").exists()
+
+
+class _SettleDriver:
+    """Answers the settle probe a fixed number of times before settling."""
+
+    def __init__(self, settle_after=0, broken=False):
+        self.calls = 0
+        self.settle_after = settle_after
+        self.broken = broken
+
+    def execute_script(self, script, *args):
+        if "settleProbe" in script:
+            self.calls += 1
+            if self.broken:
+                return None  # driver cannot evaluate the probe
+            settled = self.calls > self.settle_after
+            return {
+                "ready": True,
+                "imagesPending": 0 if settled else 1,
+                "fontsPending": False,
+                "quietFor": 999,
+                "settled": settled,
+            }
+        return None
+
+
+def test_wait_for_settled_polls_until_settled():
+    from testivai._capture import wait_for_settled
+
+    d = _SettleDriver(settle_after=3)
+    wait_for_settled(d, quiet_ms=0, timeout=5.0)
+    assert d.calls == 4, "should poll until the probe reports settled"
+
+
+def test_wait_for_settled_gives_up_at_the_timeout():
+    from testivai._capture import wait_for_settled
+    import time
+
+    d = _SettleDriver(settle_after=10**9)  # never settles
+    started = time.time()
+    wait_for_settled(d, quiet_ms=0, timeout=0.3)
+    assert time.time() - started < 2.0, "must be bounded"
+
+
+def test_unusable_probe_answer_returns_immediately():
+    """A driver that cannot evaluate the probe must not cost the full timeout."""
+    from testivai._capture import wait_for_settled
+    import time
+
+    d = _SettleDriver(broken=True)
+    started = time.time()
+    wait_for_settled(d, quiet_ms=0, timeout=5.0)
+    assert d.calls == 1
+    assert time.time() - started < 1.0

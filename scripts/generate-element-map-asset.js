@@ -37,6 +37,9 @@ if (!fs.existsSync(DIST)) {
 
 const { collectElementMap, DEFAULT_MAX_ELEMENTS } = require(DIST);
 
+const SETTLE_DIST = path.join(ROOT, 'packages/witness/dist/capture/settle.js');
+const { settleProbe, DEFAULT_QUIET_MS } = fs.existsSync(SETTLE_DIST) ? require(SETTLE_DIST) : {};
+
 if (typeof collectElementMap !== 'function') {
   console.error('error: collectElementMap is not a function — build output looks wrong.');
   process.exit(1);
@@ -64,7 +67,34 @@ const BANNER = `/**
 
 const asset = BANNER + collectElementMap.toString() + '\n';
 
+const SETTLE_BANNER = `/**
+ * AUTO-GENERATED — DO NOT EDIT.
+ *
+ * Page-settled probe, emitted from
+ *   packages/witness/src/capture/settle.ts
+ * by
+ *   scripts/generate-element-map-asset.js
+ *
+ * Polled by each adapter from its host language until \`settled\` is true or a
+ * timeout elapses. Deliberately not network idle — Playwright's own docs mark
+ * that DISCOURAGED for testing, and it is the wrong signal for a visual
+ * snapshot anyway.
+ *
+ * Default DOM-quiet threshold: ${DEFAULT_QUIET_MS}ms
+ *
+ * Call form:
+ *   return (<this function>)(document, window, <quietMs>);
+ */
+`;
+const settleAsset = settleProbe ? SETTLE_BANNER + settleProbe.toString() + '\n' : null;
+
 /** Where the asset must land for each language's packaging to pick it up. */
+const SETTLE_TARGETS = [
+  path.join(ROOT, 'python/src/testivai/settle.js'),
+  path.join(ROOT, 'java/src/main/resources/ai/testiv/testivai/settle.js'),
+  path.join(ROOT, 'ruby/lib/testivai/settle.js'),
+];
+
 const TARGETS = [
   // Python: shipped as package data (see pyproject.toml [tool.setuptools.package-data])
   path.join(ROOT, 'python/src/testivai/element_map.js'),
@@ -77,7 +107,11 @@ const TARGETS = [
 const check = process.argv.includes('--check');
 let drifted = false;
 
-for (const target of TARGETS) {
+const ALL = settleAsset
+  ? [...TARGETS.map((t) => [t, asset]), ...SETTLE_TARGETS.map((t) => [t, settleAsset])]
+  : TARGETS.map((t) => [t, asset]);
+
+for (const [target, contents] of ALL) {
   const rel = path.relative(ROOT, target);
   // Read-or-null rather than exists-then-read: no window between the check
   // and the use, and a missing file is exactly the "not generated yet" case.
@@ -88,7 +122,7 @@ for (const target of TARGETS) {
     if (err.code !== 'ENOENT') throw err;
   }
 
-  if (existing === asset) {
+  if (existing === contents) {
     console.log(`  ok      ${rel}`);
     continue;
   }
@@ -100,7 +134,7 @@ for (const target of TARGETS) {
   }
 
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, asset);
+  fs.writeFileSync(target, contents);
   console.log(`  ${existing === null ? 'created' : 'updated'} ${rel}`);
 }
 

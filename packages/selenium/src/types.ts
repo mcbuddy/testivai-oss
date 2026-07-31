@@ -49,6 +49,13 @@ export interface WitnessOptions {
    */
   skipElementMap?: boolean;
   /**
+   * Milliseconds the DOM must be free of mutations before capturing
+   * (default 150). Raise it for pages that stream content in.
+   */
+  settleQuietMs?: number;
+  /** Ceiling on waiting for the page to settle (default 5000ms). */
+  settleTimeoutMs?: number;
+  /**
    * Cap on elements walked for the map (default 3000). Lower it on very
    * large pages where the single executeScript round trip is costly.
    */

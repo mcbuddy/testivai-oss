@@ -30,6 +30,10 @@ function makeDriver(overrides: Partial<WitnessDriver> & { dom?: string } = {}) {
     if (script.includes('document.fonts')) {
       return true;
     }
+    if (script.includes('settleProbe') || script.includes('__testivaiSettleState')) {
+      // A real browser answers the probe; settled so tests don't wait.
+      return { ready: true, imagesPending: 0, fontsPending: false, quietFor: 999, settled: true };
+    }
     if (script.includes('collectElementMap')) {
       // Evaluate the real injected expression against a duck-typed DOM,
       // so the test proves the adapter ships a runnable script — not just

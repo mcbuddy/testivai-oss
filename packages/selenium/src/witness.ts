@@ -27,6 +27,10 @@ import {
   DEFAULT_MAX_ELEMENTS,
   parseShardEnv,
   writeShardManifest,
+  buildSettleProbeExpression,
+  SETTLE_STOP_EXPRESSION,
+  DEFAULT_QUIET_MS,
+  DEFAULT_SETTLE_TIMEOUT_MS,
 } from '@testivai/witness';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -81,6 +85,48 @@ async function removeCaptureCss(driver: WitnessDriver): Promise<void> {
  * Wait (bounded at 10s) for web fonts to finish loading so the capture
  * never shows a fallback font — a fallback-font capture diffs 30%+.
  */
+/**
+ * Wait until the page has stopped changing: document complete, images finished,
+ * fonts loaded, and no DOM mutations for `quietMs`.
+ *
+ * Deliberately NOT network idle — Playwright's own docs mark that DISCOURAGED
+ * for testing, and it is the wrong signal anyway: a page with analytics beacons
+ * never goes quiet, while a network-idle page can still be animating.
+ *
+ * Always bounded. A page that never settles yields a capture with a debug note
+ * rather than a hung suite.
+ */
+async function waitForSettled(
+  driver: WitnessDriver,
+  quietMs: number,
+  timeoutMs: number,
+): Promise<void> {
+  const expr = buildSettleProbeExpression(quietMs);
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      const state = await driver.executeScript<{ settled?: boolean }>(`return ${expr}`);
+      // A driver that cannot evaluate the probe returns nothing. Polling that
+      // to the timeout would add the full wait to EVERY capture, so treat an
+      // unusable answer as "cannot probe" and proceed immediately.
+      if (!state || typeof state.settled !== 'boolean') return;
+      if (state.settled) return;
+      if (Date.now() >= deadline) return;
+    } catch {
+      return; // probe unavailable — never block the capture
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+async function stopSettleObserver(driver: WitnessDriver): Promise<void> {
+  try {
+    await driver.executeScript(SETTLE_STOP_EXPRESSION);
+  } catch {
+    // best-effort cleanup
+  }
+}
+
 async function waitForFonts(driver: WitnessDriver): Promise<void> {
   const deadline = Date.now() + 10_000;
   for (;;) {
@@ -169,7 +215,14 @@ export async function witness(
   let injected = false;
   if (cssParts.length > 0 && typeof driver.executeScript === 'function') {
     injected = await injectCaptureCss(driver, cssParts.join('\n'));
-    if (stabilize) await waitForFonts(driver);
+    if (stabilize) {
+      await waitForFonts(driver);
+      await waitForSettled(
+        driver,
+        options.settleQuietMs ?? DEFAULT_QUIET_MS,
+        options.settleTimeoutMs ?? DEFAULT_SETTLE_TIMEOUT_MS,
+      );
+    }
   }
 
   // 1. Capture screenshot (full-page on Chromium, viewport elsewhere)
@@ -178,6 +231,7 @@ export async function witness(
     screenshot = await captureScreenshot(driver);
   } finally {
     if (injected) await removeCaptureCss(driver);
+    if (stabilize) await stopSettleObserver(driver);
   }
 
   // 2. Capture DOM (best-effort — never break the screenshot path)

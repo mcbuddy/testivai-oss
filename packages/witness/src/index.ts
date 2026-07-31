@@ -30,6 +30,17 @@ export type { CollectedElement } from './capture/element-map';
 export { parseShardEnv, resolveCaptureOnly, writeShardManifest, SHARD_MANIFEST } from './capture/shard';
 export type { ShardInfo, ShardManifest } from './capture/shard';
 
+// Page-settled probe — shared by every adapter.
+export {
+  settleProbe,
+  buildSettleProbeExpression,
+  SETTLE_STOP_EXPRESSION,
+  SETTLE_STATE_KEY,
+  DEFAULT_QUIET_MS,
+  DEFAULT_SETTLE_TIMEOUT_MS,
+} from './capture/settle';
+export type { SettleState } from './capture/settle';
+
 export { BaselineStore } from './baselines';
 export type { BaselineMetadata } from './baselines';
 

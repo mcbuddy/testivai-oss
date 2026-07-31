@@ -8,6 +8,7 @@ require "pathname"
 require_relative "config"
 require_relative "element_map"
 require_relative "shard"
+require_relative "settle"
 
 module Testivai
   # Capture half of the pipeline: writes `.testivai/temp/<name>/` with the
@@ -96,13 +97,19 @@ module Testivai
       injected = false
       unless css.empty?
         injected = inject_css(browser, css)
-        wait_for_fonts(browser) if stabilize
+        if stabilize
+          wait_for_fonts(browser)
+          # Then wait for the page itself to stop changing — images finished,
+          # DOM quiet. The load question the DOM/style layer cannot answer.
+          Settle.wait_for(browser)
+        end
       end
 
       begin
         screenshot = capture_screenshot(browser)
       ensure
         remove_css(browser) if injected
+        Settle.stop(browser) if stabilize
       end
 
       File.binwrite(temp_dir.join("screenshot.png"), screenshot)

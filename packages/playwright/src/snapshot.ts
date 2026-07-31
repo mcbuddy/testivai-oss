@@ -7,7 +7,7 @@ import { SnapshotPayload, LayoutData, TestivAIConfig, StructureAnalysis, Structu
 import { loadConfig, mergeTestConfig } from './config/loader';
 import { collectIgnoreSelectors, collectIgnoreRules, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
 import { buildElementMapExpression } from './capture/element-map';
-import { STABILIZE_CSS, resolveStabilize, waitForFonts } from './config/stabilize';
+import { STABILIZE_CSS, resolveStabilize, waitForFonts, waitForSettled, stopSettleObserver } from './config/stabilize';
 import { resolveLocalMode } from './mode';
 
 /**
@@ -126,6 +126,10 @@ export async function snapshot(
       // Style injection can fail on locked-down pages; capture proceeds
     }
     await waitForFonts(page);
+    // Then wait for the page itself to stop changing — images finished, DOM
+    // quiet. This is the load question the DOM/style layer cannot answer:
+    // content that never arrived reads as a real change, not as noise.
+    await waitForSettled(page);
   }
 
   // Check if scroll-and-stitch is explicitly requested (backup method)
@@ -385,6 +389,7 @@ export async function snapshot(
   if (stabilizeStyleEl) {
     await stabilizeStyleEl.evaluate((el: Element) => el.remove()).catch(() => {});
     stabilizeStyleEl = null;
+    await stopSettleObserver(page);
   }
 
   // 1.5. Local mode: also place the screenshot in the layout expected by

@@ -107,7 +107,12 @@ public final class SeleniumWitness {
       } catch (RuntimeException ignored) {
         // locked-down page; capture proceeds
       }
-      if (stabilize) waitForFonts(js);
+      if (stabilize) {
+        waitForFonts(js);
+        // Then wait for the page itself to stop changing — images finished,
+        // DOM quiet. The load question the DOM/style layer cannot answer.
+        Settle.waitFor(js, Settle.DEFAULT_QUIET_MS, Settle.DEFAULT_TIMEOUT_MS);
+      }
     }
 
     Path tempDir = root.resolve(".testivai").resolve("temp").resolve(effectiveName);
@@ -124,6 +129,7 @@ public final class SeleniumWitness {
             // best-effort cleanup
           }
         }
+        if (stabilize) Settle.stop(js);
       }
 
       if (!options.skipDom && js != null) {

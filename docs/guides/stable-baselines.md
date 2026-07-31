@@ -223,6 +223,50 @@ example above adds the optional keys (`reportDir`, `ignoreSelectors`, `mask`,
 every key falls back to its default.
 
 
+## Waiting for the page to settle
+
+Before every capture, `stabilize` (on by default) freezes animations and
+transitions, hides the caret, disables smooth scrolling, waits for web fonts —
+and then waits for the page to **stop changing**:
+
+- `document.readyState === 'complete'`
+- every `<img>` finished (a failed image counts as finished, so a 404 never hangs you)
+- no DOM mutations for 150ms, watched with a `MutationObserver`
+
+All of it is bounded at 5 seconds. A page that never settles gets captured
+anyway rather than hanging the suite, and `TESTIVAI_DEBUG=true` says so.
+
+### Why not "network idle"
+
+Playwright's own documentation marks `networkidle` **DISCOURAGED**: *"Don't use
+this method for testing, rely on web assertions to assess readiness instead."*
+It is also the wrong signal for a visual snapshot — a page with analytics
+beacons or long-polling never goes quiet even though it is visually settled,
+while a network-idle page can still be mid-animation. What matters for a
+screenshot is whether the *rendered page* stopped changing.
+
+The observer approach also stays out of your application's way: a
+`MutationObserver` watches, where a network monitor would have to monkey-patch
+`fetch` and `XMLHttpRequest` in the page under test.
+
+### What this cannot do
+
+It waits for work the page has **started**. It cannot wait for content the page
+has not requested yet — an image whose `src` is set by a timer three seconds
+later looks identical to a page that is simply finished.
+
+No tool can know that without knowing your app, which is exactly why Playwright
+points at web assertions. If content arrives on a delay, assert it before
+capturing:
+
+```ts
+await expect(page.getByTestId('chart')).toBeVisible();
+await witness(page, testInfo, 'dashboard');
+```
+
+That is a real limitation, not a rough edge — the settle wait removes the flake
+you get from *in-flight* loading, which is the common case.
+
 ## Repository size — what baselines actually cost
 
 Baselines are PNGs committed to your repository, so it's fair to ask what that

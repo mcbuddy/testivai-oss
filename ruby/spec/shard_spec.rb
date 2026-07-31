@@ -65,3 +65,59 @@ RSpec.describe Testivai::Shard do
     end
   end
 end
+
+RSpec.describe Testivai::Settle do
+  # Answers the probe a fixed number of times before reporting settled.
+  class ProbeBrowser
+    attr_reader :calls
+
+    def initialize(settle_after: 0, answer: :normal)
+      @calls = 0
+      @settle_after = settle_after
+      @answer = answer
+    end
+
+    def execute_script(script, *_args)
+      return nil unless script.include?("settleProbe")
+
+      @calls += 1
+      return @answer unless @answer == :normal
+
+      { "ready" => true, "imagesPending" => 0, "settled" => @calls > @settle_after }
+    end
+  end
+
+  it "wraps the generated probe and strips the banner" do
+    expr = described_class.expression(150)
+    expect(expr).to start_with("return (function settleProbe")
+    expect(expr).to end_with(")(document, window, 150);")
+    expect(expr).not_to include("AUTO-GENERATED")
+  end
+
+  it "polls until the page settles" do
+    b = ProbeBrowser.new(settle_after: 3)
+    described_class.wait_for(b, quiet_ms: 0, timeout: 5.0)
+    expect(b.calls).to eq(4)
+  end
+
+  it "gives up rather than hanging on a page that never settles" do
+    b = ProbeBrowser.new(settle_after: 10**9)
+    started = Time.now
+    described_class.wait_for(b, quiet_ms: 0, timeout: 0.3)
+    expect(Time.now - started).to be < 2.0
+  end
+
+  it "returns at once when the browser cannot evaluate the probe" do
+    b = ProbeBrowser.new(answer: "not a hash")
+    started = Time.now
+    described_class.wait_for(b, quiet_ms: 0, timeout: 5.0)
+    expect(b.calls).to eq(1)
+    expect(Time.now - started).to be < 1.0
+  end
+
+  it "stops best-effort even on a browser that raises" do
+    raising = Object.new
+    def raising.execute_script(*) = raise("boom")
+    expect { described_class.stop(raising) }.not_to raise_error
+  end
+end

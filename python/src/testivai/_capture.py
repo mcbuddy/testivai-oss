@@ -231,3 +231,72 @@ def _element_map_expression(max_elements: int, ignore_selectors: Sequence[str]) 
         int(max_elements),
         json.dumps(list(ignore_selectors)),
     )
+
+
+# ── Page-settled probe ──────────────────────────────────────────────────────
+#
+# `settle.js` is GENERATED from packages/witness/src/capture/settle.ts, same as
+# element_map.js, so every language polls the identical predicate.
+#
+# Deliberately NOT network idle: Playwright's own docs mark that DISCOURAGED for
+# testing, and it is the wrong signal for a visual snapshot — a page with
+# analytics beacons never goes quiet, while a network-idle page can still be
+# animating. What matters is whether the rendered page stopped changing.
+
+DEFAULT_QUIET_MS = 150
+DEFAULT_SETTLE_TIMEOUT = 5.0
+
+_SETTLE_SRC: Optional[str] = None
+
+
+def _load_settle_source() -> str:
+    global _SETTLE_SRC
+    if _SETTLE_SRC is None:
+        raw = resources.files("testivai").joinpath("settle.js").read_text(encoding="utf-8")
+        start = raw.find("function settleProbe")
+        if start == -1:
+            raise RuntimeError(
+                "settle.js is malformed: settleProbe not found. "
+                "Regenerate with scripts/generate-element-map-asset.js"
+            )
+        _SETTLE_SRC = raw[start:].strip()
+    return _SETTLE_SRC
+
+
+def _settle_expression(quiet_ms: int) -> str:
+    return "return ({0})(document, window, {1});".format(_load_settle_source(), int(quiet_ms))
+
+
+def wait_for_settled(driver: Any, quiet_ms: int = DEFAULT_QUIET_MS,
+                     timeout: float = DEFAULT_SETTLE_TIMEOUT) -> None:
+    """
+    Poll until the page stops changing, or give up.
+
+    Always bounded: a page that never settles yields a capture, not a hang. A
+    driver that cannot evaluate the probe returns something unusable, in which
+    case we proceed at once rather than paying the whole timeout every capture.
+    """
+    expr = _settle_expression(quiet_ms)
+    deadline = time.time() + timeout
+    while True:
+        try:
+            state = driver.execute_script(expr)
+        except Exception:
+            return
+        if not isinstance(state, dict) or not isinstance(state.get("settled"), bool):
+            return
+        if state["settled"] or time.time() >= deadline:
+            return
+        time.sleep(0.05)
+
+
+def stop_settle_observer(driver: Any) -> None:
+    """Detach the observer so it does not linger on the page under test."""
+    try:
+        driver.execute_script(
+            "try { var s = window.__testivaiSettleState;"
+            " if (s && s.observer && s.observer.disconnect) s.observer.disconnect(); } catch (e) {}"
+            " try { delete window.__testivaiSettleState; } catch (e) {}"
+        )
+    except Exception:
+        pass

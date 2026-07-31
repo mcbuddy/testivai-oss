@@ -39,6 +39,8 @@ from ._capture import (
     STABILIZE_CSS,
     _DEFAULT_MAX_ELEMENTS,
     _element_map_expression,
+    wait_for_settled,
+    stop_settle_observer,
     build_ignore_css,
     load_local_config,
     sanitize_variant,
@@ -147,6 +149,10 @@ def witness(
             style_injected = False  # locked-down page; capture proceeds
         if effective_stabilize:
             _wait_for_fonts(driver)
+            # Then wait for the page itself to stop changing — images finished,
+            # DOM quiet. This is the load question the DOM/style layer cannot
+            # answer: content that never arrived reads as a real change.
+            wait_for_settled(driver)
 
     temp_dir = root / ".testivai" / "temp" / name
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -161,6 +167,9 @@ def witness(
                 driver.execute_script(_REMOVE_STYLE_JS, _STYLE_ID)
             except Exception:
                 pass  # best-effort cleanup
+        if effective_stabilize:
+            # Detach the observer so it does not linger on the page under test.
+            stop_settle_observer(driver)
 
     # 3. DOM snapshot with ignored elements removed (best-effort — a flaky
     #    page never breaks the screenshot path; missing dom.html just
