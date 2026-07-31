@@ -25,6 +25,8 @@ import {
   loadLocalConfig,
   buildElementMapExpression,
   DEFAULT_MAX_ELEMENTS,
+  parseShardEnv,
+  writeShardManifest,
 } from '@testivai/witness';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -228,6 +230,15 @@ export async function witness(
   // 4. Write to .testivai/temp/<name>/
   const store = new BaselineStore(process.cwd());
   store.writeTemp(name, screenshot, dom);
+
+  // 5. Shard manifest. A Selenium script has no end-of-run hook to attach to,
+  //    so it is refreshed on every capture — which is exactly what lets a
+  //    Selenium suite join the same sharded CI flow as Playwright. `complete`
+  //    stays false because this adapter cannot know the run finished.
+  const shard = parseShardEnv(process.env.TESTIVAI_SHARD);
+  if (shard) {
+    writeShardManifest(path.join(process.cwd(), '.testivai', 'temp'), shard);
+  }
   if (elementMap !== undefined) {
     const tempDir = path.join(process.cwd(), '.testivai', 'temp', name);
     try {

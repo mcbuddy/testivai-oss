@@ -32,8 +32,26 @@ public final class TestivAIExtension implements BeforeAllCallback, ExtensionCont
 
   @Override
   public void close() {
-    if ("0".equals(System.getenv("TESTIVAI_AUTO_REPORT"))) return;
     java.nio.file.Path temp = java.nio.file.Path.of(".testivai", "temp");
+
+    // Shard participation, same env contract as every other adapter. JUnit has
+    // an end-of-run hook, so completion is trackable here.
+    Shard info = Shard.fromEnv();
+    if (info != null) {
+      Shard.writeManifest(temp, info, true);
+    }
+
+    if ("0".equals(System.getenv("TESTIVAI_AUTO_REPORT"))) return;
+
+    // A shard ran only part of the suite: comparing here would report every
+    // snapshot the other shards own as missing. Capture, merge, compare once.
+    if (Shard.captureOnly()) {
+      System.out.println(
+          "[testivai] capture-only — comparison skipped. Collect .testivai/temp/ from each "
+              + "node, then: npx testivai merge-captures <dirs...> && npx testivai report");
+      return;
+    }
+
     if (java.nio.file.Files.isDirectory(temp)) {
       Runner.runReport();
     }

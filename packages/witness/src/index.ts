@@ -26,6 +26,10 @@ export * from './diff';
 export { collectElementMap, buildElementMapExpression, DEFAULT_MAX_ELEMENTS } from './capture/element-map';
 export type { CollectedElement } from './capture/element-map';
 
+// Shard participation — the env-var contract every adapter honours.
+export { parseShardEnv, resolveCaptureOnly, writeShardManifest, SHARD_MANIFEST } from './capture/shard';
+export type { ShardInfo, ShardManifest } from './capture/shard';
+
 export { BaselineStore } from './baselines';
 export type { BaselineMetadata } from './baselines';
 

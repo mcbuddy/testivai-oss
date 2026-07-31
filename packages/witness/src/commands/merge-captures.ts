@@ -49,6 +49,8 @@ function subdirs(dir: string): string[] {
 export interface ShardManifest {
   shard: { current: number; total: number };
   captures?: string[];
+  /** False when a shard wrote captures but never reached end of run. */
+  complete?: boolean;
   status?: string;
 }
 
@@ -64,6 +66,8 @@ export interface MergeResult {
   shardTotal: number | null;
   /** Expected-but-absent shard indices — a crashed or lost node. */
   shardsMissing: number[];
+  /** Shards that captured but never signalled end of run. */
+  shardsIncomplete: number[];
 }
 
 const MANIFEST = 'testivai-shard.json';
@@ -136,6 +140,15 @@ export function mergeCaptures(
   }
 
   const shardsSeen = [...new Set(manifests.map((m) => m.shard.current))].sort((a, b) => a - b);
+  // `complete === false` means the adapter had no end-of-run hook, OR the run
+  // died partway. Only flag it when some shard proved completion is trackable,
+  // otherwise every Selenium/RSpec run would warn about itself.
+  const tracksCompletion = manifests.some((m) => m.complete === true);
+  const shardsIncomplete = tracksCompletion
+    ? [...new Set(manifests.filter((m) => m.complete !== true).map((m) => m.shard.current))].sort(
+        (a, b) => a - b,
+      )
+    : [];
   // A shard that ran zero tests uploads no captures, so completeness cannot be
   // inferred from file counts — the manifests are the only reliable evidence.
   // They also self-describe the total, so --expect is an optional override.
@@ -153,6 +166,7 @@ export function mergeCaptures(
     shardsSeen,
     shardTotal,
     shardsMissing,
+    shardsIncomplete,
   };
 }
 

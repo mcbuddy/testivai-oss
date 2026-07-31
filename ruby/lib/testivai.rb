@@ -3,6 +3,7 @@
 require_relative "testivai/version"
 require_relative "testivai/config"
 require_relative "testivai/element_map"
+require_relative "testivai/shard"
 require_relative "testivai/capture"
 
 # TestivAI — local-first visual regression testing for Ruby test suites.

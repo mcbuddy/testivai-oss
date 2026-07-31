@@ -7,6 +7,11 @@ import { BatchPayload, BrowserInfo, GitInfo, SnapshotPayload } from './types';
 import { getCiRunId, getCiInfo, CiInfo } from './ci';
 import { CompressionHelper, type CompressionOptions } from '@testivai/common';
 import { resolveLocalMode } from './mode';
+import {
+  parseShardEnv,
+  resolveCaptureOnly as resolveCaptureOnlyShared,
+  writeShardManifest,
+} from '@testivai/witness';
 
 interface TestivaiReporterOptions {
   apiUrl?: string;
@@ -61,17 +66,14 @@ export class TestivAIPlaywrightReporter implements Reporter {
    *   2. TESTIVAI_CAPTURE_ONLY — for CI that can't edit playwright.config
    *   3. auto: Playwright says this is shard i/N with N > 1
    */
-  private resolveCaptureOnly(config: FullConfig): boolean {
-    if (typeof this.options.captureOnly === 'boolean') return this.options.captureOnly;
-
-    const env = process.env.TESTIVAI_CAPTURE_ONLY;
-    if (env !== undefined && env !== '') return env !== '0' && env.toLowerCase() !== 'false';
-
-    return !!(this.shard && this.shard.total > 1);
+  private resolveCaptureOnly(_config: FullConfig): boolean {
+    return resolveCaptureOnlyShared(this.options.captureOnly, this.shard);
   }
 
   async onBegin(config: FullConfig, suite: Suite): Promise<void> {
-    this.shard = config.shard ?? null;
+    // Playwright's own --shard wins; TESTIVAI_SHARD covers CI that splits work
+    // some other way, and is the same contract the non-JS adapters honour.
+    this.shard = config.shard ?? parseShardEnv(process.env.TESTIVAI_SHARD);
     this.captureOnly = this.resolveCaptureOnly(config);
     // Resolve mode. Local-first is the default: with no API key we capture
     // and report locally rather than disabling the reporter. Cloud mode
@@ -141,23 +143,10 @@ export class TestivAIPlaywrightReporter implements Reporter {
         // Without this a crashed shard silently reduces coverage whenever
         // failOnMissing is off.
         if (this.shard) {
-          try {
-            const tempRoot = path.join(process.cwd(), '.testivai', 'temp');
-            fs.ensureDirSync(tempRoot);
-            const captures = fs
-              .readdirSync(tempRoot, { withFileTypes: true })
-              .filter((e) => e.isDirectory())
-              .map((e) => e.name);
-            fs.writeJsonSync(path.join(tempRoot, 'testivai-shard.json'), {
-              shard: { current: this.shard.current, total: this.shard.total },
-              captures,
-              status: result.status,
-              timestamp: new Date().toISOString(),
-            });
-          } catch {
-            // A manifest we cannot write must not fail the test run; the merge
-            // step degrades to "no completeness check" and says so.
-          }
+          writeShardManifest(path.join(process.cwd(), '.testivai', 'temp'), this.shard, {
+            complete: true,
+            status: result.status,
+          });
         }
 
         const where = this.shard ? `shard ${this.shard.current}/${this.shard.total}` : 'capture-only mode';

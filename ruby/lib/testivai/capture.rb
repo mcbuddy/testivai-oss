@@ -7,6 +7,7 @@ require "pathname"
 
 require_relative "config"
 require_relative "element_map"
+require_relative "shard"
 
 module Testivai
   # Capture half of the pipeline: writes `.testivai/temp/<name>/` with the
@@ -128,6 +129,12 @@ module Testivai
         rescue StandardError # rubocop:disable Lint/SuppressedException
         end
       end
+
+      # Shard manifest — refreshed per capture because RSpec offers the gem no
+      # end-of-run hook. This is what lets a Ruby suite join the same sharded
+      # CI flow as every other adapter.
+      shard = Shard.from_env
+      Shard.write_manifest(root.join(".testivai", "temp"), shard) if shard
 
       temp_dir
     end

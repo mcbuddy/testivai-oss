@@ -225,6 +225,49 @@ partial comparison is genuinely what you want.
 A shard that ran **zero tests** still writes a manifest, so it counts as having
 reported — completeness can't be inferred from file counts alone.
 
+### Sharding in any framework
+
+Playwright can tell its reporter `--shard=i/N`. pytest, JUnit, RSpec and a bare
+Selenium script cannot — so the mechanism is **the environment, not a framework
+API**, and every adapter honours the same two variables:
+
+| Variable | Effect |
+|---|---|
+| `TESTIVAI_CAPTURE_ONLY=1` | Capture; skip comparison and report generation |
+| `TESTIVAI_SHARD=3/8` | Declare this process as shard 3 of 8 (writes the completeness manifest) |
+
+Being one shard of many implies capture-only, so `TESTIVAI_SHARD` alone is
+usually enough. Playwright additionally auto-detects `--shard`, but that is a
+convenience on top of the same contract — not a separate mechanism.
+
+```bash
+# identical shape in every language
+TESTIVAI_SHARD=3/8 npx playwright test --shard=3/8
+TESTIVAI_SHARD=3/8 pytest tests/ --shard-id=3 --num-shards=8   # e.g. pytest-shard
+TESTIVAI_SHARD=3/8 mvn test -Dgroups=shard3
+TESTIVAI_SHARD=3/8 bundle exec rspec
+```
+
+Then collect, merge and compare once, exactly as above.
+
+:::note Parallel workers vs. sharding — different problems
+**Many workers on one machine** (`pytest -n 8`, Playwright workers, JUnit
+parallel) share a single `.testivai/temp/`, so there is nothing to merge. All
+that matters is that exactly one process compares at the end, which the adapters
+handle — the pytest plugin, for instance, reports only from the xdist controller
+and never from a worker.
+
+**Many machines** is what needs `TESTIVAI_SHARD`, the manifest, and
+`merge-captures`. If your parallelism is a single machine with more workers, you
+need none of this.
+:::
+
+Adapters that own an end-of-run hook (Playwright, pytest, JUnit) mark their
+manifest `complete`, so a shard that started and then died is distinguishable
+from one that finished. A bare Selenium script or RSpec suite has no such hook,
+so its manifest records participation rather than completion — `merge-captures`
+only reports incompleteness when at least one shard proves it is trackable.
+
 ### Sharding on other CI providers
 
 Nothing above is GitHub-specific in shape. The flow is four steps that any
