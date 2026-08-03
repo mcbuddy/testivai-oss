@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "testivai"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first visual regression capture for playwright-python and Selenium — pixel + DOM diff, tunable tolerances, PR approvals; shares baselines with the JS/TS TestivAI adapters"
 readme = "README.md"
 license = { text = "MIT" }

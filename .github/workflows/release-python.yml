@@ -1,0 +1,124 @@
+name: Release Python package
+
+# Publishes the `testivai` package to PyPI when a `python-v*` tag is pushed,
+# e.g. `python-v0.2.0`. The package versions independently of the npm packages
+# (which Changesets drives), the GitHub Action's `v*` tags, and the Ruby gem's
+# `ruby-v*` tags, so it gets its own tag prefix.
+#
+# Auth is PyPI **trusted publishing** (OIDC): the workflow exchanges a
+# short-lived GitHub identity token for a temporary PyPI credential. No
+# long-lived API token is stored in this repository. The trust relationship is
+# configured once on pypi.org against this repo + workflow filename.
+# No GitHub environment is used, so the PyPI 'Environment' field stays blank.
+
+on:
+  push:
+    tags:
+      - 'python-v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and verify only — do not publish'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, verify, publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for trusted publishing
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      # The package ships GENERATED collectors. Publishing a stale one would
+      # put the Python lane out of step with the other languages against
+      # shared baselines — the exact bug the generator exists to prevent.
+      # Verify before building, not after.
+      - name: Verify the generated element-map asset is current
+        run: |
+          pnpm build
+          node scripts/generate-element-map-asset.js --check
+
+      # The tag is the single version input for this lane; a wheel whose
+      # metadata disagrees with it would publish the wrong version silently.
+      - name: Verify the tag matches pyproject.toml
+        if: github.event_name == 'push'
+        working-directory: python
+        run: |
+          tag_version="${GITHUB_REF_NAME#python-v}"
+          file_version=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [ "$tag_version" != "$file_version" ]; then
+            echo "::error::tag says $tag_version but pyproject.toml says $file_version"
+            exit 1
+          fi
+
+      - name: Run tests
+        working-directory: python
+        run: |
+          pip install -e . pytest
+          pytest tests/ -q
+
+      - name: Build sdist and wheel
+        working-directory: python
+        run: |
+          pip install build
+          python -m build
+
+      # A wheel that builds but omits a generated asset would fail at a
+      # user's first Selenium capture rather than at publish time. Check the
+      # artifact itself.
+      - name: Verify the built wheel contains the collectors
+        working-directory: python
+        run: |
+          wheel_file=$(ls dist/testivai-*.whl)
+          echo "inspecting $wheel_file"
+          contents=$(python3 -m zipfile -l "$wheel_file")
+          echo "$contents"
+          for asset in testivai/element_map.js testivai/settle.js; do
+            echo "$contents" | grep -q "$asset" || {
+              echo "::error::$asset is missing from the built wheel"
+              exit 1
+            }
+          done
+
+      - name: Smoke-test the built wheel
+        working-directory: python
+        run: |
+          python3 -m venv "$RUNNER_TEMP/smoke"
+          "$RUNNER_TEMP/smoke/bin/pip" install dist/testivai-*.whl
+          "$RUNNER_TEMP/smoke/bin/python" - <<'PY'
+          import testivai
+          from testivai._capture import _element_map_expression, _settle_expression
+          expr = _element_map_expression(3000, [])
+          assert expr.startswith("return (function collectElementMap"), "collector did not load"
+          settle = _settle_expression(150)
+          assert settle.startswith("return (function settleProbe"), "settle probe did not load"
+          print(f"installed wheel loads the collectors ({testivai.__version__})")
+          PY
+
+      # Pinned by SHA — the right hygiene for a workflow that holds publish
+      # credentials. The action verifies OIDC, uploads dist/*, and generates
+      # PEP 740 attestations by default.
+      - name: Publish to PyPI (trusted publishing)
+        if: github.event_name == 'push' || inputs.dry_run == false
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: python/dist/
