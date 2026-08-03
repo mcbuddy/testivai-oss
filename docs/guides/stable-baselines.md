@@ -143,7 +143,6 @@ below apply unchanged.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mode` | `"local"` | `"local"` | Operating mode. Optional — omit it and the defaults apply unchanged |
 
 ### Diff tolerance
 
@@ -191,7 +190,6 @@ These apply only to the no-test-suite crawler; framework adapters ignore them.
 
 ```json
 {
-  "mode": "local",
   "threshold": 0.1,
   "reportDir": "visual-report",
   "autoOpen": true,

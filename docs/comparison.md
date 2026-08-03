@@ -125,9 +125,9 @@ hint now requires the computed-style digests to match too:
 
 | DOM | Style digests | Verdict |
 |---|---|---|
-| identical | match | 💡 likely render noise (`styleCheck: "match"`) |
-| identical | **differ** | 🎨 **Styles changed** — real change, attributed to the element(s); never auto-passed |
-| identical | unavailable | 💡 legacy DOM-only hint, labeled `styleCheck: "unavailable"` |
+| identical | match | likely render noise (`styleCheck: "match"`) |
+| identical | **differ** | **Styles changed** — real change, attributed to the element(s); never auto-passed |
+| identical | unavailable | legacy DOM-only hint, labeled `styleCheck: "unavailable"` |
 | changed | — | DOM changed (counts shown) |
 
 The digest covers a fixed, documented property list (colors, backgrounds,

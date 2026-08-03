@@ -30,7 +30,7 @@ This guide covers common issues and solutions when using TestivAI SDKs and servi
 
 #### Browser debugging endpoint not found
 ```
-❌ Browser debugging endpoint not found
+error: Browser debugging endpoint not found
 ```
 
 **Solution**: Make sure Chrome is running with remote debugging:
@@ -40,7 +40,7 @@ chrome --remote-debugging-port=9222
 
 #### Connection timeout
 ```
-❌ Failed to connect to browser: Connection timeout
+error: Failed to connect to browser: Connection timeout
 ```
 
 **Solution**: 

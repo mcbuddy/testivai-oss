@@ -1,18 +1,22 @@
 /**
  * Types for TestivAI Witness SDK
- * Extends types from @testivai/common with browser-specific additions
  */
-
-import { TestivaiConfig } from '@testivai/common';
 
 /**
- * Witness SDK configuration extending the base TestivaiConfig
+ * Witness SDK configuration (testivai.config.ts for sidecar setups)
  */
-export interface WitnessConfig extends TestivaiConfig {
+export interface WitnessConfig {
+  /** Base URL for visual tests (optional, can be overridden per test) */
+  baseUrl?: string;
+  /** Output directory for generated tests */
+  outputDir?: string;
+  /** Viewport settings */
+  viewport?: {
+    width: number;
+    height: number;
+  };
   /** Browser remote debugging port */
   browserPort?: number;
-  /** Project ID from TestivAI dashboard */
-  projectId?: string;
   /** Auto-launch Chrome if not running */
   autoLaunch?: boolean;
   /** Chrome executable path (for auto-launch) */
@@ -28,44 +32,7 @@ export interface WitnessConfig extends TestivaiConfig {
 }
 
 /**
- * Git information for batch context
- */
-export interface GitInfo {
-  /** Current branch name */
-  branch: string;
-  /** Current commit hash */
-  commit: string;
-  /** Repository URL (optional) */
-  repository?: string;
-  /** Commit message (optional) */
-  message?: string;
-  /** Author name (optional) */
-  author?: string;
-}
-
-/**
- * Browser context information
- */
-export interface BrowserInfo {
-  /** Browser name (chromium, firefox, webkit) */
-  name: string;
-  /** Browser version */
-  version: string;
-  /** Viewport width */
-  viewportWidth: number;
-  /** Viewport height */
-  viewportHeight: number;
-  /** User agent string */
-  userAgent: string;
-  /** Operating system */
-  os?: string;
-  /** Device type (desktop, mobile, tablet) */
-  device?: string;
-}
-
-/**
  * Page structure snapshot data (HTML content)
- * @renamed Was `DOMData` — renamed to conceal internal layer terminology (IP protection)
  */
 export interface StructureData {
   /** Serialized HTML of the element */
@@ -157,61 +124,12 @@ export interface BrowserPerformanceMetrics {
 }
 
 /**
- * Performance timing metrics
- * @deprecated Use BrowserPerformanceMetrics instead
- */
-export interface PerformanceTimings {
-  /** Navigation start time */
-  navigationStart?: number;
-  /** DOM content loaded time */
-  domContentLoaded?: number;
-  /** Page load complete time */
-  loadComplete?: number;
-  /** First contentful paint */
-  firstContentfulPaint?: number;
-  /** Largest contentful paint */
-  largestContentfulPaint?: number;
-  /** Time to interactive */
-  timeToInteractive?: number;
-  /** Total blocking time */
-  totalBlockingTime?: number;
-  /** Cumulative layout shift */
-  cumulativeLayoutShift?: number;
-}
-
-/**
- * Lighthouse performance results
- */
-export interface LighthouseResults {
-  /** Performance score (0-100) */
-  performance?: number;
-  /** Accessibility score (0-100) */
-  accessibility?: number;
-  /** Best practices score (0-100) */
-  bestPractices?: number;
-  /** SEO score (0-100) */
-  seo?: number;
-  /** Core Web Vitals */
-  coreWebVitals?: {
-    lcp?: number;
-    fid?: number;
-    cls?: number;
-  };
-}
-
-/**
  * Snapshot payload for a single evidence capture
  */
 export interface SnapshotPayload {
-  /**
-   * Page structure data (HTML content)
-   * @renamed Was `dom` — renamed to conceal internal layer terminology (IP protection)
-   */
+  /** Page structure data (HTML content) */
   structure: StructureData;
-  /**
-   * Computed styles data (optional)
-   * @renamed Was `css` — renamed to conceal internal layer terminology (IP protection)
-   */
+  /** Computed styles data (optional) */
   styles?: { computed_styles: Record<string, Record<string, string>> };
   /** Layout/bounding box data */
   layout: LayoutData;
@@ -229,41 +147,6 @@ export interface SnapshotPayload {
   screenshotData?: string;
   /** Performance metrics */
   performanceMetrics?: BrowserPerformanceMetrics;
-}
-
-/**
- * CI environment information for integration feedback (e.g., GitHub commit statuses, PR comments).
- * Mirrors CiInfo from ci.ts for payload serialization.
- */
-export interface CiInfoPayload {
-  /** CI provider name (e.g., 'github_actions', 'gitlab_ci', 'circleci') */
-  provider: string;
-  /** Pull/Merge request number (if available) */
-  prNumber?: number;
-  /** URL to the CI run (if available) */
-  runUrl?: string;
-  /** CI build/run identifier */
-  buildId?: string;
-}
-
-/**
- * Batch payload containing all evidence for a test run
- */
-export interface BatchPayload {
-  /** Git information */
-  git: GitInfo;
-  /** Browser context information */
-  browser: BrowserInfo;
-  /** Collection of snapshots */
-  snapshots: SnapshotPayload[];
-  /** Timestamp when batch was created */
-  timestamp: number;
-  /** Unique identifier for a CI/CD run, to group sharded jobs */
-  runId?: string | null;
-  /** CI environment information for integration feedback (optional) */
-  ci?: CiInfoPayload | null;
-  /** Additional metadata */
-  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -322,18 +205,4 @@ export interface CommandResult {
   stderr: string;
   /** Duration in milliseconds */
   duration: number;
-}
-
-/**
- * Batch upload result
- */
-export interface BatchResult {
-  /** Batch ID */
-  batchId: string;
-  /** Number of snapshots uploaded */
-  snapshotCount: number;
-  /** Upload duration in milliseconds */
-  duration: number;
-  /** Dashboard URL */
-  dashboardUrl?: string;
 }

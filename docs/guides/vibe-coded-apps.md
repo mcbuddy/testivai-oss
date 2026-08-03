@@ -42,7 +42,7 @@ npx testivai witness http://localhost:3000 --pages "/,/pricing,/dashboard"
 or in `.testivai/config.json`:
 
 ```json
-{ "mode": "local", "pages": ["/", "/pricing", "/dashboard"] }
+{ "pages": ["/", "/pricing", "/dashboard"] }
 ```
 
 ## In CI: every prompt-push gets checked

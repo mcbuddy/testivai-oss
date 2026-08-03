@@ -57,15 +57,15 @@ The PR comment surfaces the **DOM noise hint** from the OSS `@testivai/witness` 
 ## Example output
 
 ```
-### 🔍 TestivAI Visual Report
+### TestivAI Visual Report
 
-✅ 12 passed · ⚠️ 3 changed · 🆕 2 new
+**12 passed** | **3 changed** | **2 new**
 
 #### Changed Snapshots
 <details>
 <summary>checkout-page — 0.5% different</summary>
 
-> 💡 DOM unchanged — pixel diff is likely render noise (anti-aliasing, font hinting).
+> DOM unchanged — pixel diff is likely render noise (anti-aliasing, font hinting).
 
 npx testivai approve "checkout-page"
 </details>
@@ -73,7 +73,7 @@ npx testivai approve "checkout-page"
 <details>
 <summary>nav-redesign — 8.5% different</summary>
 
-> 🧱 DOM changed — 2 added, 1 attribute change.
+> DOM changed — 2 added, 1 attribute change.
 
 npx testivai approve "nav-redesign"
 </details>

@@ -71,11 +71,11 @@ analysis works in all of them:
 
 | Feature | Selenium JS | Python | Java |
 |---|---|---|---|
-| Pixel diff + heatmap | ✅ | ✅ | ✅ |
-| DOM diff / noise hint / text changes | ✅ | ✅ | ✅ |
-| Region → selector attribution | ✅ | ✅ | ✅ |
-| Style-only-change verdict | ✅ | ✅ | ✅ |
-| Page-shift detection / `shiftTolerance` | ✅ | ✅ | ✅ |
+| Pixel diff + heatmap | Yes | Yes | Yes |
+| DOM diff / noise hint / text changes | Yes | Yes | Yes |
+| Region → selector attribution | Yes | Yes | Yes |
+| Style-only-change verdict | Yes | Yes | Yes |
+| Page-shift detection / `shiftTolerance` | Yes | Yes | Yes |
 
 That last group depends on the **element map** — selectors, bounding boxes, and
 computed-style digests collected from the live page. All adapters inject the
@@ -114,17 +114,17 @@ works and is tested, but it hasn't been through as many real suites.
 
 | | Hand-rolled | AShot / image-diff libs | TestivAI |
 |---|---|---|---|
-| Pixel diff | ✅ you write it | ✅ | ✅ |
-| Diff image for review | you build it | ✅ | ✅ heatmap + regions |
-| Tolerance / threshold | you tune it | ✅ | ✅ + auto-pass rules |
-| Noise vs. real change | ❌ | ❌ | ✅ via DOM diff |
-| Text-change detection | ❌ | ❌ | ✅ |
-| Baseline store + approval flow | you build it | ❌ | ✅ CLI + PR command |
-| Missing-baseline detection | ❌ | ❌ | ✅ (exit 3) |
-| Per-OS baselines | you build it | you build it | ✅ `{platform}` token |
-| Shared with other frameworks | ❌ | ❌ | ✅ |
-| Machine-readable output | ❌ | ❌ | ✅ `results.json` + MCP |
-| Selector attribution / style verdict | ❌ | ❌ | ✅ (JS, Python, Java) |
+| Pixel diff | Yes you write it | Yes | Yes |
+| Diff image for review | you build it | Yes | Yes heatmap + regions |
+| Tolerance / threshold | you tune it | Yes | Yes + auto-pass rules |
+| Noise vs. real change | No | No | Yes via DOM diff |
+| Text-change detection | No | No | Yes |
+| Baseline store + approval flow | you build it | No | Yes CLI + PR command |
+| Missing-baseline detection | No | No | Yes (exit 3) |
+| Per-OS baselines | you build it | you build it | Yes `{platform}` token |
+| Shared with other frameworks | No | No | Yes |
+| Machine-readable output | No | No | Yes `results.json` + MCP |
+| Selector attribution / style verdict | No | No | Yes (JS, Python, Java) |
 | Cost | your time | free | free (MIT) |
 
 ---

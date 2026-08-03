@@ -42,10 +42,9 @@ Everything here runs **fully locally** — no account, no API key, no server.
 
 ```
 packages/
-  common/       @testivai/common            shared config, API client, auth, compression
   witness/      @testivai/witness           core SDK: CLI, diff engine, baselines, HTML report
   playwright/   @testivai/witness-playwright Playwright reporter + capture adapter
-  webdriverio/  @testivai/witness-webdriverio WebdriverIO service + capture (local mode)
+  webdriverio/  @testivai/witness-webdriverio WebdriverIO service + capture
   selenium/     @testivai/witness-selenium   Selenium adapter
   mcp/          @testivai/mcp                MCP server: results + diff images for AI agents
 

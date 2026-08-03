@@ -24,7 +24,6 @@ Create `.testivai/config.json` at your project root:
 
 ```json
 {
-  "mode": "local",
   "threshold": 0.1,
   "reportDir": "visual-report",
   "autoOpen": false,

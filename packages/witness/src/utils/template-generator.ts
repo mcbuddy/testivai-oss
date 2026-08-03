@@ -201,12 +201,6 @@ const CONFIG_CONTENT = `/**
 import type { WitnessConfig } from '@testivai/witness';
 
 const config: WitnessConfig = {
-  // API key (set via TESTIVAI_API_KEY environment variable)
-  // apiKey: 'your-api-key-here',
-
-  // Project ID from TestivAI dashboard
-  // projectId: 'your-project-id-here',
-
   // Chrome remote debugging port
   browserPort: 9222,
 

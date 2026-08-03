@@ -21,10 +21,7 @@ import { TestivAIProjectConfig } from '../../types';
 // Fixtures
 // ────────────────────────────────────────────────────────────
 
-const MINIMAL_PROJECT_CONFIG: TestivAIProjectConfig = {
-  layout:  { sensitivity: 2, tolerance: 1 },
-  ai:      { sensitivity: 2, confidence: 0.7 },
-};
+const MINIMAL_PROJECT_CONFIG: TestivAIProjectConfig = {};
 
 function makeProjectConfig(extra?: Record<string, unknown>): TestivAIProjectConfig {
   return { ...MINIMAL_PROJECT_CONFIG, ...extra } as TestivAIProjectConfig;

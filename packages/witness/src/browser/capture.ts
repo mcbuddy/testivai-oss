@@ -1,7 +1,6 @@
 import { BrowserClient } from './client';
 import { logger, createLogger } from '../utils/logger';
 import { SnapshotPayload, LayoutData, BrowserPerformanceMetrics } from '../types';
-import { compressionHelper } from '@testivai/common';
 
 /**
  * Browser capture functionality
@@ -31,16 +30,14 @@ export class BrowserCapture {
     // Capture screenshot
     const screenshotData = await this.captureScreenshot();
 
-    // In local mode, skip heavy captures (structure, styles, layout, performance).
-    // Only the screenshot is needed for pixel-level visual diffing.
+    // Under `testivai run` (TESTIVAI_MODE=local), skip heavy captures — only
+    // the screenshot is needed for pixel-level visual diffing.
     const isLocal = process.env.TESTIVAI_MODE === 'local';
 
     // Capture page structure (HTML)
-    // @renamed: dom → structure (IP protection)
     const structure = isLocal ? { html: '' } : await this.captureStructure();
 
     // Capture computed styles
-    // @renamed: css → styles (IP protection)
     const styles = isLocal ? { computed_styles: {} } : await this.captureComputedStyles();
 
     // Capture layout
@@ -58,7 +55,6 @@ export class BrowserCapture {
     this.logger.info(`Performance metrics captured: ${performanceMetrics ? 'YES' : 'NO'}`);
     this.logger.info(`=== END DEBUG ===`);
 
-    // @renamed: dom → structure, css → styles (IP protection)
     const snapshot: SnapshotPayload = {
       structure,
       styles,
@@ -100,7 +96,6 @@ export class BrowserCapture {
 
   /**
    * Capture page structure (HTML content)
-   * @renamed Was `captureDom` — renamed to conceal internal layer terminology (IP protection)
    */
   private async captureStructure(): Promise<{ html: string }> {
     try {
@@ -116,13 +111,7 @@ export class BrowserCapture {
         throw new Error('No structure content received');
       }
 
-      // Try to compress if large
-      const compressionResult = await compressionHelper.compress(result.outerHTML);
-      const html = typeof compressionResult.data === 'string' 
-        ? compressionResult.data 
-        : compressionResult.data.toString('utf-8');
-
-      return { html };
+      return { html: result.outerHTML };
     } catch (error) {
       logger.error('Failed to capture structure:', error);
       throw error;

@@ -7,10 +7,10 @@ All packages here enable **fully local visual regression testing** — no accoun
 
 ```
 packages/
-  common/      @testivai/common      — shared config/API/auth utilities
   witness/     @testivai/witness     — core SDK: CLI, diff engine, baselines, HTML report
   playwright/  @testivai/witness-playwright  — Playwright reporter + capture adapter
-  webdriverio/ @testivai/witness-webdriverio — WebdriverIO service + capture (local mode)
+  webdriverio/ @testivai/witness-webdriverio — WebdriverIO service + capture
+  selenium/    @testivai/witness-selenium    — Selenium WebDriver capture adapter
   mcp/         @testivai/mcp                 — MCP server: results + diff images for AI agents (read-only; no approve tool by design)
 
 action/        mcbuddy/testivai-oss@v1      — GitHub Action: post PR comment + commit status
@@ -112,7 +112,7 @@ The approve action (`approve/action.yml`) is a composite action — no build ste
 .testivai/
   config.json                          — see LocalConfig in
                                          packages/witness/src/config/local-config.ts
-                                         (single source of truth): mode, threshold,
+                                         (single source of truth): threshold,
                                          reportDir, autoOpen, baselinesDir,
                                          maxDiffPercent, maxDiffPixels, noiseAutoPass,
                                          noiseMaxDiffPercent, stabilize, shiftTolerance,

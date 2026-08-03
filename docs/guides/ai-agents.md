@@ -172,7 +172,6 @@ on purpose.
 ```jsonc
 // .testivai/config.json
 {
-  "mode": "local",
   "stabilize": true,          // default — freezes the flake sources
   "noiseAutoPass": true,      // DOM-identical micro-diffs stop demanding attention
   "noiseMaxDiffPercent": 1,

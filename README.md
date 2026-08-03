@@ -1,6 +1,5 @@
 # TestivAI Open Source
 
-[![@testivai/common](https://img.shields.io/npm/v/@testivai/common.svg?label=%40testivai%2Fcommon)](https://www.npmjs.com/package/@testivai/common)
 [![@testivai/witness](https://img.shields.io/npm/v/@testivai/witness.svg?label=%40testivai%2Fwitness)](https://www.npmjs.com/package/@testivai/witness)
 [![@testivai/witness-playwright](https://img.shields.io/npm/v/@testivai/witness-playwright.svg?label=%40testivai%2Fwitness-playwright)](https://www.npmjs.com/package/@testivai/witness-playwright)
 [![@testivai/witness-webdriverio](https://img.shields.io/npm/v/@testivai/witness-webdriverio.svg?label=%40testivai%2Fwitness-webdriverio)](https://www.npmjs.com/package/@testivai/witness-webdriverio)
@@ -10,7 +9,7 @@
 
 This is the home of TestivAI. It contains everything you need to capture, diff, and report visual regressions **fully locally** — MIT-licensed, no account, no server.
 
-> 👀 **[See a live report →](https://www.budisugianto.com/testivai-example/)** — a real TestivAI OSS report rendered in your browser, straight from CI. No install, no signup.
+> **[See a live report →](https://www.budisugianto.com/testivai-example/)** — a real TestivAI OSS report rendered in your browser, straight from CI. No install, no signup.
 
 [![Real TestivAI report — style-only-change verdict, selector-attributed regions, heatmap diff](./docs/assets/oss-report.png)](https://www.budisugianto.com/testivai-example/)
 
@@ -20,13 +19,13 @@ Pixel-only visual testing drowns you in false positives — a font re-hint or an
 
 **TestivAI pairs every screenshot with a snapshot of the page DOM.** When pixels differ but the DOM is structurally identical, the report flags the diff as **likely render noise** instead of crying wolf. When the DOM actually changed, you see exactly what (`2 added, 1 removed`). That single signal is the difference between a flaky test wall and a report you trust.
 
-- 🆓 **Fully local, no account** — captures, diffs, and a self-contained HTML report all stay on your machine.
-- 🧠 **DOM + style-aware noise hint** — separates real changes from render jitter, and catches the stylesheet-only case: identical DOM with changed computed styles reads as "Styles changed on `button.cta`", never as noise.
-- 🎭 **Auditable masks & region-level diffs** — exclude dynamic areas (selectors or coordinates) with the masked region hatched in the diff, and get "3 changed regions" with bounding boxes instead of a raw pixel percentage.
-- 📍 **Element attribution & exact shift detection** — the report names *which element* changed ("`div.card:nth-of-type(2)` shifted +8px vertically — content unchanged") and spots the injected-banner case ("everything below y=80 moved +24px"), derived from layout, not pixel guesswork. No local-first tool does this.
-- 🔌 **First-class adapters** — Playwright (TS/JS **and Python**, Java experimental) and WebdriverIO, using each framework's native APIs; every language shares one set of baselines and one report.
-- 🤖 **PR-native workflow** — a GitHub Action posts the diff and approves baselines from a `/testivai approve` comment.
-- 🔓 **No lock-in** — MIT license, baselines live in your git, and `results.json` is a semver-governed public contract.
+- **Fully local, no account** — captures, diffs, and a self-contained HTML report all stay on your machine.
+- **DOM + style-aware noise hint** — separates real changes from render jitter, and catches the stylesheet-only case: identical DOM with changed computed styles reads as "Styles changed on `button.cta`", never as noise.
+- **Auditable masks & region-level diffs** — exclude dynamic areas (selectors or coordinates) with the masked region hatched in the diff, and get "3 changed regions" with bounding boxes instead of a raw pixel percentage.
+- **Element attribution & exact shift detection** — the report names *which element* changed ("`div.card:nth-of-type(2)` shifted +8px vertically — content unchanged") and spots the injected-banner case ("everything below y=80 moved +24px"), derived from layout, not pixel guesswork. No local-first tool does this.
+- **First-class adapters** — Playwright (TS/JS **and Python**, Java experimental) and WebdriverIO, using each framework's native APIs; every language shares one set of baselines and one report.
+- **PR-native workflow** — a GitHub Action posts the diff and approves baselines from a `/testivai approve` comment.
+- **No lock-in** — MIT license, baselines live in your git, and `results.json` is a semver-governed public contract.
 
 > **Evaluating this for a team?** [Maintenance & roadmap](docs/maintenance.md)
 > covers who builds it, the release cadence, and what happens to your setup if
@@ -65,7 +64,6 @@ Live versions are shown by the badges at the top of this README.
 
 | Package | Description |
 |---|---|
-| [`@testivai/common`](./packages/common) | Shared utilities (config loading, API client, auth, compression) |
 | [`@testivai/witness`](./packages/witness) | Core SDK: CLI, local diffing, baselines, HTML report generator |
 | [`@testivai/witness-playwright`](./packages/playwright) | Playwright reporter/adapter built on top of `@testivai/witness` |
 | [`@testivai/witness-webdriverio`](./packages/webdriverio) | WebdriverIO service + capture function (local mode) |
@@ -109,7 +107,6 @@ npx playwright install chromium
 // Only create this file if you want to tune threshold, reportDir, etc.
 // File: .testivai/config.json
 {
-  "mode": "local",
   "threshold": 0.1,            // per-pixel color sensitivity (0-1)
   "maxDiffPercent": 0,         // pass diffs at or below this % (your tolerance dial)
   "noiseAutoPass": false,      // true: DOM-identical diffs within noiseMaxDiffPercent pass
@@ -153,14 +150,14 @@ npx playwright test
 
 ## What you get out of the box (free, no account)
 
-- ✅ Full-page screenshot capture via Playwright
-- ✅ **Stabilized captures by default** — animations/transitions frozen, caret hidden, web fonts awaited (the top causes of flaky visual tests, neutralized before every screenshot)
-- ✅ Local pixel diff with configurable threshold
-- ✅ **Tunable pass criteria** — `maxDiffPercent` / `maxDiffPixels` tolerances, plus opt-in `noiseAutoPass` so DOM-identical render noise stops demanding review
-- ✅ `ignoreSelectors` for dynamic content (both adapters, global or per-snapshot)
-- ✅ Self-contained HTML report (`visual-report/index.html`)
-- ✅ Machine-readable results (`visual-report/results.json`)
-- ✅ Committed baselines under `.testivai/baselines/` (just `git add` them)
+- Full-page screenshot capture via Playwright
+- **Stabilized captures by default** — animations/transitions frozen, caret hidden, web fonts awaited (the top causes of flaky visual tests, neutralized before every screenshot)
+- Local pixel diff with configurable threshold
+- **Tunable pass criteria** — `maxDiffPercent` / `maxDiffPixels` tolerances, plus opt-in `noiseAutoPass` so DOM-identical render noise stops demanding review
+- `ignoreSelectors` for dynamic content (both adapters, global or per-snapshot)
+- Self-contained HTML report (`visual-report/index.html`)
+- Machine-readable results (`visual-report/results.json`)
+- Committed baselines under `.testivai/baselines/` (just `git add` them)
 
 ## CI Integration (GitHub Actions)
 
@@ -235,22 +232,22 @@ After CI posts the diff report on your PR, review the `testivai-visual-report` a
 2. Downloads the `testivai-visual-report` artifact from the latest CI run on your branch
 3. Copies approved screenshots into `.testivai/baselines/` and commits them to your PR branch
 4. Posts a confirmation comment listing what was approved
-5. CI re-runs automatically — approved snapshots now pass ✅
+5. CI re-runs automatically — approved snapshots now pass
 
 ### What the PR comment looks like
 
 ```
-🔍 TestivAI Visual Report
+TestivAI Visual Report
 
-⚠️ 2 changed · 🆕 1 new · ✅ 4 passed   Total snapshots: 7
+4 passed | 2 changed | 1 new — 7 total
 
 Changed Snapshots
 
 ▼ homepage — 12.34% different
-  💡 DOM unchanged — pixel diff is likely render noise (font hinting, anti-aliasing).
+  DOM unchanged — pixel diff is likely render noise (font hinting, anti-aliasing).
 
 ▼ dashboard — 8.91% different
-  🧱 DOM changed — 2 added, 1 removed.
+  DOM changed — 2 added, 1 removed.
 ```
 
 ---
@@ -263,7 +260,6 @@ A complete, minimal consumer project lives at [`testivai-example`](https://githu
 
 ```
 packages/
-  common/      @testivai/common
   witness/     @testivai/witness              — CLI, diff engine, baselines, report
   playwright/  @testivai/witness-playwright   — Playwright reporter + capture
   webdriverio/ @testivai/witness-webdriverio  — WebdriverIO service + capture
@@ -281,8 +277,8 @@ e2e/           OSS smoke E2E
 ```bash
 # Prereqs: Node 20+, pnpm 10+
 pnpm install
-pnpm build       # tsc all 6 packages
-pnpm test        # 476 unit tests
+pnpm build       # tsc all packages
+pnpm test        # unit tests across all packages
 pnpm e2e         # smoke E2E
 pnpm pack:dry    # validate publish artifacts
 ```

@@ -11,14 +11,11 @@
  *     // ...
  *   };
  *
- * The service does ONE thing in `onComplete`: detect local mode, then
- * call `generateReport()` from @testivai/witness/report. There is no
- * cloud upload path in this iteration — the OSS goal is standalone-
- * complete local mode. If a future cloud upload is added, it slots in
- * here without changing the witness() capture function.
+ * The service does ONE thing in `onComplete`: call `generateReport()`
+ * from @testivai/witness/report.
  */
 
-import { generateReport, isLocalMode } from '@testivai/witness';
+import { generateReport } from '@testivai/witness';
 import type { TestivaiServiceOptions } from './types';
 
 export class TestivaiService {
@@ -46,14 +43,6 @@ export class TestivaiService {
         console.log(`[testivai] ${msg}`);
       }
     };
-
-    if (!isLocalMode(projectRoot)) {
-      log(
-        'Cloud mode is not yet supported by @testivai/witness-webdriverio — skipping report generation. ' +
-          'To enable local mode, create .testivai/config.json with {"mode":"local"}.',
-      );
-      return;
-    }
 
     try {
       const reportData = generateReport({

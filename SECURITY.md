@@ -9,7 +9,6 @@ Security fixes are applied to the latest minor version of each currently publish
 | `@testivai/witness` | latest minor |
 | `@testivai/witness-playwright` | latest minor |
 | `@testivai/witness-webdriverio` | latest minor |
-| `@testivai/common` | latest minor |
 | `testivai-action` (GitHub Action) | latest `v1` major tag |
 
 ## Reporting a Vulnerability

@@ -6,7 +6,6 @@ export {
   loadLocalConfig,
   createDefaultConfig,
   localConfigExists,
-  isLocalMode,
   getConfigPath,
   getDefaultConfig,
 } from './local-config';

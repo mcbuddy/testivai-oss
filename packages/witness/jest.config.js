@@ -35,8 +35,5 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-  moduleNameMapper: {
-    '^@testivai/common': '<rootDir>/../common/src',
-  },
   testTimeout: 10000,
 };

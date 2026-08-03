@@ -25,12 +25,6 @@ describe('TestivaiService.onComplete', () => {
     errSpy.mockRestore();
   });
 
-  function writeLocalConfig(config: Record<string, unknown> = { mode: 'local' }): void {
-    const configDir = path.join(projectRoot, '.testivai');
-    fs.mkdirSync(configDir, { recursive: true });
-    fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify(config));
-  }
-
   function seedTempScreenshot(name: string): void {
     const tempDir = path.join(projectRoot, '.testivai', 'temp', name);
     fs.mkdirSync(tempDir, { recursive: true });
@@ -39,25 +33,18 @@ describe('TestivaiService.onComplete', () => {
     fs.writeFileSync(path.join(tempDir, 'screenshot.png'), Buffer.from([0, 0, 0, 0]));
   }
 
-  it('skips report generation when not in local mode (no config.json)', async () => {
+  it('generates a report with zero config (no config.json)', async () => {
+    seedTempScreenshot('homepage');
+
     const svc = new TestivaiService();
     await svc.onComplete();
 
     const reportDir = path.join(projectRoot, 'visual-report');
-    expect(fs.existsSync(reportDir)).toBe(false);
-    expect(logSpy.mock.calls.flat().join('\n')).toMatch(/Cloud mode is not yet supported/);
+    expect(fs.existsSync(path.join(reportDir, 'index.html'))).toBe(true);
+    expect(fs.existsSync(path.join(reportDir, 'results.json'))).toBe(true);
   });
 
-  it('skips report generation when mode is not "local"', async () => {
-    writeLocalConfig({ mode: 'cloud' });
-    const svc = new TestivaiService();
-    await svc.onComplete();
-
-    expect(fs.existsSync(path.join(projectRoot, 'visual-report'))).toBe(false);
-  });
-
-  it('generates a local report when mode is local and temp captures exist', async () => {
-    writeLocalConfig({ mode: 'local' });
+  it('generates a report when temp captures exist', async () => {
     seedTempScreenshot('homepage');
 
     const svc = new TestivaiService();
@@ -75,7 +62,6 @@ describe('TestivaiService.onComplete', () => {
   });
 
   it('respects custom reportDir option', async () => {
-    writeLocalConfig({ mode: 'local' });
     seedTempScreenshot('foo');
 
     const svc = new TestivaiService({ reportDir: 'custom-report-out' });
@@ -86,7 +72,6 @@ describe('TestivaiService.onComplete', () => {
   });
 
   it('suppresses logging when quiet: true', async () => {
-    writeLocalConfig({ mode: 'local' });
     seedTempScreenshot('foo');
 
     const svc = new TestivaiService({ quiet: true });
@@ -96,8 +81,6 @@ describe('TestivaiService.onComplete', () => {
   });
 
   it('does not throw when report generation fails — logs and exits cleanly', async () => {
-    writeLocalConfig({ mode: 'local' });
-
     // Use jest.isolateModules so we can mock @testivai/witness's
     // generateReport just for this test without poisoning the others.
     await jest.isolateModulesAsync(async () => {

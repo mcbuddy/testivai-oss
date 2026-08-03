@@ -38,7 +38,6 @@ If you want to tune tolerances or change the report output directory, create `.t
 
 ```json
 {
-  "mode": "local",
   "threshold": 0.1,
   "reportDir": "visual-report",
   "autoOpen": false
@@ -117,7 +116,7 @@ Create `.testivai/config.json` at your project root — the WebdriverIO service
 only writes a report when it finds this file:
 
 ```json
-{ "mode": "local" }
+{}
 ```
 
 Add the service to `wdio.conf.ts`:

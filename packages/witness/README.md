@@ -192,10 +192,6 @@ export default config;
 ### `npx testivai init`
 Initialize TestivAI in your project. Detects your framework and provides setup instructions.
 
-### `npx testivai auth`
-Deprecated. TestivAI runs fully locally — there is no account or API key. The command
-now only prints a notice and exits.
-
 ### `npx testivai run <command>`
 Run your test command with automatic visual capture.
 
@@ -207,7 +203,6 @@ npx testivai run "pytest tests/"
 
 Options:
 - `-p, --port <number>` - Specify browser debugging port (default: 9222)
-- `-b, --batch-id <id>` - Specify batch ID (auto-generated if not provided)
 
 ### `npx testivai capture <name>`
 Capture a single snapshot without running tests.
@@ -343,7 +338,7 @@ pipeline {
 
 ### Chrome not found
 ```
-❌ Browser debugging endpoint not found
+error: Browser debugging endpoint not found
 ```
 
 **Solution**: Make sure Chrome is running with remote debugging:
@@ -353,7 +348,7 @@ chrome --remote-debugging-port=9222
 
 ### Connection timeout
 ```
-❌ Failed to connect to browser: Connection timeout
+error: Failed to connect to browser: Connection timeout
 ```
 
 **Solution**: 

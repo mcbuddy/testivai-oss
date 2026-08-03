@@ -39,7 +39,6 @@ Local mode is the default — no API key, no account; diffs and reports are prod
 
 ```json
 {
-  "mode": "local",
   "threshold": 0.1,
   "reportDir": "visual-report",
   "autoOpen": false,
@@ -237,9 +236,9 @@ useful as a smoke check, just not as the source of truth.
 
 | Data | Captured | Powers |
 |---|---|---|
-| Full-page PNG screenshot | ✅ | The pixel diff and heatmap |
-| Page HTML snapshot | ✅ | DOM diff, render-noise hint, text-change detection |
-| Element map (selectors, boxes, computed styles) | ✅ | Region→selector attribution, shift detection, style check |
+| Full-page PNG screenshot | Yes | The pixel diff and heatmap |
+| Page HTML snapshot | Yes | DOM diff, render-noise hint, text-change detection |
+| Element map (selectors, boxes, computed styles) | Yes | Region→selector attribution, shift detection, style check |
 
 Everything is written under `.testivai/temp/<name>/` and compared against `.testivai/baselines/<name>/`. Nothing leaves your machine.
 

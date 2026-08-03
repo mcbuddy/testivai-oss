@@ -19,7 +19,7 @@ This page is the contract. Changes here follow semver — the schema bumps a maj
 ```
 <projectRoot>/
 └── .testivai/
-    ├── config.json             # { "mode": "local", "threshold": 0.1, ... }
+    ├── config.json             # { "threshold": 0.1, ... }
     ├── baselines/
     │   └── <name>/
     │       ├── screenshot.png  # required (PNG bytes)
@@ -67,7 +67,6 @@ That's the entire contract for capture. After the test run, the user invokes `np
 
 ```jsonc
 {
-  "mode": "local",            // operating mode
   "threshold": 0.1,           // pixel diff threshold (0–1)
   "reportDir": "visual-report",
   "autoOpen": false,          // open report in a browser after generation

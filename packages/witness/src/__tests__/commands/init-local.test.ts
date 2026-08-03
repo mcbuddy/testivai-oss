@@ -1,13 +1,13 @@
 /**
- * Tests for the TestivAI init command — local mode additions
+ * Tests for the TestivAI init command
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createDefaultConfig, loadLocalConfig, getConfigPath } from '../../config/local-config';
+import { createDefaultConfig, getConfigPath } from '../../config/local-config';
 
-describe('Init Command - Local Mode', () => {
+describe('Init Command', () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -18,21 +18,18 @@ describe('Init Command - Local Mode', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  describe('T4.5 - init with local mode creates config.json', () => {
-    it('should create .testivai/config.json with mode: "local"', () => {
-      createDefaultConfig(tmpDir, { mode: 'local' });
+  describe('T4.5 - init creates config.json', () => {
+    it('should create .testivai/config.json', () => {
+      createDefaultConfig(tmpDir);
 
       const configPath = getConfigPath(tmpDir);
       expect(fs.existsSync(configPath)).toBe(true);
-
-      const config = loadLocalConfig(tmpDir);
-      expect(config.mode).toBe('local');
     });
   });
 
-  describe('T4.6 - init with local mode creates baselines directory', () => {
+  describe('T4.6 - init creates baselines directory', () => {
     it('should create .testivai/baselines/ directory', () => {
-      createDefaultConfig(tmpDir, { mode: 'local' });
+      createDefaultConfig(tmpDir);
       const baselinesDir = path.join(tmpDir, '.testivai', 'baselines');
       fs.mkdirSync(baselinesDir, { recursive: true });
 
@@ -41,11 +38,11 @@ describe('Init Command - Local Mode', () => {
     });
   });
 
-  describe('T4.7 - init with local mode updates .gitignore', () => {
+  describe('T4.7 - init updates .gitignore', () => {
     it('should add temp and report dirs to .gitignore', () => {
       // Simulate what init does
       const gitignorePath = path.join(tmpDir, '.gitignore');
-      const entries = '\n# TestivAI local mode\n.testivai/temp/\nvisual-report/\n';
+      const entries = '\n# TestivAI\n.testivai/temp/\nvisual-report/\n';
       fs.writeFileSync(gitignorePath, entries);
 
       const content = fs.readFileSync(gitignorePath, 'utf-8');
@@ -67,15 +64,6 @@ describe('Init Command - Local Mode', () => {
       const final = fs.readFileSync(gitignorePath, 'utf-8');
       const matches = final.match(/\.testivai\/temp\//g);
       expect(matches).toHaveLength(1);
-    });
-  });
-
-  describe('T4.8 - init with cloud mode', () => {
-    it('should create config with mode: "cloud" (existing behavior preserved)', () => {
-      createDefaultConfig(tmpDir, { mode: 'cloud' });
-
-      const config = loadLocalConfig(tmpDir);
-      expect(config.mode).toBe('cloud');
     });
   });
 });

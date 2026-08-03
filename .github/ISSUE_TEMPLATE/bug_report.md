@@ -6,7 +6,7 @@ labels: bug
 ---
 
 ## Package
-<!-- Which package? @testivai/common, @testivai/witness, @testivai/witness-playwright, or the GitHub Action -->
+<!-- Which package? @testivai/witness, @testivai/witness-playwright, @testivai/witness-webdriverio, @testivai/witness-selenium, @testivai/mcp, or the GitHub Action -->
 
 ## Versions
 - Package version:

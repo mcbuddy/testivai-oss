@@ -5,7 +5,7 @@ title: testivai init
 
 # testivai init
 
-Scaffolds TestivAI in your project. In a Playwright project it sets up local mode with the dedicated reporter. For other frameworks it runs the interactive setup wizard.
+Scaffolds TestivAI in your project. In a Playwright project it sets up the dedicated reporter. For other frameworks it runs the interactive setup wizard.
 
 ## Usage
 
@@ -37,14 +37,14 @@ detection:
 
 Without flags, in a non-Playwright project, the wizard asks:
 
-1. **Mode** — choosing **Local** creates `.testivai/config.json` (`mode: "local"`)
+1. **Setup type** — choosing **Playwright / local** creates `.testivai/config.json`
    and `.testivai/baselines/`, adds the `.gitignore` entries, and stops there
 2. **Language** — JavaScript/TypeScript, Python, Java, or Ruby
 3. **Framework** — framework choices based on language
 4. **Test directory** — where to place generated example files
 
 ```
-? Select mode:                 › Local — visual diffs on your machine, HTML reports
+? Select mode:                 › Playwright / local — visual diffs on your machine, HTML report
 ? Select your language:        › JavaScript / TypeScript
 ? Select your test framework:  › Cypress
 ? Where are your test files?   › cypress/e2e
@@ -72,7 +72,7 @@ the `setupNodeEvents` snippet for you to paste in.
 
 If `@playwright/test` or `playwright` is detected in your `package.json`, `testivai init` scaffolds the local reporter flow:
 
-- Creates `.testivai/config.json` with `mode: "local"` (skipped if a config already exists, unless `--force` is set)
+- Creates `.testivai/config.json` (skipped if a config already exists, unless `--force` is set)
 - Creates the `.testivai/baselines/` directory
 - Adds `.gitignore` entries for `.testivai/temp/` and `visual-report/`
 - Prints the reporter snippet to add to `playwright.config.ts` plus a capture example
@@ -83,7 +83,7 @@ The command is idempotent — existing config is left untouched without `--force
 
 ```bash
 npx testivai init --json
-# {"framework":"playwright","mode":"local","created":[".testivai/config.json",".testivai/baselines/",".gitignore"]}
+# {"framework":"playwright","created":[".testivai/config.json",".testivai/baselines/",".gitignore"]}
 ```
 
 ### What You See

@@ -2,7 +2,6 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { authCommand } from '../commands/auth';
 import { initCommand } from '../commands/init';
 import { runCommand } from '../commands/run';
 import { witnessCommand } from '../commands/capture';
@@ -45,7 +44,6 @@ program
   .option('--debug', 'Enable debug mode');
 
 // Add commands
-program.addCommand(authCommand);
 program.addCommand(initCommand);
 program.addCommand(runCommand);
 program.addCommand(witnessCommand);

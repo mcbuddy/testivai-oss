@@ -119,19 +119,19 @@ we ship the evidence, not the inference.
 
 | | `toHaveScreenshot()` | TestivAI |
 |---|---|---|
-| Pixel diff | ✅ | ✅ |
-| Retry until stable | ✅ | — (freezes animations, hides caret, waits for fonts) |
-| Fails the individual test | ✅ | — (run-level report + exit code) |
-| Per-browser / per-OS baselines | ✅ automatic | ✅ via project suffix and `{platform}` token |
-| Masking | ✅ | ✅ (hatched and listed in the report) |
-| DOM / style diff — *why* it changed | — | ✅ |
-| Region → selector attribution | — | ✅ |
-| Page-shift detection | — | ✅ |
-| Noise vs. real change verdict | — | ✅ |
-| Review-then-approve in a PR | — | ✅ (write access verified) |
-| Missing-baseline detection | — | ✅ (exit 3 by default) |
-| Shared baselines across frameworks | — | ✅ |
-| `results.json` + MCP for agents | — | ✅ |
+| Pixel diff | Yes | Yes |
+| Retry until stable | Yes | — (freezes animations, hides caret, waits for fonts) |
+| Fails the individual test | Yes | — (run-level report + exit code) |
+| Per-browser / per-OS baselines | Yes automatic | Yes via project suffix and `{platform}` token |
+| Masking | Yes | Yes (hatched and listed in the report) |
+| DOM / style diff — *why* it changed | — | Yes |
+| Region → selector attribution | — | Yes |
+| Page-shift detection | — | Yes |
+| Noise vs. real change verdict | — | Yes |
+| Review-then-approve in a PR | — | Yes (write access verified) |
+| Missing-baseline detection | — | Yes (exit 3 by default) |
+| Shared baselines across frameworks | — | Yes |
+| `results.json` + MCP for agents | — | Yes |
 | Extra dependency | none | one dev dependency |
 
 ---

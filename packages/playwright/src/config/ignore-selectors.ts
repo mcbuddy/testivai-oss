@@ -77,7 +77,7 @@ export function collectIgnoreRules(
 ): IgnoreRule[] {
   const merged: IgnoreSelectorInput[] = [
     ...readWitnessConfigSelectors(projectRoot),
-    ...(((projectConfig as any).ignoreSelectors as IgnoreSelectorInput[]) ?? []),
+    ...(projectConfig.ignoreSelectors ?? []),
     ...(effectiveConfig.ignoreSelectors ?? []),
   ];
 

@@ -20,8 +20,8 @@ TestNG) — the adapter only needs the `driver` object.
 
 | Browser | JS | Python | Java |
 |---|---|---|---|
-| Chrome / Edge | ✅ full page (CDP) | ✅ full page (CDP) | ✅ full page (CDP) |
-| Firefox | viewport | ✅ full page (native API) | ✅ full page (native API) |
+| Chrome / Edge | full page (CDP) | full page (CDP) | full page (CDP) |
+| Firefox | viewport | full page (native API) | full page (native API) |
 | Safari / others | viewport | viewport | viewport |
 
 Chromium full-page capture uses CDP `Page.captureScreenshot` with

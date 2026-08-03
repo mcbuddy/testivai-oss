@@ -86,10 +86,10 @@ export function isPlaywrightProject(cwd: string): boolean {
 }
 
 /**
- * Scaffold a Playwright + local-mode project: `.testivai/config.json`
- * (mode: local), the baselines directory, and the .gitignore entries.
+ * Scaffold a Playwright project: `.testivai/config.json`, the baselines
+ * directory, and the .gitignore entries.
  *
- * This is the local-first, no-account setup — deliberately NOT the CDP
+ * This is the no-account setup — deliberately NOT the CDP
  * `browserPort` sidecar config, which does not apply to the Playwright
  * reporter flow. Idempotent: an existing config is left untouched unless
  * `force` is set. Returns the list of paths created/updated.
@@ -98,7 +98,7 @@ export function scaffoldPlaywrightLocal(cwd: string, force = false): string[] {
   const created: string[] = [];
 
   if (force || !localConfigExists(cwd)) {
-    createDefaultConfig(cwd, { mode: 'local' });
+    createDefaultConfig(cwd);
     created.push('.testivai/config.json');
   }
 
@@ -154,7 +154,7 @@ export const initCommand = new Command('init')
         const created = scaffoldPlaywrightLocal(cwd, options.force ?? false);
         if (options.json) {
           process.stdout.write(
-            JSON.stringify({ framework: 'playwright', mode: 'local', created }) + '\n',
+            JSON.stringify({ framework: 'playwright', created }) + '\n',
           );
           return; // exit 0
         }
@@ -227,7 +227,7 @@ ${chalk.gray('For more information, see: https://testiv.ai/docs/')}
 
       if (mode === 'local') {
         // Create .testivai/config.json and baselines directory
-        const config = createDefaultConfig(cwd, { mode: 'local' });
+        const config = createDefaultConfig(cwd);
         const baselinesDir = path.join(cwd, '.testivai', 'baselines');
         fs.mkdirSync(baselinesDir, { recursive: true });
 

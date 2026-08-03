@@ -6,7 +6,6 @@ Thanks for your interest in contributing! This repo is the public home of the Te
 
 This repository was extracted from the private TestivAI monorepo with a fresh git history. Going forward, **this repo is the source of truth** for:
 
-- `@testivai/common`
 - `@testivai/witness`
 - `@testivai/witness-playwright`
 - `@testivai/witness-webdriverio`
@@ -41,8 +40,8 @@ This repo uses [Changesets](https://github.com/changesets/changesets) for versio
 
 Add a changeset whenever your PR changes a **published** package's source, types, runtime behavior, or public API:
 
-- ✅ `packages/common`, `packages/witness`, `packages/playwright`, `packages/webdriverio`
-- ❌ Docs-only, CI-only, `e2e/`, `action/` (these are `ignore`d in the changesets config)
+- Yes: `packages/witness`, `packages/playwright`, `packages/webdriverio`, `packages/selenium`, `packages/mcp`
+- No: docs-only, CI-only, `e2e/`, `action/` (these are `ignore`d in the changesets config)
 
 ### How to add one
 
@@ -79,8 +78,8 @@ A maintainer can also run the workflow manually via the **Actions** tab if neede
 ## Code Style
 
 - TypeScript everywhere
-- Follow the existing module boundaries (`common` → `witness` → `playwright` / `webdriverio`)
-- Keep runtime dependencies lean; prefer adding to `common` over duplicating
+- Follow the existing module boundaries (`witness` → `playwright` / `webdriverio` / `selenium`)
+- Keep runtime dependencies lean; prefer adding shared code to `witness` over duplicating
 - New public APIs need:
   - JSDoc on the export
   - A unit test

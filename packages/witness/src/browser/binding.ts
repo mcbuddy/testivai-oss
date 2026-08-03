@@ -1,5 +1,4 @@
 import { BrowserClient } from './client';
-import { BrowserCapture } from './capture';
 import { logger, createLogger } from '../utils/logger';
 
 /**
@@ -38,7 +37,6 @@ const ACK_SCRIPT = `
  * Browser binding management
  */
 export class BrowserBinding {
-  private capture: BrowserCapture;
   private snapshots: any[] = [];
   private isBindingRegistered = false;
   private pollInterval?: NodeJS.Timeout;
@@ -47,7 +45,6 @@ export class BrowserBinding {
   constructor(private client: BrowserClient, options: { debug?: boolean } = {}) {
     // Create a logger with debug options
     this.logger = createLogger({ debug: options.debug || false });
-    this.capture = new BrowserCapture(client, { debug: options.debug });
     this.setupEventListeners();
   }
 
@@ -331,47 +328,17 @@ export class BrowserBinding {
       });
       const viewport = viewportResult.result.value || { width: 1920, height: 1080 };
 
-      // In local mode, skip heavy captures (structure, styles, performance).
-      // Only the screenshot is needed for pixel-level visual diffing.
-      const isLocal = process.env.TESTIVAI_MODE === 'local';
-
-      // Capture page structure (HTML)
-      // @renamed: dom → structure (IP protection)
-      let structureHtml = '';
-      if (!isLocal) {
-        const structureResult = await this.client.send('Runtime.evaluate', {
-          expression: 'document.documentElement.outerHTML',
-        });
-        structureHtml = structureResult.result.value || '';
-      }
-
-      // Capture computed styles
-      // @renamed: css → styles (IP protection)
-      let styles: { computed_styles: Record<string, Record<string, string>> } = { computed_styles: {} };
-      if (!isLocal) {
-        styles = await this.capture.captureComputedStyles().catch(err => {
-          logger.warn('Failed to capture styles:', err);
-          return { computed_styles: {} };
-        });
-      }
-
-      // Capture performance metrics
-      const performanceMetrics = isLocal ? null : await this.capturePerformanceMetrics();
-
-      // Capture screenshot using Page.captureScreenshot
+      // Capture screenshot using Page.captureScreenshot. The screenshot is
+      // all the pixel diff needs; DOM/style evidence comes from the adapters.
       const screenshotResult = await this.client.send('Page.captureScreenshot', {
         format: 'png',
         captureBeyondViewport: true,
       });
 
       // Create snapshot object
-      // @renamed: dom → structure, css → styles (IP protection)
       const snapshot = {
         name,
         screenshot: screenshotResult.data,
-        structure: structureHtml,
-        styles,
-        performanceMetrics,
         timestamp: new Date().toISOString(),
         url: currentUrl,
         viewport,
@@ -390,117 +357,6 @@ export class BrowserBinding {
       
       // Still send ACK to avoid hanging the test
       await this.sendAck();
-    }
-  }
-
-  /**
-   * Capture performance metrics using browser Performance API
-   */
-  private async capturePerformanceMetrics(): Promise<any> {
-    try {
-      // Enable Performance domain
-      await this.client.send('Performance.enable');
-      
-      // Get browser performance metrics
-      const browserMetrics = await this.client.send('Performance.getMetrics');
-      
-      // Convert metrics array to object
-      const browserMetricsObj: any = {};
-      browserMetrics.metrics.forEach((metric: any) => {
-        browserMetricsObj[metric.name] = metric.value;
-      });
-      
-      // Get navigation timing and Web Vitals via Runtime.evaluate
-      const timingResult = await this.client.send('Runtime.evaluate', {
-        expression: `
-          (function() {
-            const timing = window.performance.timing;
-            const navigation = window.performance.navigation;
-            
-            // Get paint entries
-            const paintEntries = window.performance.getEntriesByType('paint');
-            const fcp = paintEntries.find(e => e.name === 'first-contentful-paint')?.startTime;
-            
-            // Get LCP
-            const lcpEntries = window.performance.getEntriesByType('largest-contentful-paint');
-            const lcp = lcpEntries[lcpEntries.length - 1]?.startTime;
-            
-            // Get CLS
-            let cls = 0;
-            try {
-              const clsEntries = window.performance.getEntriesByType('layout-shift');
-              clsEntries.forEach((entry: any) => {
-                if (!entry.hadRecentInput) {
-                  cls += entry.value;
-                }
-              });
-            } catch (e) {
-              // CLS might not be available
-            }
-            
-            // Get FID (requires PerformanceObserver)
-            let fid = null;
-            try {
-              const fidEntries = window.performance.getEntriesByType('first-input');
-              if (fidEntries.length > 0) {
-                fid = fidEntries[0].processingStart - fidEntries[0].startTime;
-              }
-            } catch (e) {
-              // FID might not be available
-            }
-            
-            return {
-              navigation: {
-                type: navigation.type,
-                redirectCount: navigation.redirectCount
-              },
-              timing: {
-                navigationStart: timing.navigationStart,
-                unloadEventStart: timing.unloadEventStart,
-                unloadEventEnd: timing.unloadEventEnd,
-                redirectStart: timing.redirectStart,
-                redirectEnd: timing.redirectEnd,
-                fetchStart: timing.fetchStart,
-                domainLookupStart: timing.domainLookupStart,
-                domainLookupEnd: timing.domainLookupEnd,
-                connectStart: timing.connectStart,
-                connectEnd: timing.connectEnd,
-                secureConnectionStart: timing.secureConnectionStart,
-                requestStart: timing.requestStart,
-                responseStart: timing.responseStart,
-                responseEnd: timing.responseEnd,
-                domLoading: timing.domLoading,
-                domInteractive: timing.domInteractive,
-                domContentLoadedEventStart: timing.domContentLoadedEventStart,
-                domContentLoadedEventEnd: timing.domContentLoadedEventEnd,
-                domComplete: timing.domComplete,
-                loadEventStart: timing.loadEventStart,
-                loadEventEnd: timing.loadEventEnd
-              },
-              webVitals: {
-                firstContentfulPaint: fcp,
-                largestContentfulPaint: lcp,
-                cumulativeLayoutShift: cls,
-                firstInputDelay: fid
-              }
-            };
-          })()
-        `
-      });
-      
-      const timingData = timingResult.result.value;
-      
-      // Disable Performance domain
-      await this.client.send('Performance.disable');
-      
-      return {
-        runtime: browserMetricsObj,
-        timing: timingData,
-        timestamp: Date.now()
-      };
-    } catch (error) {
-      logger.warn('Failed to capture performance metrics:', error);
-      return null;
     }
   }
 

@@ -112,15 +112,15 @@ that reference it keep working.
 A single comment per PR (identified by the `<!-- testivai-visual-report -->` marker; namespaced per `status-context` when a non-default context is set) with a passed / changed / new summary. Each changed snapshot gets a collapsed `<details>` with the diff percent, the DOM noise hint (when applicable), and the approval CLI command:
 
 ```
-### 🔍 TestivAI Visual Report
+### TestivAI Visual Report
 
-✅ 12 passed · ⚠️ 3 changed · 🆕 2 new
+**12 passed** | **3 changed** | **2 new**
 
 #### Changed Snapshots
 <details>
 <summary>checkout-page — 0.5% different</summary>
 
-> 💡 DOM unchanged — pixel diff is likely render noise (anti-aliasing, font hinting).
+> DOM unchanged — pixel diff is likely render noise (anti-aliasing, font hinting).
 
 /testivai approve checkout-page
 </details>
@@ -128,7 +128,7 @@ A single comment per PR (identified by the `<!-- testivai-visual-report -->` mar
 <details>
 <summary>nav-redesign — 8.5% different</summary>
 
-> 🧱 DOM changed — 2 added, 1 attribute change.
+> DOM changed — 2 added, 1 attribute change.
 
 /testivai approve nav-redesign
 </details>
@@ -142,9 +142,9 @@ A status under the context `TestivAI / visual` (configurable via `status-context
 
 | Snapshot state | `fail-on-diff: true` | `fail-on-diff: false` (default) |
 |---|---|---|
-| All passed | ✅ success | ✅ success |
-| Changes present | ❌ failure | ✅ success (with note "non-blocking") |
-| New snapshots only | ✅ success | ✅ success |
+| All passed | success | success |
+| Changes present | failure | success (with note "non-blocking") |
+| New snapshots only | success | success |
 
 ### Workflow artifact
 

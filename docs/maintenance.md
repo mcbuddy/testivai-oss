@@ -68,7 +68,7 @@ version you pinned keeps working, offline, forever.
 
 ## Contributing
 
-Issues and pull requests are welcome. Items marked 🤝 on the roadmap are
+Issues and pull requests are welcome. Items marked *(community)* on the roadmap are
 deliberately scoped as community-sized. The repository has a
 [contributing guide](https://github.com/mcbuddy/testivai-oss/blob/main/CONTRIBUTING.md)
 and the full test suite runs on every pull request.

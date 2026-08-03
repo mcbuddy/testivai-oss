@@ -143,7 +143,6 @@ export function renderHtml(data: ReportData): string {
     .analysis-mcp { font-size: 10px; color: var(--text-muted); }
     .analysis-mcp code { background: var(--code-bg); border-radius: 3px; padding: 1px 4px; }
     .verdict { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; font-weight: 550; margin-bottom: 8px; }
-    .verdict .v-icon { flex-shrink: 0; }
     .verdict.v-noise { background: var(--info-bg); color: var(--info); border: 1px solid var(--info); border-color: color-mix(in srgb, var(--info) 30%, transparent); }
     .verdict.v-style { background: var(--new-bg); color: var(--new); border: 1px solid color-mix(in srgb, var(--new) 30%, transparent); }
     .verdict.v-structural { background: var(--changed-bg); color: var(--changed); border: 1px solid color-mix(in srgb, var(--changed) 30%, transparent); }
@@ -245,7 +244,7 @@ export function renderHtml(data: ReportData): string {
   <aside class="sidebar" id="sidebar">
     <div class="brand-row">
       <h1>TestivAI</h1>
-      <button class="theme-toggle" id="themeToggle" title="Switch between light and dark theme">🌙 Dark</button>
+      <button class="theme-toggle" id="themeToggle" title="Switch between light and dark theme">Dark</button>
     </div>
     <div class="version">Visual Report v${escapeHtml(version)}</div>
     <div class="timestamp">${escapeHtml(new Date(timestamp).toLocaleString())}</div>
@@ -270,8 +269,8 @@ export function renderHtml(data: ReportData): string {
     </div>
 
     <div class="oss-notice">
-      <h4>⚠️ Pixel-exact mode</h4>
-      <p>Dynamic content (images, fonts, animations) may cause false positives. The <strong>💡 DOM unchanged</strong> hint identifies likely render noise.</p>
+      <h4>Pixel-exact mode</h4>
+      <p>Dynamic content (images, fonts, animations) may cause false positives. The <strong>DOM unchanged</strong> hint identifies likely render noise.</p>
       <p>To reduce noise:<br>
         • Raise <code>threshold</code> in <code>.testivai/config.json</code><br>
         • Add <code>ignoreSelectors</code> for dynamic elements<br>
@@ -283,13 +282,13 @@ export function renderHtml(data: ReportData): string {
   <main class="main">
     ${missing.length > 0 ? `
     <div class="missing-notice">
-      <div class="m-title">⚠️ ${missing.length} baseline${missing.length === 1 ? '' : 's'} received no capture this run</div>
+      <div class="m-title">${missing.length} baseline${missing.length === 1 ? '' : 's'} received no capture this run</div>
       ${missing.map((n) => `<code>${escapeHtml(n)}</code>`).join(' ')}
       <div class="m-hint">A deleted or renamed test silently stops guarding its page. If intentional, remove the baseline (and commit); if this was a filtered run (<code>--grep</code>), ignore this notice.</div>
     </div>` : ''}
     ${summary.total === 0 ? `
     <div class="empty">
-      <div class="icon">📸</div>
+      
       <h2>No snapshots found</h2>
       <p>Run your tests to capture snapshots, then re-run the report.</p>
     </div>` : ''}
@@ -323,7 +322,7 @@ export function renderHtml(data: ReportData): string {
       const apply = (theme) => {
         if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
         else document.documentElement.removeAttribute('data-theme');
-        btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        btn.textContent = theme === 'dark' ? 'Light' : 'Dark';
       };
       let theme = 'light';
       try { theme = localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light'; } catch {}
@@ -476,19 +475,19 @@ function renderVerdict(snapshot: SnapshotResult): string {
   if (snapshot.status === 'passed' && !snapshot.autoPassed) return '';
 
   if (snapshot.status === 'new') {
-    return `<div class="verdict v-new"><span class="v-icon">🆕</span><span>First capture — no baseline yet. Review the image, then approve to make it the baseline.</span></div>`;
+    return `<div class="verdict v-new"><span>First capture — no baseline yet. Review the image, then approve to make it the baseline.</span></div>`;
   }
 
   if (snapshot.dom?.styleCheck === 'mismatch' && snapshot.dom.styleChanges) {
     const n = snapshot.dom.styleChanges.count;
     const first = snapshot.dom.styleChanges.elements[0];
     const el = first ? `<code>${escapeHtml(first.split(' > ').slice(-1)[0])}</code>` : '';
-    return `<div class="verdict v-style"><span class="v-icon">🎨</span><span>Style-only change — a real change, not noise: ${n} element${n === 1 ? '' : 's'} restyled with identical DOM${el ? ` (${el}${n > 1 ? ', …' : ''})` : ''}. Confirm it's intended before approving.</span></div>`;
+    return `<div class="verdict v-style"><span>Style-only change — a real change, not noise: ${n} element${n === 1 ? '' : 's'} restyled with identical DOM${el ? ` (${el}${n > 1 ? ', …' : ''})` : ''}. Confirm it's intended before approving.</span></div>`;
   }
 
   if (snapshot.pageShift) {
     const p = snapshot.pageShift;
-    return `<div class="verdict v-shift"><span class="v-icon">↕️</span><span>Layout shift — everything below y=${p.belowY} moved ${p.dy > 0 ? 'down' : 'up'} ${Math.abs(p.dy)}px (${p.count} elements together). Look <em>above</em> that line for inserted or removed content; the moved elements themselves are unchanged.</span></div>`;
+    return `<div class="verdict v-shift"><span>Layout shift — everything below y=${p.belowY} moved ${p.dy > 0 ? 'down' : 'up'} ${Math.abs(p.dy)}px (${p.count} elements together). Look <em>above</em> that line for inserted or removed content; the moved elements themselves are unchanged.</span></div>`;
   }
 
   if (snapshot.dom?.changed && snapshot.dom.summary) {
@@ -498,15 +497,15 @@ function renderVerdict(snapshot: SnapshotResult): string {
     if (s.removed > 0) parts.push(`${s.removed} removed`);
     if (s.attributeChanges > 0) parts.push(`${s.attributeChanges} attribute`);
     if (s.textChanges) parts.push(`${s.textChanges} text`);
-    return `<div class="verdict v-structural"><span class="v-icon">🧱</span><span>Structural change — the DOM differs (${escapeHtml(parts.join(', ') || 'structural difference')}). Review the diff and confirm the change is intended before approving.</span></div>`;
+    return `<div class="verdict v-structural"><span>Structural change — the DOM differs (${escapeHtml(parts.join(', ') || 'structural difference')}). Review the diff and confirm the change is intended before approving.</span></div>`;
   }
 
   if (snapshot.dom?.noiseHint) {
-    return `<div class="verdict v-noise"><span class="v-icon">💡</span><span>Likely render noise — pixels differ but the DOM${snapshot.dom.styleCheck === 'match' ? ' and computed styles are' : ' is'} identical (anti-aliasing, font hinting). Worth a glance, not a block.</span></div>`;
+    return `<div class="verdict v-noise"><span>Likely render noise — pixels differ but the DOM${snapshot.dom.styleCheck === 'match' ? ' and computed styles are' : ' is'} identical (anti-aliasing, font hinting). Worth a glance, not a block.</span></div>`;
   }
 
   if (snapshot.autoPassed) {
-    return `<div class="verdict v-pass"><span class="v-icon">✅</span><span>Auto-passed via the <code>${snapshot.autoPassed}</code> criterion — reported for transparency, no action needed.</span></div>`;
+    return `<div class="verdict v-pass"><span>Auto-passed via the <code>${snapshot.autoPassed}</code> criterion — reported for transparency, no action needed.</span></div>`;
   }
 
   return '';
@@ -640,7 +639,7 @@ function renderMasks(snapshot: SnapshotResult): string {
     masks.length > 0
       ? `
       <div class="masks" title="Masked areas are excluded from the pixel diff and hatched in the diff image.">
-        <span class="label">🙈 ${masks.length} mask${masks.length === 1 ? '' : 's'} applied</span>
+        <span class="label">${masks.length} mask${masks.length === 1 ? '' : 's'} applied</span>
         — ${masks.map(describe).join('; ')}
       </div>`
       : '';
@@ -648,7 +647,7 @@ function renderMasks(snapshot: SnapshotResult): string {
   const warningBlock =
     warnings.length > 0
       ? `
-      <div class="mask-warning">⚠️ ${warnings.map((w) => escapeHtml(w)).join('<br>')}</div>`
+      <div class="mask-warning">${warnings.map((w) => escapeHtml(w)).join('<br>')}</div>`
       : '';
 
   return maskBlock + warningBlock;

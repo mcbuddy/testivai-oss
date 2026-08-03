@@ -35,7 +35,6 @@ Create `.testivai/config.json` at your project root:
 
 ```json
 {
-  "mode": "local",
   "threshold": 0.1,
   "reportDir": "visual-report",
   "autoOpen": false,
@@ -168,7 +167,7 @@ All options are optional; defaults come from `.testivai/config.json`.
 
 ## Local-only by design
 
-The WDIO adapter is local-only: captures, diffs, and the report are all produced on disk. A legacy config carrying the retired `mode: "cloud"` value logs a warning and skips report generation — set `"mode": "local"` (or delete the field) to fix it.
+The WDIO adapter is local-only: captures, diffs, and the report are all produced on disk. The legacy `mode` config field is retired and ignored when present.
 
 ---
 

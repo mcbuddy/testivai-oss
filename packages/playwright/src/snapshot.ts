@@ -3,12 +3,11 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { URL } from 'url';
 import sharp from 'sharp';
-import { SnapshotPayload, LayoutData, TestivAIConfig, StructureAnalysis, StructureAnalysisConfig } from './types';
+import { TestivAIConfig } from './types';
 import { loadConfig, mergeTestConfig } from './config/loader';
 import { collectIgnoreSelectors, collectIgnoreRules, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
 import { buildElementMapExpression } from './capture/element-map';
 import { STABILIZE_CSS, resolveStabilize, waitForFonts, waitForSettled, stopSettleObserver } from './config/stabilize';
-import { resolveLocalMode } from './mode';
 
 /**
  * Generates a safe filename from a URL.
@@ -66,12 +65,6 @@ export async function snapshot(
   name?: string,
   config?: TestivAIConfig
 ): Promise<void> {
-  // Check for local mode - only capture screenshots, skip heavy data.
-  // Resolved from the shell env + config so it agrees with the reporter even
-  // though this runs in a Playwright worker (the reporter's runtime env writes
-  // never reach workers). Default: local unless a TESTIVAI_API_KEY is present.
-  const isLocalMode = resolveLocalMode();
-
   // Load project configuration and merge with test-specific overrides
   const projectConfig = await loadConfig();
   const effectiveConfig = mergeTestConfig(projectConfig, config);
@@ -81,8 +74,7 @@ export async function snapshot(
     console.log('[TestivAI] Config:', {
       projectConfig,
       testConfig: config,
-      effectiveConfig,
-      isLocalMode
+      effectiveConfig
     });
   }
 
@@ -97,14 +89,14 @@ export async function snapshot(
   // 1. Capture full-page screenshot
   const screenshotPath = path.join(outputDir, `${baseFilename}.png`);
 
-  // In local mode: hide elements matching ignoreSelectors before the screenshot
-  // so dynamic content (version badges, timestamps, ads) doesn't cause false diffs.
+  // Hide elements matching ignoreSelectors before the screenshot so dynamic
+  // content (version badges, timestamps, ads) doesn't cause false diffs.
   // Sources (merged, deduped) — see config/ignore-selectors.ts:
-  //   1. .testivai/config.json  → ignoreSelectors  (global, OSS config)
+  //   1. .testivai/config.json  → ignoreSelectors  (global config)
   //   2. testivai.config.ts     → ignoreSelectors  (global, power users)
   //   3. testivai.witness(...)  → { ignoreSelectors } (per-snapshot override)
   let ignoreStyleEl: import('@playwright/test').ElementHandle | null = null;
-  if (isLocalMode) {
+  {
     // Rules carry per-selector mode: mask (visibility:hidden, layout kept) or
     // collapse (display:none, layout removed — fixes variable-height shift).
     const ignoreRules = collectIgnoreRules(process.cwd(), projectConfig, effectiveConfig);
@@ -114,7 +106,7 @@ export async function snapshot(
     }
   }
 
-  // Stabilize the page before capture (all modes): freeze CSS animations and
+  // Stabilize the page before capture: freeze CSS animations and
   // transitions, hide the caret, and wait for web fonts — the top sources of
   // flaky pixel diffs. Injected as CSS so every capture path (native
   // screenshot, CDP captureScreenshot, scroll-and-stitch) is covered.
@@ -392,7 +384,7 @@ export async function snapshot(
     await stopSettleObserver(page);
   }
 
-  // 1.5. Local mode: also place the screenshot in the layout expected by
+  // 1.5. Place the screenshot in the layout expected by
   //      @testivai/witness/report (subdirectory keyed by snapshot name).
   //      This is what `BaselineStore.listTemp()` and `compareAll()` enumerate.
   //
@@ -401,7 +393,7 @@ export async function snapshot(
   //      ("pixels differ but DOM is unchanged → likely render noise"). DOM
   //      capture is wrapped in try/catch so a flaky page never breaks the
   //      screenshot path; missing dom.html simply suppresses the hint.
-  if (isLocalMode) {
+  {
     const localSnapshotDir = path.join(outputDir, snapshotName);
     await fs.ensureDir(localSnapshotDir);
     // Move (not copy) the flat capture into the canonical <name>/ layout so
@@ -504,336 +496,6 @@ export async function snapshot(
     } catch {
       // missing elements.json only disables attribution for this capture
     }
-  }
-
-  // 2. Dump page structure (HTML) - skip in local mode
-  // @renamed: domPath → structurePath (IP protection)
-  let structurePath = '';
-  if (!isLocalMode) {
-    structurePath = path.join(outputDir, `${baseFilename}.html`);
-    const htmlContent = await page.content();
-    await fs.writeFile(structurePath, htmlContent);
-  }
-
-  // 2.5. Capture computed styles using browser session - skip in local mode
-  // @renamed: cssPath → stylesPath (IP protection)
-  let stylesPath = '';
-  if (!isLocalMode) {
-    stylesPath = path.join(outputDir, `${baseFilename}.css.json`);
-    try {
-      const browserSession = await page.context().newCDPSession(page);
-
-      // Enable DOM and CSS domains
-      await browserSession.send('DOM.enable');
-      await browserSession.send('CSS.enable');
-
-      // Get all elements and their computed styles
-      const computedStyles: Record<string, Record<string, string>> = {};
-
-      // Visual properties we care about
-      const visualProperties = [
-        'color', 'background-color', 'background-image',
-        'font-size', 'font-weight', 'font-family',
-        'width', 'height', 'padding', 'margin',
-        'border', 'border-radius', 'box-shadow',
-        'display', 'position', 'top', 'left', 'right', 'bottom',
-        'transform', 'opacity', 'visibility', 'z-index'
-      ];
-
-      // Execute script to get all elements with unique identifiers
-      const elementsData = await browserSession.send('Runtime.evaluate', {
-        expression: `
-          (function() {
-            // Helper to get stable CSS selector path for an element
-            function getElementPath(element) {
-              if (element.id) {
-                return '#' + element.id;
-              }
-
-              const path = [];
-              let current = element;
-
-              while (current && current !== document.body) {
-                let selector = current.tagName.toLowerCase();
-
-                // Add up to 3 CSS classes for better uniqueness
-                // e.g., button.button.primary-button instead of just button.button
-                if (current.className && typeof current.className === 'string') {
-                  const classes = current.className.trim().split(/\\s+/).filter(Boolean);
-                  const maxClasses = Math.min(classes.length, 3);
-                  for (let c = 0; c < maxClasses; c++) {
-                    selector += '.' + classes[c];
-                  }
-                }
-
-                // Get nth-child position for uniqueness
-                if (current.parentNode) {
-                  const siblings = Array.from(current.parentNode.children);
-                  const sameTagSiblings = siblings.filter(s => s.tagName === current.tagName);
-                  if (sameTagSiblings.length > 1) {
-                    const index = sameTagSiblings.indexOf(current) + 1;
-                    selector += \`:nth-of-type(\${index})\`;
-                  }
-                }
-
-                path.unshift(selector);
-                current = current.parentElement;
-              }
-
-              return path.join(' > ');
-            }
-
-            const elements = document.querySelectorAll('*');
-            const result = [];
-            elements.forEach((el, index) => {
-              const selectorPath = getElementPath(el);
-              const tagName = el.tagName.toLowerCase();
-              const className = el.className || '';
-              result.push({
-                selectorPath,
-                tagName,
-                className,
-                index
-              });
-            });
-            return result;
-          })()
-        `,
-        returnByValue: true
-      });
-
-      if (elementsData.result.value) {
-        const elements = elementsData.result.value as Array<{selectorPath: string, tagName: string, className: string, index: number}>;
-
-        // Get computed styles for each element (sample first 100 to avoid performance issues)
-        const sampleSize = Math.min(elements.length, 100);
-        for (let i = 0; i < sampleSize; i++) {
-          const element = elements[i];
-          try {
-            const styleResult = await browserSession.send('Runtime.evaluate', {
-              expression: `
-                (function() {
-                  const el = document.querySelectorAll('*')[${element.index}];
-                  if (!el) return null;
-                  const styles = window.getComputedStyle(el);
-                  const result = {};
-                  ${JSON.stringify(visualProperties)}.forEach(prop => {
-                    result[prop] = styles.getPropertyValue(prop);
-                  });
-                  return result;
-                })()
-              `,
-              returnByValue: true
-            });
-
-            if (styleResult.result.value) {
-              // Use stable selector path as element ID instead of unstable index
-              // Deduplicate: if key already exists, append numeric suffix to prevent overwriting
-              let uniqueKey = element.selectorPath;
-              if (computedStyles[uniqueKey]) {
-                let suffix = 2;
-                while (computedStyles[`${element.selectorPath}[${suffix}]`]) {
-                  suffix++;
-                }
-                uniqueKey = `${element.selectorPath}[${suffix}]`;
-              }
-              computedStyles[uniqueKey] = styleResult.result.value as Record<string, string>;
-            }
-          } catch (err) {
-            // Skip elements that fail
-            continue;
-          }
-        }
-      }
-
-      // Disable domains and close session
-      await browserSession.send('CSS.disable');
-      await browserSession.send('DOM.disable');
-      await browserSession.detach();
-
-      // Save computed styles to file
-      await fs.writeJson(stylesPath, {
-        computed_styles: computedStyles,
-        timestamp: Date.now(),
-        sample_size: Object.keys(computedStyles).length
-      });
-
-      if (process.env.TESTIVAI_DEBUG === 'true') {
-        console.log(`[TestivAI] Captured ${Object.keys(computedStyles).length} element styles`);
-      }
-    } catch (error) {
-      console.warn('[TestivAI] Failed to capture CSS via browser session:', error);
-      // Continue without CSS data
-    }
-  }
-
-  // 3. Extract bounding boxes for requested selectors - skip in local mode
-  const selectors = effectiveConfig.selectors ?? ['body'];
-  const layout: Record<string, LayoutData> = {};
-
-  if (!isLocalMode) {
-    for (const selector of selectors) {
-      const element = page.locator(selector).first();
-      const boundingBox = await element.boundingBox();
-      if (boundingBox) {
-        layout[selector] = {
-          ...boundingBox,
-          top: boundingBox.y,
-          left: boundingBox.x,
-          right: boundingBox.x + boundingBox.width,
-          bottom: boundingBox.y + boundingBox.height,
-        };
-      }
-    }
-  }
-
-  // 4. Capture performance metrics using browser session (if enabled) - skip in local mode
-  let performanceMetrics: any = undefined;
-
-  const metricsEnabled = effectiveConfig.performanceMetrics?.enabled ?? true; // Default: enabled
-
-  if (metricsEnabled && !isLocalMode) {
-    try {
-      // Get browser session from Playwright page
-      const browserSession = await page.context().newCDPSession(page);
-      
-      // Enable Performance domain
-      await browserSession.send('Performance.enable');
-      
-      // Get browser performance metrics
-      const browserMetrics = await browserSession.send('Performance.getMetrics');
-      
-      // Convert metrics array to object
-      const browserMetricsObj: any = {};
-      browserMetrics.metrics.forEach((metric: any) => {
-        browserMetricsObj[metric.name] = metric.value;
-      });
-      
-      // Get navigation timing and Web Vitals via page.evaluate
-      const timingData = await page.evaluate(() => {
-        const timing = window.performance.timing;
-        const navigation = window.performance.navigation;
-        
-        // Get paint entries
-        const paintEntries = window.performance.getEntriesByType('paint');
-        const fcp = paintEntries.find(e => e.name === 'first-contentful-paint')?.startTime;
-        
-        // Get LCP
-        const lcpEntries = window.performance.getEntriesByType('largest-contentful-paint');
-        const lcp = lcpEntries[lcpEntries.length - 1]?.startTime;
-        
-        // Get CLS
-        let cls = 0;
-        try {
-          const clsEntries = window.performance.getEntriesByType('layout-shift');
-          clsEntries.forEach((entry: any) => {
-            if (!entry.hadRecentInput) {
-              cls += entry.value;
-            }
-          });
-        } catch (e) {
-          // CLS might not be available
-        }
-        
-        // Get FID (requires PerformanceObserver)
-        let fid = null;
-        try {
-          const fidEntries = window.performance.getEntriesByType('first-input');
-          if (fidEntries.length > 0) {
-            fid = (fidEntries[0] as any).processingStart - (fidEntries[0] as any).startTime;
-          }
-        } catch (e) {
-          // FID might not be available
-        }
-        
-        return {
-          navigation: {
-            type: navigation.type,
-            redirectCount: navigation.redirectCount
-          },
-          timing: {
-            navigationStart: timing.navigationStart,
-            unloadEventStart: timing.unloadEventStart,
-            unloadEventEnd: timing.unloadEventEnd,
-            redirectStart: timing.redirectStart,
-            redirectEnd: timing.redirectEnd,
-            fetchStart: timing.fetchStart,
-            domainLookupStart: timing.domainLookupStart,
-            domainLookupEnd: timing.domainLookupEnd,
-            connectStart: timing.connectStart,
-            connectEnd: timing.connectEnd,
-            secureConnectionStart: timing.secureConnectionStart,
-            requestStart: timing.requestStart,
-            responseStart: timing.responseStart,
-            responseEnd: timing.responseEnd,
-            domLoading: timing.domLoading,
-            domInteractive: timing.domInteractive,
-            domContentLoadedEventStart: timing.domContentLoadedEventStart,
-            domContentLoadedEventEnd: timing.domContentLoadedEventEnd,
-            domComplete: timing.domComplete,
-            loadEventStart: timing.loadEventStart,
-            loadEventEnd: timing.loadEventEnd
-          },
-          webVitals: {
-            firstContentfulPaint: fcp,
-            largestContentfulPaint: lcp,
-            cumulativeLayoutShift: cls,
-            firstInputDelay: fid
-          }
-        };
-      });
-      
-      // Disable Performance domain
-      await browserSession.send('Performance.disable');
-      await browserSession.detach();
-      
-      // Structure identical to Witness SDK
-      performanceMetrics = {
-        cdp: browserMetricsObj,
-        timing: timingData,
-        timestamp: Date.now()
-      };
-    } catch (err) {
-      console.warn('Failed to capture performance metrics:', err);
-    }
-  }
-
-  // 5. Structure analysis is now handled on the backend - skip in local mode
-  // The SDK just captures the HTML and sends it with the configuration
-  // @renamed: domAnalysis → structureAnalysis (IP protection)
-  const structureAnalysis = isLocalMode ? undefined : undefined; // Will be populated by backend
-
-  // 6. Save metadata with configuration and performance data.
-  //    Cloud mode only: the flat <timestamp>_<name>.json is the upload
-  //    manifest the reporter reads. Local mode has no flat files — its report
-  //    is generated from the canonical .testivai/temp/<name>/ directory.
-  if (!isLocalMode) {
-    const metadataPath = path.join(outputDir, `${baseFilename}.json`);
-    const metadata: Partial<SnapshotPayload> = {
-      snapshotName,
-      testName: testInfo.title,
-      timestamp,
-      url: page.url(),
-      viewport: page.viewportSize() || undefined,
-    };
-
-    await fs.writeJson(metadataPath, {
-      ...metadata,
-      files: {
-        screenshot: screenshotPath,
-        // @renamed: dom → structure, css → styles (IP protection)
-        structure: structurePath,
-        styles: stylesPath,
-      },
-      layout,
-      // Store the effective configuration for the reporter
-      testivaiConfig: effectiveConfig,
-      // Store unified performance metrics if captured
-      performanceMetrics,
-      // Store structure analysis if captured
-      // @renamed: domAnalysis → structureAnalysis (IP protection)
-      structureAnalysis
-    });
   }
 }
 

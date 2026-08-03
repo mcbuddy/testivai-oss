@@ -1,16 +1,14 @@
 /**
  * TestivAI Local Configuration
  *
- * Reads/writes `.testivai/config.json` for local mode settings.
- * This file is the primary signal that a project is in local mode.
+ * Reads/writes `.testivai/config.json`. Everything runs locally, so this
+ * file is optional — absent, every field falls back to its default.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
 export interface LocalConfig {
-  /** Operating mode: 'local' or 'cloud' */
-  mode: 'local' | 'cloud';
   /** Pixel diff threshold (0-1). Default: 0.1 */
   threshold: number;
   /** Auto-open HTML report in browser after test run. Default: true */
@@ -121,7 +119,6 @@ export interface LocalConfig {
 }
 
 const DEFAULT_CONFIG: LocalConfig = {
-  mode: 'local',
   threshold: 0.1,
   autoOpen: true,
   failOnDiff: false,
@@ -191,24 +188,6 @@ export function createDefaultConfig(
  */
 export function localConfigExists(projectRoot: string): boolean {
   return fs.existsSync(getConfigPath(projectRoot));
-}
-
-/**
- * Detect if the project is in local mode.
- * Priority: `.testivai/config.json` → check for mode field → default false.
- */
-export function isLocalMode(projectRoot: string): boolean {
-  // Env override first: a repo can host BOTH lanes side by side (the demo
-  // app does), and .testivai/config.json { mode: "local" } must not hijack
-  // a cloud run. TESTIVAI_MODE=cloud|local wins over the file.
-  const envMode = process.env.TESTIVAI_MODE;
-  if (envMode === 'local') return true;
-  if (envMode === 'cloud') return false;
-  if (!localConfigExists(projectRoot)) {
-    return false;
-  }
-  const config = loadLocalConfig(projectRoot);
-  return config.mode === 'local';
 }
 
 /**

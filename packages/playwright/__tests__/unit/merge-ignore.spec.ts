@@ -1,10 +1,7 @@
 import { mergeTestConfig } from '../../src/config/loader';
 import type { TestivAIProjectConfig } from '../../src/types';
 
-const project = {
-  layout: { sensitivity: 2, tolerance: 1 },
-  ai: { sensitivity: 2, confidence: 0.7 },
-} as TestivAIProjectConfig;
+const project: TestivAIProjectConfig = {};
 
 describe('mergeTestConfig — per-call capture options', () => {
   it('passes ignoreSelectors through the merge', () => {
@@ -18,7 +15,7 @@ describe('mergeTestConfig — per-call capture options', () => {
   });
 
   it('leaves them undefined when not provided', () => {
-    const merged = mergeTestConfig(project, { selectors: ['x'] });
+    const merged = mergeTestConfig(project, { useBrowserCapture: true });
     expect(merged.ignoreSelectors).toBeUndefined();
   });
 });

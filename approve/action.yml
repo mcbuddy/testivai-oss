@@ -82,7 +82,7 @@ runs:
               owner:        context.repo.owner,
               repo:         context.repo.repo,
               issue_number: context.issue.number,
-              body: `⛔ @${context.actor} — only collaborators with **write** access can approve visual baselines.`,
+              body: `@${context.actor} — only collaborators with **write** access can approve visual baselines.`,
             });
             return { skip: true };
           }
@@ -270,7 +270,7 @@ runs:
 
           if (count === 0) {
             body = [
-              `⚠️ No baselines were updated.`,
+              `No baselines were updated.`,
               ``,
               `Possible reasons:`,
               `- The snapshot name(s) don't match any pending changes.`,
@@ -280,10 +280,10 @@ runs:
           } else {
             const list = approved.map(n => `- \`${n}\``).join('\n');
             const skipNote = skipped.length
-              ? `\n\n⚠️ Not found in pending baselines: ${skipped.map(n => `\`${n}\``).join(', ')}`
+              ? `\n\nNot found in pending baselines: ${skipped.map(n => `\`${n}\``).join(', ')}`
               : '';
             body = [
-              `✅ **${count} baseline${count === 1 ? '' : 's'} approved** by @${actor}`,
+              `**${count} baseline${count === 1 ? '' : 's'} approved** by @${actor}`,
               ``,
               list,
               skipNote,

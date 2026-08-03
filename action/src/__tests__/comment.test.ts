@@ -42,7 +42,7 @@ describe('buildComment', () => {
     };
 
     const comment = buildComment(results);
-    expect(comment).toContain('### 🔍 TestivAI Visual Report');
+    expect(comment).toContain('### TestivAI Visual Report');
   });
 
   it('T6.2 - includes upsert marker', () => {
@@ -64,9 +64,9 @@ describe('buildComment', () => {
     };
 
     const comment = buildComment(results);
-    expect(comment).toContain('✅ **2 passed**');
-    expect(comment).toContain('⚠️ **2 changed**');
-    expect(comment).toContain('🆕 **1 new**');
+    expect(comment).toContain('**2 passed**');
+    expect(comment).toContain('**2 changed**');
+    expect(comment).toContain('**1 new**');
   });
 
   it('T6.4 - includes details with approve command for changed snapshots', () => {
@@ -205,8 +205,8 @@ describe('buildComment', () => {
         ],
       };
       const comment = buildComment(results);
-      expect(comment).not.toContain('💡 **DOM unchanged**');
-      expect(comment).not.toContain('🧱 **DOM changed**');
+      expect(comment).not.toContain('**DOM unchanged**');
+      expect(comment).not.toContain('**DOM changed**');
     });
 
     it('singular vs plural attribute-change wording', () => {

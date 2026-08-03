@@ -1,8 +1,8 @@
 /**
- * Tests for `testivai init` Playwright detection + local scaffold (item 3).
+ * Tests for `testivai init` Playwright detection + scaffold (item 3).
  *
- * A Playwright repo must get the reporter/local flow — .testivai/config.json
- * with mode:"local" — and never the CDP browserPort sidecar config.
+ * A Playwright repo must get the reporter flow — .testivai/config.json —
+ * and never the CDP browserPort sidecar config.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -52,12 +52,11 @@ describe('init — Playwright detection', () => {
   });
 
   describe('scaffoldPlaywrightLocal', () => {
-    it('creates .testivai/config.json with mode:"local" (not CDP config)', () => {
+    it('creates .testivai/config.json (not CDP config)', () => {
       const created = scaffoldPlaywrightLocal(tmpDir);
 
       expect(fs.existsSync(getConfigPath(tmpDir))).toBe(true);
       const config = loadLocalConfig(tmpDir);
-      expect(config.mode).toBe('local');
       // Must NOT be the CDP sidecar config.
       expect(config).not.toHaveProperty('browserPort');
       expect(created).toContain('.testivai/config.json');
@@ -86,7 +85,7 @@ describe('init — Playwright detection', () => {
 
     it('leaves an existing config untouched without force', () => {
       fs.mkdirSync(path.join(tmpDir, '.testivai'), { recursive: true });
-      fs.writeFileSync(getConfigPath(tmpDir), JSON.stringify({ mode: 'local', threshold: 0.5 }));
+      fs.writeFileSync(getConfigPath(tmpDir), JSON.stringify({ threshold: 0.5 }));
       const created = scaffoldPlaywrightLocal(tmpDir, false);
       expect(created).not.toContain('.testivai/config.json');
       expect(loadLocalConfig(tmpDir).threshold).toBe(0.5);
@@ -94,7 +93,7 @@ describe('init — Playwright detection', () => {
 
     it('overwrites an existing config with force', () => {
       fs.mkdirSync(path.join(tmpDir, '.testivai'), { recursive: true });
-      fs.writeFileSync(getConfigPath(tmpDir), JSON.stringify({ mode: 'local', threshold: 0.5 }));
+      fs.writeFileSync(getConfigPath(tmpDir), JSON.stringify({ threshold: 0.5 }));
       const created = scaffoldPlaywrightLocal(tmpDir, true);
       expect(created).toContain('.testivai/config.json');
     });

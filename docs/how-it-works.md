@@ -81,7 +81,6 @@ The threshold is configurable:
 ```json
 // .testivai/config.json
 {
-  "mode": "local",
   "threshold": 0.1,
   "reportDir": "visual-report",
   "maxDiffPercent": 0,

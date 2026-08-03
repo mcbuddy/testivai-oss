@@ -47,13 +47,9 @@ testivai run "bundle exec rspec"
 The command exits with your test command's exit code, or `1` when
 `failOnDiff` is set in `.testivai/config.json` and snapshots changed.
 
-Requires local mode: `.testivai/config.json` with `"mode": "local"` (created by
-[`testivai init`](./init.md)), or `TESTIVAI_MODE=local` in the environment.
-
 ## Options
 
 | Flag | Description |
 |---|---|
 | `-p, --port <number>` | Chrome remote debugging port (default `9222`) |
-| `-b, --batch-id <id>` | Specify the batch ID (auto-generated if not provided) |
 | `--debug` | Enable debug logging for snapshots |

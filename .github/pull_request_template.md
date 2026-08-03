@@ -5,10 +5,11 @@
 - 
 
 ## Package(s) affected
-- [ ] @testivai/common
 - [ ] @testivai/witness
 - [ ] @testivai/witness-playwright
 - [ ] @testivai/witness-webdriverio
+- [ ] @testivai/witness-selenium
+- [ ] @testivai/mcp
 - [ ] GitHub Action (`action/`)
 - [ ] Examples / docs / CI only
 
