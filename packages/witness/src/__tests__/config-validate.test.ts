@@ -111,7 +111,7 @@ describe('loadLocalConfig integration', () => {
 
   it('keeps unknown keys (forward compatibility) but warns', () => {
     writeConfig(JSON.stringify({ futureKnob: 42 }));
-    const config = loadLocalConfig(tmpDir) as Record<string, unknown>;
+    const config = loadLocalConfig(tmpDir) as unknown as Record<string, unknown>;
     expect(config.futureKnob).toBe(42);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('futureKnob'));
   });
