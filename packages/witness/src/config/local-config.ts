@@ -7,6 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { validateLocalConfig } from './validate-config';
 
 export interface LocalConfig {
   /** Pixel diff threshold (0-1). Default: 0.1 */
@@ -132,9 +133,19 @@ const DEFAULT_CONFIG: LocalConfig = {
 const CONFIG_FILENAME = 'config.json';
 const CONFIG_DIR = '.testivai';
 
+// Warn once per config path per process: loadLocalConfig is called from the
+// CLI, the reporter, and the compare pipeline in the same run, and repeating
+// the same warning three times reads like three different problems.
+const warnedPaths = new Set<string>();
+
 /**
  * Load local config from `.testivai/config.json`.
  * Returns defaults if the file does not exist.
+ *
+ * Unknown keys and mistyped values are reported to stderr with a
+ * did-you-mean suggestion (see validate-config.ts) — warnings only, never
+ * an error. Mistyped values are dropped so the documented defaults apply
+ * instead of, say, a string flowing into threshold arithmetic.
  *
  * @param projectRoot - Root of the project (where `.testivai/` lives)
  */
@@ -147,12 +158,32 @@ export function loadLocalConfig(projectRoot: string): LocalConfig {
   try {
     const raw = fs.readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(raw);
+
+    const { warnings, invalidKeys } = validateLocalConfig(parsed);
+    if (warnings.length > 0 && !warnedPaths.has(configPath)) {
+      warnedPaths.add(configPath);
+      for (const warning of warnings) {
+        console.warn(`[testivai] config warning: ${warning}`);
+      }
+    }
+    if (parsed !== null && typeof parsed === 'object') {
+      for (const key of invalidKeys) {
+        delete (parsed as Record<string, unknown>)[key];
+      }
+    }
+
     return {
       ...DEFAULT_CONFIG,
       ...parsed,
     };
-  } catch {
-    // If the file is malformed, return defaults
+  } catch (err) {
+    // Malformed JSON: fall back to defaults, but say so — silently ignoring
+    // the whole file makes every setting in it look broken.
+    if (!warnedPaths.has(configPath)) {
+      warnedPaths.add(configPath);
+      const detail = err instanceof Error ? err.message : String(err);
+      console.warn(`[testivai] config warning: ${configPath} is not valid JSON (${detail}) — using defaults.`);
+    }
     return { ...DEFAULT_CONFIG };
   }
 }
