@@ -33,8 +33,14 @@ export function toSafeFilename(name: string): string {
   // Replace multiple consecutive hyphens with single hyphen
   filename = filename.replace(/-+/g, '-');
 
-  // Remove leading/trailing hyphens and dots
-  filename = filename.replace(/^[-.]+|[-.]+$/g, '');
+  // Remove leading/trailing hyphens and dots. Trimmed with index scans
+  // rather than /^[-.]+|[-.]+$/ — the anchored-alternation regex is
+  // polynomial on adversarial inputs (CodeQL js/polynomial-redos).
+  let start = 0;
+  let end = filename.length;
+  while (start < end && (filename[start] === '-' || filename[start] === '.')) start++;
+  while (end > start && (filename[end - 1] === '-' || filename[end - 1] === '.')) end--;
+  filename = filename.slice(start, end);
 
   // Limit length (255 is max for most filesystems, leave room for extension)
   if (filename.length > 200) {
