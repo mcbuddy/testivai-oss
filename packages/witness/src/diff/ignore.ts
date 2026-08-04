@@ -6,7 +6,7 @@
  * appear identical to the differ.
  */
 
-import { IgnoreRegion } from './types';
+import type { IgnoreRegion } from './types';
 
 /**
  * Mask ignored regions by copying candidate pixels into baseline.

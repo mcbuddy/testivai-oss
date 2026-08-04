@@ -1,6 +1,6 @@
-import { BrowserClient } from './client';
+import type { BrowserClient } from './client';
 import { logger, createLogger } from '../utils/logger';
-import { SnapshotPayload, LayoutData, BrowserPerformanceMetrics } from '../types';
+import type { SnapshotPayload, LayoutData, BrowserPerformanceMetrics } from '../types';
 
 /**
  * Browser capture functionality
@@ -153,7 +153,7 @@ export class BrowserCapture {
         
         // Add up to 3 CSS classes for better uniqueness
         // e.g., button.button.primary-button instead of just button.button
-        let hasClass = false;
+        let _hasClass = false;
         if (currentNode.attributes) {
           const attrs = currentNode.attributes;
           for (let i = 0; i < attrs.length; i += 2) {
@@ -163,7 +163,7 @@ export class BrowserCapture {
               for (let c = 0; c < maxClasses; c++) {
                 selector += `.${classes[c]}`;
               }
-              hasClass = classes.length > 0;
+              _hasClass = classes.length > 0;
               break;
             }
           }
@@ -194,7 +194,7 @@ export class BrowserCapture {
       }
       
       return pathParts.join(' > ');
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -292,9 +292,7 @@ export class BrowserCapture {
             uniqueKey = `${selectorPath}[${suffix}]`;
           }
           computedStyles[uniqueKey] = filteredStyles;
-        } catch (error) {
-          // Skip elements that can't be styled
-          continue;
+        } catch (_error) {
         }
       }
       

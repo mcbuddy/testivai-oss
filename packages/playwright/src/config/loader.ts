@@ -1,6 +1,6 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { TestivAIProjectConfig, TestivAIConfig } from '../types';
+import type { TestivAIProjectConfig, TestivAIConfig } from '../types';
 
 /**
  * Default configuration when no config file is found
@@ -66,7 +66,7 @@ export async function loadConfig(): Promise<TestivAIProjectConfig> {
  * @returns TestivAIConfig The effective configuration for this snapshot
  */
 export function mergeTestConfig(
-  projectConfig: TestivAIProjectConfig,
+  _projectConfig: TestivAIProjectConfig,
   testConfig?: TestivAIConfig
 ): TestivAIConfig {
   if (!testConfig) {

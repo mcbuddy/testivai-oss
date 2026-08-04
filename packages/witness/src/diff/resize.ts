@@ -5,7 +5,7 @@
  * normalize them before diffing.
  */
 
-import { SizeMismatch } from './types';
+import type { SizeMismatch } from './types';
 
 export interface NormalizeResult {
   normalizedBaseline: Uint8ClampedArray;

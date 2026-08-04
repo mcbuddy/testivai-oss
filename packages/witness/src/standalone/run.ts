@@ -19,7 +19,7 @@ import { loadLocalConfig } from '../config/local-config';
 import { generateReport } from '../report/generator';
 import { logger } from '../utils/logger';
 import { filterCrawledLinks, pageNameFromUrl, resolvePages } from './crawl';
-import { findChrome, launchChrome, LaunchedChrome } from './launcher';
+import { findChrome, launchChrome, type LaunchedChrome } from './launcher';
 
 /** Mirrors the adapters' stabilization CSS (see packages/playwright config/stabilize):
  * near-zero durations complete animations at their FINAL state, so pages

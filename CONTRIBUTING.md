@@ -19,6 +19,7 @@ Requirements:
 
 ```bash
 pnpm install
+pnpm lint
 pnpm build
 pnpm test
 pnpm e2e
@@ -29,7 +30,7 @@ pnpm e2e
 1. Create a topic branch from `main`
 2. Make focused changes (one logical change per PR)
 3. **If your change touches a published package, add a changeset** (see below)
-4. Run `pnpm build`, `pnpm test`, and `pnpm e2e` locally
+4. Run `pnpm lint`, `pnpm build`, `pnpm test`, and `pnpm e2e` locally
 5. Open a PR with a clear description and rationale
 
 ## Releases — Changesets

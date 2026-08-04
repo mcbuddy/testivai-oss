@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import { BrowserConnectionInfo } from '../types';
+import type { BrowserConnectionInfo } from '../types';
 import chalk from 'chalk';
 
 /**
@@ -18,7 +18,7 @@ export class BrowserDiscovery {
     // If port is specified, try only that port
     if (port) {
       logger.debug(`Trying specified port: ${port}`);
-      const info = await this.tryPort(port);
+      const info = await BrowserDiscovery.tryPort(port);
       if (info) {
         return info;
       }
@@ -29,9 +29,9 @@ export class BrowserDiscovery {
     const envPort = process.env.TESTIVAI_BROWSER_PORT || process.env.TESTIVAI_CDP_PORT;
     if (envPort) {
       const portNum = parseInt(envPort, 10);
-      if (!isNaN(portNum)) {
+      if (!Number.isNaN(portNum)) {
         logger.debug(`Trying port from environment: ${portNum}`);
-        const info = await this.tryPort(portNum);
+        const info = await BrowserDiscovery.tryPort(portNum);
         if (info) {
           return info;
         }
@@ -41,7 +41,7 @@ export class BrowserDiscovery {
     // Try default ports
     for (const defaultPort of DEFAULT_PORTS) {
       logger.debug(`Trying default port: ${defaultPort}`);
-      const info = await this.tryPort(defaultPort);
+      const info = await BrowserDiscovery.tryPort(defaultPort);
       if (info) {
         return info;
       }
@@ -87,7 +87,7 @@ export class BrowserDiscovery {
         id: suitableTab?.id || versionInfoAny.id,
         title: suitableTab?.title,
         url: suitableTab?.url,
-        browserVersion: versionInfoAny['Browser'],
+        browserVersion: versionInfoAny.Browser,
         protocolVersion: versionInfoAny['Protocol-Version'],
         userAgent: versionInfoAny['User-Agent'],
         v8Version: versionInfoAny['V8-Version'],

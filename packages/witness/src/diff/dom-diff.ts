@@ -37,7 +37,7 @@
  * Self-closing void elements per HTML spec are handled.
  */
 
-const VOID_ELEMENTS = new Set([
+const _VOID_ELEMENTS = new Set([
   'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
   'link', 'meta', 'param', 'source', 'track', 'wbr',
 ]);

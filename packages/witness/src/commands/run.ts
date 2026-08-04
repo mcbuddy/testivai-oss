@@ -66,7 +66,7 @@ export const runCommand = new Command('run')
           await client.connect(port);
           connected = true;
           logger.info('Successfully connected to browser');
-        } catch (error) {
+        } catch (_error) {
           retryCount++;
           if (retryCount >= maxRetries) {
             logger.warn(`Failed to connect to Chrome after ${maxRetries} attempts. Continuing without browser capture...`);

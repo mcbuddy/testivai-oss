@@ -3,7 +3,7 @@
  */
 
 import { determineStatus, resolveStatusContext, STATUS_CONTEXT } from '../status';
-import { ResultsData } from '../types';
+import type { ResultsData } from '../types';
 
 describe('STATUS_CONTEXT', () => {
   it('T6.7 - context is TestivAI / visual', () => {

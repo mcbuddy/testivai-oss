@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { BrowserClient } from '../browser/client';
 import { BrowserCapture } from '../browser/capture';
-import { BrowserDiscovery, BrowserDiscoveryError } from '../browser/discovery';
+import { BrowserDiscoveryError } from '../browser/discovery';
 import { logger } from '../utils/logger';
 import { toSafeFilename } from '../utils/file-naming';
 

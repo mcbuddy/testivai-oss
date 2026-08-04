@@ -18,7 +18,7 @@
  * element-map support yet).
  */
 
-import { DiffRegion } from './types';
+import type { DiffRegion } from './types';
 
 export interface ElementMapEntry {
   /** Deterministic CSS-ish path (tag.class:nth-of-type chain). */

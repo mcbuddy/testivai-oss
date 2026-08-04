@@ -1,0 +1,99 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": [
+			"packages/**/src/**/*.ts",
+			"packages/**/__tests__/**/*.ts",
+			"action/src/**/*.ts",
+			"e2e/src/**/*.ts",
+			"scripts/**/*.js"
+		]
+	},
+	"formatter": {
+		"enabled": false
+	},
+	"assist": {
+		"enabled": false
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noConsole": "off"
+			},
+			"style": {
+				"noNonNullAssertion": "off",
+				"useTemplate": "off",
+				"useNodejsImportProtocol": "off"
+			},
+			"complexity": {
+				"noForEach": "off"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"packages/witness/src/capture/element-map.ts",
+				"packages/witness/src/capture/settle.ts",
+				"packages/witness/src/__tests__/capture/settle.test.ts"
+			],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noInnerDeclarations": "off",
+						"noUnusedVariables": "off",
+						"noUnusedFunctionParameters": "off"
+					},
+					"complexity": {
+						"useOptionalChain": "off",
+						"useArrowFunction": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"packages/witness/src/utils/framework-detect.ts",
+				"packages/witness/src/utils/template-generator.ts"
+			],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noTemplateCurlyInString": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/mcp/src/server.ts"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noBannedTypes": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"packages/witness/src/browser/discovery.ts",
+				"packages/witness/src/utils/framework-detect.ts"
+			],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noStaticOnlyClass": "off"
+					}
+				}
+			}
+		}
+	]
+}

@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { buildComment, buildEmptyComment, resolveUpsertMarker } from './comment';
 import { determineStatus, resolveStatusContext } from './status';
-import { ResultsData } from './types';
+import type { ResultsData } from './types';
 
 /**
  * Recursively collect all file paths under a directory.

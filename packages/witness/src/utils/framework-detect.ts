@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { FrameworkDetection } from '../types';
+import type { FrameworkDetection } from '../types';
 
 /**
  * Framework detection utility
@@ -17,7 +17,7 @@ export class FrameworkDetector {
     let confidence = 0;
 
     // Check for Cypress
-    const cypressResult = this.detectCypress(cwd);
+    const cypressResult = FrameworkDetector.detectCypress(cwd);
     if (cypressResult.detected) {
       framework = 'cypress';
       confidence = cypressResult.confidence;
@@ -26,7 +26,7 @@ export class FrameworkDetector {
     }
 
     // Check for WebdriverIO
-    const wdioResult = this.detectWebdriverIO(cwd);
+    const wdioResult = FrameworkDetector.detectWebdriverIO(cwd);
     if (wdioResult.detected && wdioResult.confidence > confidence) {
       framework = 'webdriverio';
       confidence = wdioResult.confidence;
@@ -37,7 +37,7 @@ export class FrameworkDetector {
     }
 
     // Check for Selenium JS
-    const seleniumJsResult = this.detectSeleniumJS(cwd);
+    const seleniumJsResult = FrameworkDetector.detectSeleniumJS(cwd);
     if (seleniumJsResult.detected && seleniumJsResult.confidence > confidence) {
       framework = 'selenium-js';
       confidence = seleniumJsResult.confidence;
@@ -48,7 +48,7 @@ export class FrameworkDetector {
     }
 
     // Check for Selenium Python
-    const seleniumPyResult = this.detectSeleniumPython(cwd);
+    const seleniumPyResult = FrameworkDetector.detectSeleniumPython(cwd);
     if (seleniumPyResult.detected && seleniumPyResult.confidence > confidence) {
       framework = 'selenium-python';
       confidence = seleniumPyResult.confidence;
@@ -58,7 +58,7 @@ export class FrameworkDetector {
       configFiles.push(...seleniumPyResult.configFiles);
     }
 
-    const instructions = this.generateInstructions(framework);
+    const instructions = FrameworkDetector.generateInstructions(framework);
 
     return {
       framework,
@@ -73,7 +73,7 @@ export class FrameworkDetector {
    * Detect Cypress
    */
   private static detectCypress(cwd: string) {
-    const detected = false;
+    const _detected = false;
     const evidence: string[] = [];
     const configFiles: string[] = [];
     let confidence = 0;
@@ -115,7 +115,7 @@ export class FrameworkDetector {
    * Detect WebdriverIO
    */
   private static detectWebdriverIO(cwd: string) {
-    const detected = false;
+    const _detected = false;
     const evidence: string[] = [];
     const configFiles: string[] = [];
     let confidence = 0;
@@ -151,7 +151,7 @@ export class FrameworkDetector {
    * Detect Selenium JS
    */
   private static detectSeleniumJS(cwd: string) {
-    const detected = false;
+    const _detected = false;
     const evidence: string[] = [];
     const configFiles: string[] = [];
     let confidence = 0;
@@ -200,7 +200,7 @@ export class FrameworkDetector {
    * Detect Selenium Python
    */
   private static detectSeleniumPython(cwd: string) {
-    const detected = false;
+    const _detected = false;
     const evidence: string[] = [];
     const configFiles: string[] = [];
     let confidence = 0;

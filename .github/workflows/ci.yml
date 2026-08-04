@@ -37,6 +37,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Lint before building: it is the fastest check, so a style-level
+      # mistake fails in seconds rather than after a full compile.
+      - name: Lint
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '20'
+        run: pnpm lint
+
       - name: Build all packages
         run: pnpm build
 

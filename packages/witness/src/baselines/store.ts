@@ -59,7 +59,7 @@ export class BaselineStore {
   private readonly baselinesDir: string;
   private readonly tempDir: string;
 
-  constructor(private readonly projectRoot: string, baselinesDirOverride?: string) {
+  constructor(readonly projectRoot: string, baselinesDirOverride?: string) {
     this.baselinesDir = resolveBaselinesDir(projectRoot, baselinesDirOverride);
     this.tempDir = path.join(projectRoot, '.testivai', 'temp');
   }

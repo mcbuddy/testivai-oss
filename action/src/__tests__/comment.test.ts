@@ -4,7 +4,7 @@
 
 import { buildComment, buildEmptyComment, resolveUpsertMarker, UPSERT_MARKER } from '../comment';
 import { STATUS_CONTEXT } from '../status';
-import { ResultsData } from '../types';
+import type { ResultsData } from '../types';
 
 describe('resolveUpsertMarker', () => {
   it('returns the legacy bare marker for the default status context', () => {

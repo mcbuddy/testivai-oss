@@ -6,7 +6,7 @@
  * connected-component labeling approach.
  */
 
-import { DiffRegion, RegionOptions } from './types';
+import type { DiffRegion, RegionOptions } from './types';
 
 /** Defaults for region clustering (config-overridable). */
 export const DEFAULT_REGION_OPTIONS: Required<RegionOptions> = {

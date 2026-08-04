@@ -2,7 +2,7 @@
  * GitHub commit status builder for TestivAI visual reports
  */
 
-import { ResultsData } from './types';
+import type { ResultsData } from './types';
 
 export const STATUS_CONTEXT = 'TestivAI / visual';
 

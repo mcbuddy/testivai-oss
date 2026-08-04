@@ -1,5 +1,5 @@
 import { BrowserClient } from '../browser/client';
-import { BrowserConnectionInfo } from '../types';
+import type { BrowserConnectionInfo } from '../types';
 
 // Mock chrome-remote-interface
 jest.mock('chrome-remote-interface', () => ({

@@ -24,7 +24,7 @@ export function toSafeFilename(name: string): string {
   }
 
   // Replace spaces and common separators with hyphens
-  filename = filename.replace(/[\s_\/\\]+/g, '-');
+  filename = filename.replace(/[\s_/\\]+/g, '-');
 
   // Remove invalid filename characters (Windows-safe)
   // Keep: letters, numbers, hyphens, dots, underscores, parentheses
@@ -34,7 +34,7 @@ export function toSafeFilename(name: string): string {
   filename = filename.replace(/-+/g, '-');
 
   // Remove leading/trailing hyphens and dots
-  filename = filename.replace(/^[-\.]+|[-\.]+$/g, '');
+  filename = filename.replace(/^[-.]+|[-.]+$/g, '');
 
   // Limit length (255 is max for most filesystems, leave room for extension)
   if (filename.length > 200) {
@@ -93,7 +93,7 @@ export function extractNameFromUrl(url: string): string {
     return lastSegment || 'page';
   } catch {
     // If URL parsing fails, extract from string
-    const matches = url.match(/\/([^\/]+)\/?$/);
+    const matches = url.match(/\/([^/]+)\/?$/);
     return matches ? matches[1] : 'page';
   }
 }
@@ -113,7 +113,8 @@ export function sanitizeTestName(name: string): string {
   // Replace multiple spaces with single space
   testName = testName.replace(/\s+/g, ' ');
 
-  // Remove control characters
+  // Remove control characters — the control-character class is the point here
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: sanitizing them is this function's job
   testName = testName.replace(/[\x00-\x1F\x7F]/g, '');
 
   // Limit length

@@ -10,19 +10,19 @@ import { PNG } from 'pngjs';
 import { diff as diffEngine } from '../diff';
 import { domDiff } from '../diff/dom-diff';
 import { BaselineStore, resolveBaselinesDir } from '../baselines/store';
-import { SnapshotDomSignal, SnapshotResult, SnapshotStatus } from './results';
+import type { SnapshotDomSignal, SnapshotResult, SnapshotStatus } from './results';
 import {
-  CapturedMaskRect,
-  MaskSpec,
+  type CapturedMaskRect,
+  type MaskSpec,
   resolveMasks,
 } from '../diff/mask';
-import { RegionOptions } from '../diff/types';
+import type { RegionOptions } from '../diff/types';
 import {
   attributeRegions,
   compareStyleHashes,
   detectPageShift,
   parseElementMap,
-  ElementMapEntry,
+  type ElementMapEntry,
 } from '../diff/attribution';
 
 export interface CompareOptions {
@@ -440,7 +440,7 @@ function compareBuffers(
     if (maskRects.length > 0) result.masks = maskRects;
     if (maskWarnings.length > 0) result.maskWarnings = maskWarnings;
     return result;
-  } catch (err) {
+  } catch (_err) {
     // PNG decode failed (corrupt file, unexpected format) — report as changed
     // without a diff image so the user can investigate manually
     return {

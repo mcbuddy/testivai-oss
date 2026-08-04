@@ -3,7 +3,7 @@
  * per-axis pixel bound (the ported layout-tolerance layer).
  */
 import { applyPassCriteria } from '../report/compare';
-import { SnapshotResult } from '../report/results';
+import type { SnapshotResult } from '../report/results';
 
 const changed = (regions?: SnapshotResult['regions']): SnapshotResult => ({
   name: 's',

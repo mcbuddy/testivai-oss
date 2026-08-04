@@ -9,7 +9,7 @@
  * and enriched DiffResult.
  */
 
-import { DiffOptions, DiffResult, DiffRegion, PbdRawResult } from './types';
+import type { DiffOptions, DiffResult, DiffRegion, PbdRawResult } from './types';
 import { applyIgnoreRegions } from './ignore';
 import { applyMaskRects, hatchMaskRects } from './mask';
 import { normalizeDimensions } from './resize';
@@ -18,8 +18,8 @@ import { applyMinimap } from './minimap';
 
 // ── Pbd constants (unchanged) ───────────────────────────────────────────────
 const MINIMAP_SCALE = 128;
-const COLOR32_ADDED = 0x03f00cc00;
-const COLOR32_REMOVED = 0x03f0000ff;
+const _COLOR32_ADDED = 0x03f00cc00;
+const _COLOR32_REMOVED = 0x03f0000ff;
 const COLOR32_MINIMAP = 0x0207f0000;
 const HASH_SPREAD = 0x0f0731337;
 
@@ -238,7 +238,7 @@ function pbdDiffCore(
   enableMinimap: boolean,
 ): PbdRawResult {
   const area = width * height;
-  const b8l = baseline8.length;
+  const _b8l = baseline8.length;
 
   // Maximum acceptable square distance between two colors;
   // 35215 is the maximum possible value for the YIQ difference metric

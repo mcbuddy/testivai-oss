@@ -9,7 +9,7 @@
  * 3-column diff view, approve command copy button, image zoom overlay.
  */
 
-import { ReportData, SnapshotResult } from './results';
+import type { ReportData, SnapshotResult } from './results';
 
 /**
  * Render a standalone HTML report from report data.
@@ -436,7 +436,7 @@ function renderStats(snapshot: SnapshotResult): string {
   }
   if (snapshot.baselineApprovedAt) {
     const d = new Date(snapshot.baselineApprovedAt);
-    if (!isNaN(d.getTime())) {
+    if (!Number.isNaN(d.getTime())) {
       parts.push(`baseline approved ${d.toISOString().slice(0, 10)}`);
     }
   }

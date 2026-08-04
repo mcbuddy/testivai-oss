@@ -1,4 +1,4 @@
-import { Reporter, FullConfig, Suite, FullResult } from './reporter-types';
+import type { Reporter, FullConfig, Suite, FullResult } from './reporter-types';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import {

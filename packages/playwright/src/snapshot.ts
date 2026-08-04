@@ -1,9 +1,9 @@
-import { Page, TestInfo } from '@playwright/test';
+import type { Page, TestInfo } from '@playwright/test';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { URL } from 'url';
 import sharp from 'sharp';
-import { TestivAIConfig } from './types';
+import type { TestivAIConfig } from './types';
 import { loadConfig, mergeTestConfig } from './config/loader';
 import { collectIgnoreSelectors, collectIgnoreRules, buildIgnoreSelectorsCSS } from './config/ignore-selectors';
 import { buildElementMapExpression } from './capture/element-map';
@@ -24,7 +24,7 @@ function getSnapshotNameFromUrl(pageUrl: string): string {
     const url = new URL(pageUrl);
     const pathName = url.pathname.substring(1).replace(/\//g, '_'); // remove leading slash and replace others
     return pathName || 'home';
-  } catch (error) {
+  } catch (_error) {
     // Fallback for invalid URLs
     return 'snapshot';
   }
@@ -410,7 +410,7 @@ export async function snapshot(
         // are excluded from the DOM/text signal too (consistent semantic)
         const clone = document.documentElement.cloneNode(true) as HTMLElement;
         for (const sel of selectors) {
-          try { clone.querySelectorAll(sel).forEach((el) => el.remove()); } catch {}
+          try { clone.querySelectorAll(sel).forEach((el) => { el.remove(); }); } catch {}
         }
         return clone.outerHTML;
       }, domIgnoreSelectors);

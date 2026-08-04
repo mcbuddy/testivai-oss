@@ -239,7 +239,7 @@ export function applyMaskRects(
   baseline: Uint8Array | Uint8ClampedArray,
   candidate: Uint8Array | Uint8ClampedArray,
   width: number,
-  height: number,
+  _height: number,
   rects: MaskRect[],
 ): void {
   for (const r of rects) {
@@ -269,7 +269,7 @@ const HATCH_RGBA: [number, number, number, number] = [128, 128, 128, 140];
 export function hatchMaskRects(
   diff8: Uint8Array | Uint8ClampedArray,
   width: number,
-  height: number,
+  _height: number,
   rects: MaskRect[],
 ): void {
   for (const r of rects) {

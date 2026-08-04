@@ -2,7 +2,7 @@
  * PR comment builder for TestivAI visual reports
  */
 
-import { ResultsData, SnapshotResult } from './types';
+import type { ResultsData, SnapshotResult } from './types';
 import { STATUS_CONTEXT } from './status';
 
 export const UPSERT_MARKER = '<!-- testivai-visual-report -->';

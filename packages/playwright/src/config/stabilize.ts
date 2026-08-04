@@ -23,7 +23,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Page } from '@playwright/test';
-import { TestivAIConfig, TestivAIProjectConfig } from '../types';
+import type { TestivAIConfig, TestivAIProjectConfig } from '../types';
 
 /**
  * CSS injected for the duration of the capture. Near-zero durations (not

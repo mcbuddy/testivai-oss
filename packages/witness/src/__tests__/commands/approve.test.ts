@@ -22,7 +22,7 @@ describe('Approve Command (BaselineStore operations)', () => {
 
   const FAKE_PNG_A = Buffer.from('approve-test-baseline');
   const FAKE_PNG_B = Buffer.from('approve-test-updated');
-  const FAKE_PNG_C = Buffer.from('approve-test-third');
+  const _FAKE_PNG_C = Buffer.from('approve-test-third');
 
   describe('T4.1 - approve specific name', () => {
     it('should copy temp to baseline', () => {

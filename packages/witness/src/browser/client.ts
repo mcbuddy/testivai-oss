@@ -1,7 +1,7 @@
-import CDP, { Client } from 'chrome-remote-interface';
+import CDP, { type Client } from 'chrome-remote-interface';
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
-import { BrowserConnectionInfo } from '../types';
+import type { BrowserConnectionInfo } from '../types';
 
 /**
  * Browser protocol client wrapper

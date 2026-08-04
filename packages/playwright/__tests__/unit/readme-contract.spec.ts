@@ -21,7 +21,7 @@ function namedImportsFromReadme(source: string): Set<string> {
       .split(',')
       .map((s) => s.trim().split(/\s+as\s+/)[0].trim())
       .filter(Boolean)
-      .forEach((n) => names.add(n));
+      .forEach((n) => { names.add(n); });
   }
   return names;
 }

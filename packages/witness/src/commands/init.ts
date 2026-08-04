@@ -161,7 +161,7 @@ export const initCommand = new Command('init')
         console.log();
         console.log(chalk.green.bold('  ✓ TestivAI is set up for Playwright (local mode).'));
         if (created.length > 0) {
-          created.forEach((f) => console.log(chalk.green(`  ✓ ${f}`)));
+          for (const f of created) console.log(chalk.green(`  ✓ ${f}`));
         } else {
           console.log(chalk.gray('  (already configured — nothing to change)'));
         }
@@ -191,7 +191,7 @@ export const initCommand = new Command('init')
         }
         generateConfig(options.force ?? false, cwd);
         console.log(chalk.cyan('\n=== Framework Setup Instructions ==='));
-        detection.instructions.forEach((line) => console.log(line));
+        for (const line of detection.instructions) console.log(line);
         console.log(chalk.cyan('\n=== General Setup ==='));
         console.log(`
 1. Run your tests:
@@ -227,7 +227,7 @@ ${chalk.gray('For more information, see: https://testiv.ai/docs/')}
 
       if (mode === 'local') {
         // Create .testivai/config.json and baselines directory
-        const config = createDefaultConfig(cwd);
+        const _config = createDefaultConfig(cwd);
         const baselinesDir = path.join(cwd, '.testivai', 'baselines');
         fs.mkdirSync(baselinesDir, { recursive: true });
 

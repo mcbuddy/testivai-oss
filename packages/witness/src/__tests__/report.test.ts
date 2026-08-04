@@ -9,7 +9,7 @@ import { BaselineStore } from '../baselines/store';
 import { compareAll } from '../report/compare';
 import { generateReport } from '../report/generator';
 import { renderHtml } from '../report/template';
-import { ReportData } from '../report/results';
+import type { ReportData } from '../report/results';
 
 describe('Report Generator', () => {
   let tmpDir: string;

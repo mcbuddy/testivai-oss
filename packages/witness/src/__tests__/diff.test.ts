@@ -4,8 +4,7 @@
  * Uses programmatically generated pixel buffers (no external PNG files).
  */
 
-import { diff, detectRegions, normalizeDimensions } from '../diff';
-import { DiffOptions, DiffResult } from '../diff/types';
+import { diff, normalizeDimensions } from '../diff';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -8,8 +8,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { compareAll, CompareOptions, PassCriteria } from './compare';
-import { ReportData, ReportSummary, SnapshotResult} from './results';
+import { compareAll, type CompareOptions, type PassCriteria } from './compare';
+import type { ReportData, ReportSummary, SnapshotResult} from './results';
 import { renderHtml } from './template';
 import { loadLocalConfig } from '../config/local-config';
 import { BaselineStore } from '../baselines/store';

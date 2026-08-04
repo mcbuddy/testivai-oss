@@ -1,4 +1,4 @@
-import { BrowserClient } from './client';
+import type { BrowserClient } from './client';
 import { logger, createLogger } from '../utils/logger';
 
 /**
@@ -100,7 +100,7 @@ export class BrowserBinding {
         // Access the underlying chrome-remote-interface client
         const criClient = (this.client as any).client;
         
-        if (criClient && criClient.Target) {
+        if (criClient?.Target) {
           // Get all targets
           const targets = await criClient.Target.getTargets();
           
@@ -188,7 +188,7 @@ export class BrowserBinding {
         let result: any;
         
         // Try to evaluate in page context if we have access to targets
-        if (criClient && criClient.Target) {
+        if (criClient?.Target) {
           try {
             // Get targets to find the main page
             const targets = await criClient.Target.getTargets();
@@ -235,7 +235,7 @@ export class BrowserBinding {
                 sessionId: target.sessionId
               });
             }
-          } catch (targetError) {
+          } catch (_targetError) {
             // Fallback to default context
             result = await this.client.send('Runtime.evaluate', {
               expression: 'window.__testivaiCaptureRequested',
@@ -278,7 +278,7 @@ export class BrowserBinding {
           }
         }
       } catch (error: any) {
-        if (error.message && error.message.includes('WebSocket is not open')) {
+        if (error.message?.includes('WebSocket is not open')) {
           logger.debug('WebSocket closed, stopping polling');
           isConnected = false;
           clearInterval(pollInterval);

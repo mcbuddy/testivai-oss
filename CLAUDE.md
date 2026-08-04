@@ -30,6 +30,7 @@ Never use `npm` or `yarn` inside this repo. Use `pnpm` for all installs, builds,
 
 ```bash
 pnpm install          # install all workspace deps
+pnpm lint             # biome lint (lint-only; no formatter)
 pnpm build            # tsc compile all packages
 pnpm test             # run unit tests across all packages (jest)
 pnpm e2e              # run OSS smoke E2E suite

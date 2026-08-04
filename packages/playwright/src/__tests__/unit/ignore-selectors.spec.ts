@@ -15,7 +15,7 @@ import {
   collectIgnoreRules,
   buildIgnoreSelectorsCSS,
 } from '../../config/ignore-selectors';
-import { TestivAIProjectConfig } from '../../types';
+import type { TestivAIProjectConfig } from '../../types';
 
 // ────────────────────────────────────────────────────────────
 // Fixtures
