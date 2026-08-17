@@ -196,7 +196,7 @@ jobs:
       - run: npm run test:oss          # runs playwright.oss.config.ts
 
       - name: Post results + upload report
-        uses: mcbuddy/testivai-oss@v1
+        uses: testivai/testivai-oss@v1
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -212,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: mcbuddy/testivai-oss/approve@v1
+      - uses: testivai/testivai-oss/approve@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           workflow: testivai-oss.yml   # this file's name — used to find the report artifact

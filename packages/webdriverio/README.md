@@ -1,6 +1,6 @@
 # @testivai/witness-webdriverio
 
-WebdriverIO adapter for [TestivAI Witness](https://github.com/mcbuddy/testivai-oss) — local-first visual regression testing with pixel + DOM comparison. No account required.
+WebdriverIO adapter for [TestivAI Witness](https://github.com/testivai/testivai-oss) — local-first visual regression testing with pixel + DOM comparison. No account required.
 
 Pairs with `@testivai/witness` (the local CLI + diff engine + HTML report) and shares the `.testivai/baselines/` layout used by `@testivai/witness-playwright`. Switching between Playwright and WebdriverIO produces the same baselines, the same report, and the same approval workflow.
 
@@ -137,8 +137,8 @@ Class registered as a WDIO service. Implements `onComplete`.
 
 ## Links
 
-- Repo: https://github.com/mcbuddy/testivai-oss
-- Issues: https://github.com/mcbuddy/testivai-oss/issues
+- Repo: https://github.com/testivai/testivai-oss
+- Issues: https://github.com/testivai/testivai-oss/issues
 
 ## License
 

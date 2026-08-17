@@ -31,7 +31,7 @@ TestivAI deliberately doesn't. The layered analysis — pixel regions, element
 attribution ("`div.card:nth-of-type(2)` shifted +24px"), whole-page shift
 detection, style-only-change detection, the DOM noise hint — is computed
 locally and handed to **whatever model you already use** through the
-[`@testivai/mcp`](https://github.com/mcbuddy/testivai-oss/tree/main/packages/mcp) server:
+[`@testivai/mcp`](https://github.com/testivai/testivai-oss/tree/main/packages/mcp) server:
 
 - `explain_snapshot` gives your agent the layered evidence bundle.
 - The `review-visual-changes` prompt turns it into a review narrative.

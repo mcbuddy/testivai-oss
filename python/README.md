@@ -48,6 +48,6 @@ already present wherever playwright-python is (Playwright for Python ships a
 Node driver). Resolution order: `TESTIVAI_CLI` env → `testivai` on PATH →
 `npx --yes @testivai/witness`.
 
-Docs: https://github.com/mcbuddy/testivai-oss/blob/main/docs/frameworks/python.md
+Docs: https://github.com/testivai/testivai-oss/blob/main/docs/frameworks/python.md
 
 MIT.

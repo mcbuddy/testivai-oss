@@ -36,7 +36,7 @@ Pick the framework you use:
 ## Reference
 
 - **[`results.json` schema + on-disk layout (Extension API)](./extension-api.md)** — the contract for community adapters and third-party reporters
-- **[GitHub Action](./github-action.md)** — `mcbuddy/testivai-oss@v1` for PR comments + commit status
+- **[GitHub Action](./github-action.md)** — `testivai/testivai-oss@v1` for PR comments + commit status
 - **[`testivai run` experimental sidecar](./sidecar-testivai-run.md)** — what it is, why it's labeled experimental, when to use it anyway
 
 ## Guides
@@ -53,4 +53,4 @@ Pick the framework you use:
 
 ## Source of truth
 
-The canonical OSS docs live in this repo at [`/docs`](https://github.com/mcbuddy/testivai-oss/tree/main/docs). They sync to the public docs site automatically on each release. To propose a change, open a PR here. Issues: [GitHub Issues](https://github.com/mcbuddy/testivai-oss/issues).
+The canonical OSS docs live in this repo at [`/docs`](https://github.com/testivai/testivai-oss/tree/main/docs). They sync to the public docs site automatically on each release. To propose a change, open a PR here. Issues: [GitHub Issues](https://github.com/testivai/testivai-oss/issues).

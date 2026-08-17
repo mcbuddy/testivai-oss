@@ -143,5 +143,5 @@ anything that needs an account — TestivAI is local-first by
 [philosophy](./docs/philosophy.md). Collaboration happens through git
 (committed baselines), the PR workflow, and shareable single-file reports.
 
-Have a need that isn't here? [Open an issue](https://github.com/mcbuddy/testivai-oss/issues) —
+Have a need that isn't here? [Open an issue](https://github.com/testivai/testivai-oss/issues) —
 adoption stories with concrete pain move items up this list.

@@ -173,5 +173,5 @@ The WDIO adapter is local-only: captures, diffs, and the report are all produced
 
 ## See also
 
-- [`@testivai/witness-webdriverio` package README](https://github.com/mcbuddy/testivai-oss/tree/main/packages/webdriverio)
+- [`@testivai/witness-webdriverio` package README](https://github.com/testivai/testivai-oss/tree/main/packages/webdriverio)
 - [Quickstart for the Playwright adapter](./playwright.md) (similar shape, different framework)

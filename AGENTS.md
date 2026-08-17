@@ -48,8 +48,8 @@ packages/
   selenium/     @testivai/witness-selenium   Selenium adapter
   mcp/          @testivai/mcp                MCP server: results + diff images for AI agents
 
-action/         mcbuddy/testivai-oss@v1     GitHub Action: post PR comment + commit status
-approve/        mcbuddy/testivai-oss/approve@v1  GitHub Action: /testivai approve command handler
+action/         testivai/testivai-oss@v1     GitHub Action: post PR comment + commit status
+approve/        testivai/testivai-oss/approve@v1  GitHub Action: /testivai approve command handler
 
 examples/       minimal working examples per framework
 docs/           public Markdown documentation
@@ -89,13 +89,13 @@ User test
   → reporter writes visual-report/results.json + visual-report/index.html
 
 CI — GitHub Actions
-  → mcbuddy/testivai-oss@v1
+  → testivai/testivai-oss@v1
       reads results.json
       bundles .testivai/temp/ → visual-report/pending-baselines/
       uploads testivai-visual-report artifact
       posts PR comment + commit status
   → developer comments /testivai approve [name|--all]
-  → mcbuddy/testivai-oss/approve@v1
+  → testivai/testivai-oss/approve@v1
       verifies commenter has write access
       downloads artifact
       copies pending-baselines/<name>/ → .testivai/baselines/<name>/

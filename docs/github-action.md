@@ -5,7 +5,7 @@ title: GitHub Action
 
 # GitHub Action
 
-`mcbuddy/testivai-oss@v1` is a GitHub Action that reads the local visual report (`results.json` + assets) and posts it to pull requests as a comment + commit status. Designed to run after any framework adapter — Playwright, WebdriverIO, or future ones — finishes producing a `visual-report/` directory.
+`testivai/testivai-oss@v1` is a GitHub Action that reads the local visual report (`results.json` + assets) and posts it to pull requests as a comment + commit status. Designed to run after any framework adapter — Playwright, WebdriverIO, or future ones — finishes producing a `visual-report/` directory.
 
 ## Quick start
 
@@ -28,7 +28,7 @@ jobs:
 
       # Post results to the PR. `if: always()` so a failed test still
       # produces a report comment.
-      - uses: mcbuddy/testivai-oss@v1
+      - uses: testivai/testivai-oss@v1
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -55,7 +55,7 @@ Pin to `@v1` for rolling major-version updates, or `@v1.0.0` for a fixed point r
 When a repo runs more than one visual workflow (say, a TypeScript Playwright lane and a Python pytest lane), give each workflow its own `status-context` (and `artifact-name`). Each lane then posts its own commit status and upserts its own PR comment instead of overwriting the other's:
 
 ```yaml
-- uses: mcbuddy/testivai-oss@v1
+- uses: testivai/testivai-oss@v1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     report-dir: visual-report
@@ -63,7 +63,7 @@ When a repo runs more than one visual workflow (say, a TypeScript Playwright lan
     artifact-name: testivai-visual-report-pytest
 ```
 
-Requires `mcbuddy/testivai-oss@v1` ≥ v1.0.10.
+Requires `testivai/testivai-oss@v1` ≥ v1.0.10.
 
 ## What the Action posts
 
@@ -152,7 +152,7 @@ Whole `report-dir/` (HTML report, `results.json`, all diff images and DOM captur
 
 ## Approving changes from PR feedback
 
-The fastest path is the comment command: post `/testivai approve <name>` (or `/testivai approve --all`) directly on the PR. The companion `mcbuddy/testivai-oss/approve@v1` action verifies the commenter has write access, restores the pending baselines from the workflow artifact, and commits them back to the PR branch — no local checkout needed.
+The fastest path is the comment command: post `/testivai approve <name>` (or `/testivai approve --all`) directly on the PR. The companion `testivai/testivai-oss/approve@v1` action verifies the commenter has write access, restores the pending baselines from the workflow artifact, and commits them back to the PR branch — no local checkout needed.
 
 Alternatively, approve locally on the PR branch, commit the updated baselines, and push:
 
@@ -179,6 +179,6 @@ The next CI run shows the snapshot back in the `passed` bucket. Approve everythi
 
 ## See also
 
-- [Action source + contributing](https://github.com/mcbuddy/testivai-oss/tree/main/action)
+- [Action source + contributing](https://github.com/testivai/testivai-oss/tree/main/action)
 - [Marketplace listing](https://github.com/marketplace/actions/testivai-visual-report)
 - [`docs/extension-api.md`](./extension-api.md) — the `results.json` contract the Action consumes

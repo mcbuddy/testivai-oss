@@ -66,7 +66,7 @@ Optional tolerance and capture settings (all have safe defaults):
 Crawler-only fields, used by `testivai witness <url>`: `pages`, `maxPages` (default 10), `viewport` (default 1280×800).
 
 The full list with types lives in `LocalConfig` — see
-[`packages/witness/src/config/local-config.ts`](https://github.com/mcbuddy/testivai-oss/blob/main/packages/witness/src/config/local-config.ts).
+[`packages/witness/src/config/local-config.ts`](https://github.com/testivai/testivai-oss/blob/main/packages/witness/src/config/local-config.ts).
 
 Auto-passed snapshots keep their diff image and are labeled in the report and in `results.json` (`autoPassed: "threshold" | "noise" | "shift"`), so tolerance never hides information — it just stops demanding review for changes you've declared acceptable.
 

@@ -136,8 +136,8 @@ Lines are prefixed with `[TestivAI]`:
 ## Getting Help
 
 1. **Check debug logs** for detailed error information
-2. **Search existing issues** on [GitHub](https://github.com/mcbuddy/testivai-oss/issues)
-3. **Ask in [GitHub Discussions](https://github.com/mcbuddy/testivai-oss/discussions)** for community support
+2. **Search existing issues** on [GitHub](https://github.com/testivai/testivai-oss/issues)
+3. **Ask in [GitHub Discussions](https://github.com/testivai/testivai-oss/discussions)** for community support
 4. **Email** testivai.app@gmail.com
 
 When reporting issues, please include:

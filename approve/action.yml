@@ -27,7 +27,7 @@ inputs:
     description: >
       Name of the workflow artifact that contains the visual report and
       pending baselines. Must match the artifact-name used in the
-      mcbuddy/testivai-oss@v1 reporter step.
+      testivai/testivai-oss@v1 reporter step.
     required: false
     default: 'testivai-visual-report'
 
@@ -184,7 +184,7 @@ runs:
 
         if [ ! -d "$PENDING_DIR" ]; then
           echo "::error::No pending-baselines found in the artifact."
-          echo "Make sure you are using mcbuddy/testivai-oss@v1 (v1.0.2+) with upload-artifact: true."
+          echo "Make sure you are using testivai/testivai-oss@v1 (v1.0.2+) with upload-artifact: true."
           exit 1
         fi
 

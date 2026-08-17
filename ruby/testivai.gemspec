@@ -21,9 +21,9 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 2.7.0"
 
   spec.metadata["homepage_uri"]      = spec.homepage
-  spec.metadata["source_code_uri"]   = "https://github.com/mcbuddy/testivai-oss"
+  spec.metadata["source_code_uri"]   = "https://github.com/testivai/testivai-oss"
   spec.metadata["documentation_uri"] = "https://testiv.ai/docs/frameworks/ruby/"
-  spec.metadata["changelog_uri"]     = "https://github.com/mcbuddy/testivai-oss/releases"
+  spec.metadata["changelog_uri"]     = "https://github.com/testivai/testivai-oss/releases"
 
   # element_map.js is generated (scripts/generate-element-map-asset.js) and
   # MUST ship — the adapter reads it at capture time.

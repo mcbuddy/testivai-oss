@@ -52,4 +52,4 @@ to override) and respects `reportDir` from `.testivai/config.json`.
 
 Local mode only — no account, no API key, nothing leaves the machine.
 
-Full integration guide (instructions-file level, MCP level, zero-test-suite apps, real transcript): [docs/guides/ai-agents.md](https://github.com/mcbuddy/testivai-oss/blob/main/docs/guides/ai-agents.md)
+Full integration guide (instructions-file level, MCP level, zero-test-suite apps, real transcript): [docs/guides/ai-agents.md](https://github.com/testivai/testivai-oss/blob/main/docs/guides/ai-agents.md)

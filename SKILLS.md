@@ -175,7 +175,7 @@ Post a comment on the PR:
 ```
 
 **What happens:**
-1. The `mcbuddy/testivai-oss/approve@v1` action verifies you have write access
+1. The `testivai/testivai-oss/approve@v1` action verifies you have write access
 2. Downloads the `testivai-visual-report` artifact from the latest CI run
 3. Copies approved screenshots into `.testivai/baselines/`
 4. Commits them to your PR branch

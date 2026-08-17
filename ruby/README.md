@@ -1,7 +1,7 @@
 # testivai (Ruby)
 
 Local-first visual regression testing for Capybara and Selenium suites.
-Part of [testivai-oss](https://github.com/mcbuddy/testivai-oss) — MIT, no
+Part of [testivai-oss](https://github.com/testivai/testivai-oss) — MIT, no
 account, nothing uploaded.
 
 ```ruby

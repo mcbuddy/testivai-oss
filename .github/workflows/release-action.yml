@@ -3,7 +3,7 @@ name: Release Action (major-tag rolling)
 # When a `v*` tag is pushed (e.g. v1.0.0, v1.2.3), update the rolling
 # major-version tag (e.g. v1) to point at the same SHA. This is the
 # convention every published GitHub Action follows so users can pin to
-# `uses: mcbuddy/testivai-oss/action@v1` and get bug fixes without
+# `uses: testivai/testivai-oss/action@v1` and get bug fixes without
 # repinning, while still being able to opt into a specific point release.
 #
 # Triggers ONLY for full semver tags (vMAJOR.MINOR.PATCH). Pre-release

@@ -48,7 +48,7 @@ TestivAI runs entirely on your machine — no account, no server, nothing upload
 
 Everything stays on your machine. To get a diff in front of a teammate:
 
-- **In a PR** — the [`mcbuddy/testivai-oss` action](https://github.com/mcbuddy/testivai-oss) posts the summary as a PR comment and uploads the report as a build artifact. Approve from the PR with a `/testivai approve` comment.
+- **In a PR** — the [`testivai/testivai-oss` action](https://github.com/testivai/testivai-oss) posts the summary as a PR comment and uploads the report as a build artifact. Approve from the PR with a `/testivai approve` comment.
 - **As a single file** — `npx testivai report --share` writes `visual-report/share.html` with every image inlined, so it works over chat or email with no server. Set `shareUploadCommand` in `.testivai/config.json` to pipe it to your own storage (S3, GCS, or anything with a CLI).
 
 ## Framework Integration
@@ -413,6 +413,6 @@ MIT
 
 ## Support
 
-- Documentation: https://github.com/mcbuddy/testivai-oss/tree/main/packages/witness
-- Issues: https://github.com/mcbuddy/testivai-oss/issues
+- Documentation: https://github.com/testivai/testivai-oss/tree/main/packages/witness
+- Issues: https://github.com/testivai/testivai-oss/issues
 - Website: https://testiv.ai

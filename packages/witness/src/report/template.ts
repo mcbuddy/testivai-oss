@@ -265,7 +265,7 @@ export function renderHtml(data: ReportData): string {
     <div class="cta">
       <h3>Reviewing with an AI agent?</h3>
       <p>The <code>@testivai/mcp</code> server gives Claude Code, Cursor, and any MCP client this report as structured data — including <code>explain_snapshot</code>, which attributes each diff to selectors and explains why it happened.</p>
-      <a href="https://github.com/mcbuddy/testivai-oss/blob/main/docs/guides/ai-agents.md" target="_blank">Agent setup guide</a>
+      <a href="https://github.com/testivai/testivai-oss/blob/main/docs/guides/ai-agents.md" target="_blank">Agent setup guide</a>
     </div>
 
     <div class="oss-notice">

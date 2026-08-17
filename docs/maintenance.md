@@ -33,20 +33,20 @@ The honest evidence, rather than a promise:
 | Published registries | npm (5 packages), PyPI, RubyGems |
 
 Current versions and every release note are on the
-[releases page](https://github.com/mcbuddy/testivai-oss/releases) — that link
+[releases page](https://github.com/testivai/testivai-oss/releases) — that link
 stays accurate, whereas any number written here starts going stale the day it's
 typed.
 
 ## What's next
 
-The [public roadmap](https://github.com/mcbuddy/testivai-oss/blob/main/ROADMAP.md)
+The [public roadmap](https://github.com/testivai/testivai-oss/blob/main/ROADMAP.md)
 lists what's missing and the order it's intended to be fixed, with rough sizing
 and items marked as good community contributions. It's written as *what's
 missing*, not as marketing — shipped items are marked shipped, and things that
 are only a maybe say so.
 
 **Adoption stories move items up that list.** If something blocks you, an
-[issue](https://github.com/mcbuddy/testivai-oss/issues) describing the concrete
+[issue](https://github.com/testivai/testivai-oss/issues) describing the concrete
 pain is the most effective way to change priorities.
 
 ## What if maintenance stops
@@ -70,5 +70,5 @@ version you pinned keeps working, offline, forever.
 
 Issues and pull requests are welcome. Items marked *(community)* on the roadmap are
 deliberately scoped as community-sized. The repository has a
-[contributing guide](https://github.com/mcbuddy/testivai-oss/blob/main/CONTRIBUTING.md)
+[contributing guide](https://github.com/testivai/testivai-oss/blob/main/CONTRIBUTING.md)
 and the full test suite runs on every pull request.

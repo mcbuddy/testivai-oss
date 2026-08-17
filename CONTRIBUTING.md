@@ -9,7 +9,7 @@ This repository was extracted from the private TestivAI monorepo with a fresh gi
 - `@testivai/witness`
 - `@testivai/witness-playwright`
 - `@testivai/witness-webdriverio`
-- The TestivAI GitHub Action (published at `mcbuddy/testivai-oss@v1`)
+- The TestivAI GitHub Action (published at `testivai/testivai-oss@v1`)
 
 ## Setup
 
@@ -88,7 +88,7 @@ A maintainer can also run the workflow manually via the **Actions** tab if neede
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/mcbuddy/testivai-oss/issues). Include:
+Use [GitHub Issues](https://github.com/testivai/testivai-oss/issues). Include:
 - SDK package and version
 - Node.js version
 - Reproduction steps

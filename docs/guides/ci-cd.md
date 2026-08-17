@@ -176,7 +176,7 @@ jobs:
       - run: npx testivai merge-captures collected/
       - run: npx testivai report --fail-on-diff
 
-      - uses: mcbuddy/testivai-oss@v1
+      - uses: testivai/testivai-oss@v1
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

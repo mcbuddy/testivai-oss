@@ -11,7 +11,7 @@
 
   <name>TestivAI for Java</name>
   <description>Local-first visual regression capture for playwright-java and Selenium — pixel + DOM diff, tunable tolerances, PR approvals; shares baselines with the JS/TS and Python TestivAI adapters</description>
-  <url>https://github.com/mcbuddy/testivai-oss</url>
+  <url>https://github.com/testivai/testivai-oss</url>
 
   <licenses>
     <license><name>MIT</name></license>

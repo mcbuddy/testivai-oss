@@ -84,7 +84,7 @@ jobs:
           sleep 3
           npx testivai witness http://localhost:3000
       - name: Post results
-        uses: mcbuddy/testivai-oss@v1
+        uses: testivai/testivai-oss@v1
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: mcbuddy/testivai-oss/approve@v1
+      - uses: testivai/testivai-oss/approve@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           workflow: visual-safety-net.yml
@@ -116,7 +116,7 @@ needed. If you use a custom runner, set `TESTIVAI_CHROME_PATH` or run
 - **Tolerances**: `"noiseAutoPass": true` lets DOM-identical render noise
   pass automatically; `"maxDiffPercent"` sets how much drift you accept.
 - **Agents can read the results**: `visual-report/results.json` is
-  machine-readable, and the [`@testivai/mcp`](https://github.com/mcbuddy/testivai-oss/tree/main/packages/mcp) server
+  machine-readable, and the [`@testivai/mcp`](https://github.com/testivai/testivai-oss/tree/main/packages/mcp) server
   lets Claude Code or Cursor see the diffs directly — so the same agent
   that changed your app can check its own work. Full setup:
   [AI agents guide](./ai-agents.md).

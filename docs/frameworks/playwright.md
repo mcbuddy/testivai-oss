@@ -257,5 +257,5 @@ The Playwright SDK uses Playwright's native `page.screenshot()`, `page.evaluate(
 ## Changelog
 
 Per-release notes live in
-[CHANGELOG.md](https://github.com/mcbuddy/testivai-oss/blob/main/packages/playwright/CHANGELOG.md)
-and on the [GitHub releases page](https://github.com/mcbuddy/testivai-oss/releases).
+[CHANGELOG.md](https://github.com/testivai/testivai-oss/blob/main/packages/playwright/CHANGELOG.md)
+and on the [GitHub releases page](https://github.com/testivai/testivai-oss/releases).

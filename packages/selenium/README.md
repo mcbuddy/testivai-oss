@@ -1,6 +1,6 @@
 # @testivai/witness-selenium
 
-Selenium WebDriver adapter for [TestivAI Witness](https://github.com/mcbuddy/testivai-oss) — local-first visual regression testing with pixel + DOM comparison. No cloud account, nothing uploaded.
+Selenium WebDriver adapter for [TestivAI Witness](https://github.com/testivai/testivai-oss) — local-first visual regression testing with pixel + DOM comparison. No cloud account, nothing uploaded.
 
 Shares baselines, tolerances, the HTML report, and the PR approval flow with every other TestivAI adapter (Playwright, WebdriverIO, Python, Java) through one on-disk contract.
 
@@ -42,7 +42,7 @@ await testivai.witness(driver, 'pricing', {
 });
 ```
 
-Global settings (thresholds, tolerances, `ignoreSelectors`) live in `.testivai/config.json` — see the [main docs](https://github.com/mcbuddy/testivai-oss/tree/main/docs).
+Global settings (thresholds, tolerances, `ignoreSelectors`) live in `.testivai/config.json` — see the [main docs](https://github.com/testivai/testivai-oss/tree/main/docs).
 
 ## Full-page screenshots
 
