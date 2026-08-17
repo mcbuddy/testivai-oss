@@ -2,10 +2,11 @@
 *                           @mcbuddy
 
 # Package-specific owners
-/packages/common/           @mcbuddy
 /packages/witness/          @mcbuddy
 /packages/playwright/       @mcbuddy
 /packages/webdriverio/      @mcbuddy
+/packages/selenium/         @mcbuddy
+/packages/mcp/              @mcbuddy
 /action/                    @mcbuddy
 
 # Docs
