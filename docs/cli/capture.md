@@ -39,6 +39,11 @@ Chrome resolution: `TESTIVAI_CHROME_PATH` env var → standard install
 locations → PATH. A Playwright-downloaded Chromium works:
 `npx playwright install chromium`, then point the env var at the binary.
 
+In containers, Chrome is launched with `--no-sandbox` automatically when the
+process runs as root (which is the default in most Docker images).
+`TESTIVAI_CHROME_NO_SANDBOX=1` forces it on for non-root containers whose
+seccomp profile still blocks the sandbox; `=0` forces it off.
+
 First run creates baselines — approve and commit them:
 
 ```bash

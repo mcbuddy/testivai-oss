@@ -79,12 +79,24 @@ async function waitForDevtools(port: number, timeoutMs: number): Promise<boolean
 }
 
 /**
- * Launch a throwaway headless Chrome with remote debugging enabled.
- * Uses a temp profile so the user's browser state is never touched.
+ * Chrome refuses to start as root unless its sandbox is disabled, and root is
+ * the default user inside Docker images and CI containers — exactly where
+ * `testivai witness <url>` is most useful. Detect that case so the run works
+ * instead of timing out with an error that looks like a broken binary.
+ *
+ * TESTIVAI_CHROME_NO_SANDBOX overrides the detection in both directions, for
+ * non-root containers whose seccomp profile still blocks the sandbox.
  */
-export async function launchChrome(executable: string, port: number): Promise<LaunchedChrome> {
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-chrome-'));
+export function needsNoSandbox(): boolean {
+  const forced = process.env.TESTIVAI_CHROME_NO_SANDBOX;
+  if (forced === '1' || forced === 'true') return true;
+  if (forced === '0' || forced === 'false') return false;
+  // getuid does not exist on Windows.
+  return typeof process.getuid === 'function' && process.getuid() === 0;
+}
 
+/** Flags for the throwaway Chrome instance. Exported for testing. */
+export function chromeLaunchArgs(port: number, userDataDir: string): string[] {
   const args = [
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
@@ -95,8 +107,26 @@ export async function launchChrome(executable: string, port: number): Promise<La
     '--disable-extensions',
     '--disable-background-networking',
     '--hide-scrollbars',
-    'about:blank',
   ];
+
+  if (needsNoSandbox()) {
+    // Docker gives /dev/shm only 64MB by default, which crashes Chrome on
+    // larger pages, so the two container flags travel together.
+    args.push('--no-sandbox', '--disable-dev-shm-usage');
+  }
+
+  args.push('about:blank');
+  return args;
+}
+
+/**
+ * Launch a throwaway headless Chrome with remote debugging enabled.
+ * Uses a temp profile so the user's browser state is never touched.
+ */
+export async function launchChrome(executable: string, port: number): Promise<LaunchedChrome> {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'testivai-chrome-'));
+
+  const args = chromeLaunchArgs(port, userDataDir);
 
   logger.debug(`Launching Chrome: ${executable}`);
   const child: ChildProcess = spawn(executable, args, { stdio: 'ignore' });
@@ -117,9 +147,14 @@ export async function launchChrome(executable: string, port: number): Promise<La
   const ready = await waitForDevtools(port, 12_000);
   if (!ready) {
     kill();
+    const sandboxHint = needsNoSandbox()
+      ? ''
+      : ' If this is a container, Chrome may be refusing to start because its ' +
+        'sandbox is unavailable — set TESTIVAI_CHROME_NO_SANDBOX=1.';
     throw new Error(
       `Chrome did not open its debugging endpoint on port ${port} within 12s. ` +
-        `Set TESTIVAI_CHROME_PATH to a working Chrome/Chromium binary if the auto-detected one is broken.`,
+        `Set TESTIVAI_CHROME_PATH to a working Chrome/Chromium binary if the auto-detected one is broken.` +
+        sandboxHint,
     );
   }
 
