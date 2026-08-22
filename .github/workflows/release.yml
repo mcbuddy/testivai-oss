@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      publishedPackages: ${{ steps.changesets.outputs.publishedPackages }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -107,3 +111,139 @@ jobs:
           else
             echo "::notice::No pending changesets, nothing to release."
           fi
+
+  # A release is only real if a stranger can install it.
+  #
+  # Every other CI job installs from the pnpm workspace, which by construction
+  # cannot see the failure modes that live in the *published* artifacts. All
+  # three of these have bitten this repo:
+  #
+  #   - changesets reported "packages published successfully" for a version npm
+  #     never received (witness 2.0.1, 2026-08-20). Every adapter hard-pins the
+  #     exact witness version, so one missing publish broke every install path.
+  #   - a transitive native dep (sharp -> libvips) carried high-severity
+  #     advisories that only `npm audit` on a real install surfaces, and that
+  #     npm attributes to *our* package name.
+  #   - the standalone capture path failed for every user running as root,
+  #     because Chrome needs --no-sandbox there. uid 0 never happens in the
+  #     workspace suite.
+  #
+  # So this job trusts the registry, not the release log.
+  verify-published:
+    name: Verify published packages install
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Every published version is really on the registry
+        env:
+          PUBLISHED: ${{ needs.release.outputs.publishedPackages }}
+        run: |
+          node -e '
+            const pkgs = JSON.parse(process.env.PUBLISHED);
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            (async () => {
+              const missing = [];
+              for (const { name, version } of pkgs) {
+                let found = false;
+                // Allow for propagation, but do not wait forever.
+                for (let attempt = 0; attempt < 10 && !found; attempt++) {
+                  if (attempt) await sleep(15000);
+                  const url = `https://registry.npmjs.org/${name.replace("/", "%2F")}`;
+                  const res = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
+                  const doc = await res.json();
+                  found = Boolean(doc.versions && doc.versions[version]);
+                }
+                console.log(`${found ? "ok      " : "MISSING "} ${name}@${version}`);
+                if (!found) missing.push(`${name}@${version}`);
+              }
+              if (missing.length) {
+                console.log(`::error::Reported as published but absent from npm: ${missing.join(", ")}. Re-run this workflow; changeset publish only sends what npm is missing.`);
+                process.exit(1);
+              }
+            })();
+          '
+
+      - name: Install the published packages in a clean project
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke"
+          cd "$RUNNER_TEMP/smoke"
+          npm init -y > /dev/null
+          # Not --prefer-offline, not the workspace: this is the stranger's install.
+          npm install -D @testivai/witness-playwright @playwright/test
+          node -p '"witness resolved to " + require(process.env.RUNNER_TEMP + "/smoke/node_modules/@testivai/witness/package.json").version'
+
+      # Deliberately scoped to the Playwright path. `webdriverio` is a peer
+      # dependency whose own tree currently carries high advisories upstream
+      # (a bare `npm install webdriverio@latest` reports them with no testivai
+      # present), so auditing it here would gate releases on someone else's
+      # CVEs. Do not "fix" this by adding the webdriverio adapter.
+      - name: No high-severity advisories in a fresh install
+        working-directory: ${{ runner.temp }}/smoke
+        run: npm audit --audit-level=high
+
+      - name: Published packages carry provenance attestations
+        working-directory: ${{ runner.temp }}/smoke
+        run: npm audit signatures
+
+      - name: Standalone capture works
+        working-directory: ${{ runner.temp }}/smoke
+        run: |
+          printf '<!doctype html><title>t</title><h1>hello</h1>\n' > index.html
+          python3 -m http.server 3000 > /dev/null 2>&1 &
+          sleep 2
+          TESTIVAI_CHROME_PATH="$(command -v google-chrome || command -v chromium-browser)" \
+            npx testivai witness http://localhost:3000 --pages "/"
+          test -f visual-report/results.json
+
+      - name: Standalone capture works as root
+        working-directory: ${{ runner.temp }}/smoke
+        run: |
+          rm -rf visual-report .testivai
+          python3 -m http.server 3001 > /dev/null 2>&1 &
+          sleep 2
+          # uid 0 is the default in Docker-based CI and agent sandboxes; Chrome
+          # refuses to start there without --no-sandbox.
+          sudo -E env "PATH=$PATH" \
+            TESTIVAI_CHROME_PATH="$(command -v google-chrome || command -v chromium-browser)" \
+            npx testivai witness http://localhost:3001 --pages "/"
+          test -f visual-report/results.json
+
+      - name: Playwright adapter captures through the reporter
+        working-directory: ${{ runner.temp }}/smoke
+        run: |
+          rm -rf visual-report .testivai
+          npx playwright install --with-deps chromium
+          cat > playwright.config.ts <<'EOF'
+          import { defineConfig } from '@playwright/test';
+          export default defineConfig({
+            reporter: [['list'], ['@testivai/witness-playwright/reporter']],
+          });
+          EOF
+          mkdir -p tests
+          cat > tests/smoke.spec.ts <<'EOF'
+          import { test } from '@playwright/test';
+          import { testivai } from '@testivai/witness-playwright';
+          test('captures', async ({ page }, testInfo) => {
+            await page.goto('http://localhost:3002');
+            await testivai.witness(page, testInfo, 'home');
+          });
+          EOF
+          python3 -m http.server 3002 > /dev/null 2>&1 &
+          sleep 2
+          npx playwright test
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/visual-report/results.json");
+            if (r.summary.total !== 1) {
+              console.log("::error::expected 1 snapshot, got " + r.summary.total);
+              process.exit(1);
+            }
+            console.log("captured " + r.summary.total + " snapshot, schema " + r.version);
+          '

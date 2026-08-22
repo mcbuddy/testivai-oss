@@ -134,3 +134,106 @@ jobs:
       - name: Build and test
         working-directory: java
         run: mvn -B --no-transfer-progress test
+
+  # `pnpm install` from the workspace resolves every @testivai/* dependency to
+  # local source, so it cannot see what a consumer actually gets. This job packs
+  # the real tarballs and installs them into a clean project OUTSIDE the
+  # workspace -- the same thing `npm install @testivai/witness-playwright`
+  # produces, minus the registry round-trip.
+  #
+  # It exists because the workspace suite was green while all of the following
+  # were true of the shipped artifacts: a transitive native dep carried
+  # high-severity advisories attributed to our package, and standalone capture
+  # was broken for every user running as root. Both are cheap to catch here,
+  # on the PR, instead of after publishing.
+  consumer-install:
+    name: Consumer install (packed tarballs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Pack the publishable packages
+        run: |
+          mkdir -p "$RUNNER_TEMP/tarballs"
+          # `pnpm pack`, not `npm pack`: only pnpm applies the publish-time
+          # rewrite of `workspace:*` to a real version range. An npm-packed
+          # adapter still says `"@testivai/witness": "workspace:*"` and dies
+          # on install with EUNSUPPORTEDPROTOCOL.
+          for pkg in witness playwright selenium webdriverio mcp; do
+            ( cd "packages/$pkg" && pnpm pack --pack-destination "$RUNNER_TEMP/tarballs" )
+          done
+          ls -1 "$RUNNER_TEMP/tarballs"
+
+      - name: Install the tarballs in a clean project
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cd "$RUNNER_TEMP/consumer"
+          npm init -y > /dev/null
+          # One install, all tarballs: the adapters pin the EXACT witness
+          # version, which on a version-bump PR is not on the registry yet.
+          # Passing them together lets npm satisfy that pin from the local
+          # tarball instead of reaching for a version that does not exist.
+          npm install "$RUNNER_TEMP"/tarballs/*.tgz
+          node -p '"installed witness " + require(process.env.RUNNER_TEMP + "/consumer/node_modules/@testivai/witness/package.json").version'
+
+      # Audited in its own project, deliberately WITHOUT the webdriverio
+      # adapter. `webdriverio` is a peer dependency, and a bare
+      # `npm install webdriverio@latest` -- no testivai in the tree at all --
+      # currently reports 7 high advisories of its own (extract-zip via
+      # @puppeteer/browsers, deepmerge-ts). Auditing that tree would gate our
+      # releases on someone else's CVEs and train everyone to ignore this step.
+      # What we can be held to is the dependency tree we choose: witness and
+      # the Playwright adapter, where advisories get attributed to our package
+      # name and break consumers running `npm audit` in their own CI.
+      - name: No high-severity advisories in the tree we control
+        run: |
+          mkdir -p "$RUNNER_TEMP/audit"
+          cd "$RUNNER_TEMP/audit"
+          npm init -y > /dev/null
+          npm install \
+            "$RUNNER_TEMP"/tarballs/testivai-witness-*.tgz \
+            "$RUNNER_TEMP"/tarballs/testivai-witness-playwright-*.tgz \
+            "$RUNNER_TEMP"/tarballs/testivai-mcp-*.tgz \
+            "$RUNNER_TEMP"/tarballs/testivai-witness-selenium-*.tgz
+          npm audit --audit-level=high
+
+      - name: Standalone capture works
+        working-directory: ${{ runner.temp }}/consumer
+        run: |
+          printf '<!doctype html><title>t</title><h1>hello</h1>\n' > index.html
+          python3 -m http.server 3000 > /dev/null 2>&1 &
+          sleep 2
+          TESTIVAI_CHROME_PATH="$(command -v google-chrome || command -v chromium-browser)" \
+            npx testivai witness http://localhost:3000 --pages "/"
+          test -f visual-report/results.json
+
+      - name: Standalone capture works as root
+        working-directory: ${{ runner.temp }}/consumer
+        run: |
+          rm -rf visual-report .testivai
+          python3 -m http.server 3001 > /dev/null 2>&1 &
+          sleep 2
+          # uid 0 is the default in Docker-based CI and agent sandboxes, where
+          # Chrome will not start without --no-sandbox.
+          sudo -E env "PATH=$PATH" \
+            TESTIVAI_CHROME_PATH="$(command -v google-chrome || command -v chromium-browser)" \
+            npx testivai witness http://localhost:3001 --pages "/"
+          test -f visual-report/results.json
