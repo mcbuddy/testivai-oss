@@ -177,10 +177,15 @@ jobs:
           # rewrite of `workspace:*` to a real version range. An npm-packed
           # adapter still says `"@testivai/witness": "workspace:*"` and dies
           # on install with EUNSUPPORTEDPROTOCOL.
+          # One directory per package. A flat directory cannot be globbed
+          # safely: `testivai-witness-*.tgz` also matches
+          # `testivai-witness-webdriverio-*.tgz`, which silently defeats the
+          # scoping of the audit step below.
           for pkg in witness playwright selenium webdriverio mcp; do
-            ( cd "packages/$pkg" && pnpm pack --pack-destination "$RUNNER_TEMP/tarballs" )
+            mkdir -p "$RUNNER_TEMP/tarballs/$pkg"
+            ( cd "packages/$pkg" && pnpm pack --pack-destination "$RUNNER_TEMP/tarballs/$pkg" )
           done
-          ls -1 "$RUNNER_TEMP/tarballs"
+          ls -1 "$RUNNER_TEMP"/tarballs/*/*.tgz
 
       - name: Install the tarballs in a clean project
         run: |
@@ -191,7 +196,7 @@ jobs:
           # version, which on a version-bump PR is not on the registry yet.
           # Passing them together lets npm satisfy that pin from the local
           # tarball instead of reaching for a version that does not exist.
-          npm install "$RUNNER_TEMP"/tarballs/*.tgz
+          npm install "$RUNNER_TEMP"/tarballs/*/*.tgz
           node -p '"installed witness " + require(process.env.RUNNER_TEMP + "/consumer/node_modules/@testivai/witness/package.json").version'
 
       # Audited in its own project, deliberately WITHOUT the webdriverio
@@ -209,10 +214,17 @@ jobs:
           cd "$RUNNER_TEMP/audit"
           npm init -y > /dev/null
           npm install \
-            "$RUNNER_TEMP"/tarballs/testivai-witness-*.tgz \
-            "$RUNNER_TEMP"/tarballs/testivai-witness-playwright-*.tgz \
-            "$RUNNER_TEMP"/tarballs/testivai-mcp-*.tgz \
-            "$RUNNER_TEMP"/tarballs/testivai-witness-selenium-*.tgz
+            "$RUNNER_TEMP"/tarballs/witness/*.tgz \
+            "$RUNNER_TEMP"/tarballs/playwright/*.tgz \
+            "$RUNNER_TEMP"/tarballs/mcp/*.tgz \
+            "$RUNNER_TEMP"/tarballs/selenium/*.tgz
+          # Guard the scoping itself: if the webdriverio adapter ever lands in
+          # this tree again, the audit below starts failing on upstream CVEs
+          # and the signal is lost.
+          if [ -d node_modules/@testivai/witness-webdriverio ]; then
+            echo "::error::webdriverio adapter leaked into the audit project; fix the tarball selection"
+            exit 1
+          fi
           npm audit --audit-level=high
 
       - name: Standalone capture works
