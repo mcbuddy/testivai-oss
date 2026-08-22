@@ -46,4 +46,4 @@ The repo follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conven
 
 ## Earlier history
 
-For initial extraction history (Phase 1–10 of the SDK split out of `mcbuddy/testivai-monorepo`), see the [`CUTOVER.md`](./CUTOVER.md) runbook and the initial commits on `main`.
+For initial extraction history (Phase 1–10 of the SDK split out of the private TestivAI monorepo), see the initial commits on `main`.

@@ -60,14 +60,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    ignore:
-      # @actions/core >=3 and @actions/artifact >=3 are ESM-only (no "require"
-      # condition in package exports). ncc (CJS bundler) cannot resolve them.
-      # Unblock when action bundler is migrated from ncc to esbuild.
-      - dependency-name: "@actions/core"
-        versions: [">=3.0.0"]
-      - dependency-name: "@actions/artifact"
-        versions: [">=3.0.0"]
 
   # GitHub Actions used in our workflows (CI, release, codeql)
   - package-ecosystem: "github-actions"
@@ -84,3 +76,12 @@ updates:
     commit-message:
       prefix: "chore(ci)"
       include: "scope"
+    groups:
+      # Ungrouped, each runner action opened its own PR and five of them sat
+      # open for weeks. Workflow action bumps are near-always routine, so take
+      # them as one reviewable PR -- majors included.
+      github-actions:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"

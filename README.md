@@ -292,7 +292,13 @@ Bug reports, feature requests, and PRs welcome. Please see:
 
 ## Releases
 
-Releases are published to npm under the `latest` dist-tag. See [`CUTOVER.md`](./CUTOVER.md) for the release runbook and [`.github/workflows/release.yml`](./.github/workflows/release.yml) for the release workflow.
+Releases are published to npm under the `latest` dist-tag, with provenance
+attestations. The flow is Changesets-driven: a PR that changes a published
+package adds a changeset, merging it opens a "version packages" PR collecting
+the pending bumps, and merging *that* publishes. See
+[`.changeset/README.md`](./.changeset/README.md) for the contributor side and
+[`.github/workflows/release.yml`](./.github/workflows/release.yml) for the
+workflow itself.
 
 ## Attribution
 
